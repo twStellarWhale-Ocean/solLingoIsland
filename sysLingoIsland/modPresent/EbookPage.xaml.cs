@@ -1,7 +1,19 @@
 using System.IO;
+using System.Collections.ObjectModel;
+using System.ComponentModel;
 using LingoIsland.Ebook;
 using LingoIsland.Query;
+using LingoIsland.Video;
 using OpenFileDialog = Microsoft.Win32.OpenFileDialog;
+using Run = System.Windows.Documents.Run;
+using Hyperlink = System.Windows.Documents.Hyperlink;
+using Cursors = System.Windows.Input.Cursors;
+using ComboBoxItem = System.Windows.Controls.ComboBoxItem;
+using RoutedEventArgs = System.Windows.RoutedEventArgs;
+using MouseButtonEventArgs = System.Windows.Input.MouseButtonEventArgs;
+using FontWeight = System.Windows.FontWeight;
+using TextWrapping = System.Windows.TextWrapping;
+using CollectionViewSource = System.Windows.Data.CollectionViewSource;
 using UserControl = System.Windows.Controls.UserControl;
 using ListBoxItem = System.Windows.Controls.ListBoxItem;
 using Button = System.Windows.Controls.Button;
@@ -63,15 +75,28 @@ public partial class EbookPage : UserControl
     private readonly List<EbookPick> _picked = new();   // 【獲得】已選之本機 .epub（選檔/拖入後之預解析結果）
     private const int MaxBatch = 50;         // 單批上限（逾限明訊拒收、不默默截斷；比照影片批次）
 
-    public EbookPage(EbookStore store, ThemeStore themes)
+    private readonly Func<ISpeechService?> _speechProvider; // 【內容】逐段 TTS（比照 VideoCapturePage）：委派取現行語音服務（設定換聲後仍取到新實例）
+
+    /// <summary>【內容】段落逐字點選單字＝查該字（App 導向獨立字典視窗，沿用既有查詢，比照影片頁）。</summary>
+    public event Action<string>? WordLookupRequested;
+
+    /// <summary>【內容】加入我的筆記（當前段原文；App 重譯後入既有 NotesStore，比照影片頁）。</summary>
+    public event Action<string>? AddToNotesRequested;
+
+    /// <summary>【內容】某說話人所有段落原文批次收藏至指定資料夾（比照影片頁 #189-checklist；免 AI 翻譯由 App 端確認費用後逐句處理）：參數＝(資料夾名, 段落原文清單依段序)。</summary>
+    public event Action<string, IReadOnlyList<string>>? AddSpeakerNotesRequested;
+
+    public EbookPage(EbookStore store, ThemeStore themes, Func<ISpeechService?> speechProvider)
     {
         InitializeComponent();
         _store = store;
         _themes = themes;
+        _speechProvider = speechProvider;
 
-        // 子頁籤（版面統一）：獲得（書櫃＋匯入）／內容（骨架），以可見性切換
+        // 子頁籤（版面統一）：獲得（書櫃＋匯入）／內容（三欄閱讀器），以可見性切換
         EbookTabAcquire.Checked += (_, _) => ShowSubTab(acquire: true);
         EbookTabContent.Checked += (_, _) => ShowSubTab(acquire: false);
+        InitReader(); // 【內容】三欄閱讀器（切片2）之事件接線與初值
 
         // 匯入卡片：選檔／全部清除／匯入；拖放 .epub 至整張卡片（Preview 穿隧，子元素不各自實作）
         PickEpubBtn.Click += (_, _) => PickEpubFiles();
@@ -111,11 +136,14 @@ public partial class EbookPage : UserControl
         RefreshPickedFiles();
     }
 
-    /// <summary>切換子頁籤：獲得（書櫃＋匯入）／內容（骨架），以可見性切換。</summary>
+    /// <summary>切換子頁籤：獲得（書櫃＋匯入）／內容（三欄閱讀器），以可見性切換。切到內容時若尚未開書而書櫃有選取則自動開該書；切離內容即停止朗讀。</summary>
     private void ShowSubTab(bool acquire)
     {
         EbookAcquirePane.Visibility = acquire ? Visibility.Visible : Visibility.Collapsed;
         EbookContentPane.Visibility = acquire ? Visibility.Collapsed : Visibility.Visible;
+        if (acquire) { StopTts(); return; } // 切離內容：停朗讀（切書/暫停即止家規）
+        // 切到內容：尚未開書但書櫃有選取→自動開該書（單擊選書＋點內容子頁即讀）
+        if (_openBookId is null && _selectedBookId is not null) { _ = OpenBookInReaderAsync(_selectedBookId); }
     }
 
     private void SetStatus(string msg) => StatusText.Text = msg;
@@ -643,6 +671,850 @@ public partial class EbookPage : UserControl
         EbookPickStatus.AlreadyExists => "已在書櫃" + (p.Info is not null ? " · " + MetaLine(p.Info) : ""),
         _ => p.Error ?? "無法解析",
     };
+
+    // ============================================================================================================
+    // 【內容】三欄逐段導讀閱讀器（切片2；[EbookPage] 內容閱讀器契約，spec#7–#10；比照 VideoCapturePage 內容頁三欄）
+    // 左章節目錄｜中閱讀區（當前段放大高亮＋逐字可點）＋控制列｜右逐段清單＋說話人勾選面板。
+    // line-stepped 導讀：以段序游標（章 index／段 index）前進，沿用 PauseDecider 家族（純函式 ParagraphStepper）。
+    // ============================================================================================================
+
+    private string? _openBookId;                                   // 目前開啟閱讀之書 Id（切書判定／進度存取鍵）
+    private EbookItem? _openBook;                                  // 目前開啟之書卡（主題指派用）
+    private IReadOnlyList<IReadOnlyList<SubtitleCue>> _chapters = System.Array.Empty<IReadOnlyList<SubtitleCue>>(); // 各章段落 cue（外層＝spine 章、內層＝段）
+    private readonly List<string> _tocLabels = new();             // 左章節目錄各列標籤（葉章名或「第 N 章」）
+    private int _chapterIndex = -1;                                // 當前章（spine index；LastReadChapter）
+    private int _cursor = -1;                                      // 當前段游標（章內段 index；LastReadParagraph）
+    private bool _loadingBook;                                     // 開書中（防重入）
+    private readonly List<Border> _paraViews = new();             // 中閱讀區各段之容器（供游標移動時就地重繪高亮，免全章重建）
+
+    private readonly ObservableCollection<ParaRow> _paraRows = new(); // 右逐段清單（比照影片 CueRow）
+    private ICollectionView? _paraView;                           // _paraRows 之檢視，套顯示模式篩選
+
+    private readonly ObservableCollection<SpeakerCheck> _speakerChecks = new(); // 說話人勾選面板（全書；篩選/顯示/暫停共用）
+    private SpeakerCheck? _everyoneCheck;
+    private SpeakerCheck? _noSpeakerCheck;
+    private bool _populatingModes;                                // 填下拉/勾選面板期間抑制 SelectionChanged/勾選事件
+    private bool _syncingChecks;                                  // Everyone↔各列連動時抑制遞迴
+    private readonly HashSet<string> _checkedNames = new(StringComparer.OrdinalIgnoreCase); // 已勾原子說話人（快取）
+    private Dictionary<string, string> _speakerColorHex = new(StringComparer.OrdinalIgnoreCase); // 原子說話人→主題色 hex
+
+    private enum RFilterMode { ShowAll, ShowSelected, BoldSelected }
+    private enum RPauseMode { Off, Selected }
+    private RFilterMode _filterMode = RFilterMode.ShowAll;
+    private RPauseMode _pauseMode = RPauseMode.Off;               // 預設不暫停（每段皆停＝逐段導讀）
+
+    private bool _ttsReading;                                      // 連續朗讀（唸完自動前進）中
+    private int _ttsParagraph = -1;                               // 目前朗讀之段（供完成事件比對，防手動導航後誤前進）
+    private ISpeechService? _subscribedSpeech;                     // 目前已訂閱 SpeakCompleted 之語音服務（換聲時改訂）
+
+    private const string ReaderNoSpeaker = "（無說話人）";
+    private const string ReaderEveryone = "（全部說話人）";
+
+    /// <summary>目前章之段落 cue（章 index 越界回空）。</summary>
+    private IReadOnlyList<SubtitleCue> CurCues => _chapterIndex >= 0 && _chapterIndex < _chapters.Count
+        ? _chapters[_chapterIndex] : System.Array.Empty<SubtitleCue>();
+
+    /// <summary>【內容】三欄閱讀器事件接線與初值（建構時呼叫一次）。</summary>
+    private void InitReader()
+    {
+        // 書櫃雙擊＝開該書於閱讀器並切至內容子頁
+        BookList.MouseDoubleClick += (_, _) =>
+        {
+            if ((BookList.SelectedItem as ListBoxItem)?.Tag is not EbookItem it) { return; }
+            _selectedBookId = it.Id;
+            EbookTabContent.IsChecked = true;    // 切至內容頁（已在則無效果、下一句直接開）
+            _ = OpenBookInReaderAsync(it.Id);     // 直接開該書（切書換載；同書已開則 no-op；_loadingBook 防重入）
+        };
+
+        ChapterList.MouseDoubleClick += (_, _) => { if (ChapterList.SelectedIndex >= 0) { JumpToChapter(ChapterList.SelectedIndex); } };
+
+        ReaderPrevBtn.Click += (_, _) => StepPrev();
+        ReaderNextBtn.Click += (_, _) => StepNext();
+        ReaderResumeBtn.Click += (_, _) => ResumeReading();
+        ReaderSpeakBtn.Click += (_, _) => ToggleReadAloud();
+        ReaderAddNoteBtn.Click += (_, _) => AddCurrentParagraphNote();
+
+        PopulateReaderSpeed();
+        ReaderSpeed.SelectionChanged += (_, _) => { if (!_populatingModes) { ApplyReaderSpeed(); } };
+        ReaderThemePicker.SelectionChanged += (_, _) => { if (!_populatingModes) { OnReaderThemeChanged(); } };
+
+        ReaderSpeakerFilter.SelectionChanged += (_, _) => { if (!_populatingModes) { ApplyReaderFilterMode(); } };
+        ReaderPauseAtSpeaker.SelectionChanged += (_, _) => { if (!_populatingModes) { ApplyReaderPauseMode(); } };
+        _paraView = CollectionViewSource.GetDefaultView(_paraRows);
+        _paraView.Filter = ParaRowFilter;
+        ParaList.ItemsSource = _paraView;
+        ParaList.MouseDoubleClick += (_, _) => { if (ParaList.SelectedItem is ParaRow r) { JumpToParagraph(r.Index); } };
+        ParaList.ContextMenu = new ContextMenu();
+        ParaList.ContextMenuOpening += OnParaContextMenuOpening;
+        ParaList.PreviewMouseRightButtonDown += ListDeleteSupport.SelectItemUnderMouse; // 右鍵作用於游標下之段
+        ReaderSpeakerChecks.ItemsSource = _speakerChecks;
+
+        SetReaderControlsEnabled(false);
+    }
+
+    // ---- 開書／章節載入 ----
+
+    /// <summary>開一本書於閱讀器：載入 info.json＋藏書 .epub 複本→逐章段落 cue，還原上次章/段（GetReadingProgress），建三欄。已開同書＝no-op。失敗明訊、不當機、唯讀原檔。</summary>
+    private async Task OpenBookInReaderAsync(string bookId)
+    {
+        if (_loadingBook) { return; }
+        if (_openBookId == bookId && _chapters.Count > 0) { return; } // 同書已開
+        _loadingBook = true;
+        StopTts();
+        try
+        {
+            var item = _store.Load().Items.FirstOrDefault(i => i.Id == bookId);
+            if (item is null) { SetStatus("找不到這本書，可能已被移除。"); return; }
+            var display = string.IsNullOrWhiteSpace(item.Title) ? item.Id : item.Title;
+            SetStatus($"開啟「{display}」中…");
+
+            var (info, epubPath) = LocateBookFiles(item);
+            if (info is null || epubPath is null)
+            {
+                SetStatus("無法開啟這本書——找不到藏書資料夾內的內容檔（.epub）。");
+                return;
+            }
+            var chapters = await EbookContentReader.ReadChaptersAsync(epubPath, info); // 讀整本→逐章段落 cue（背景 IO；smoke）
+
+            _openBookId = bookId;
+            _openBook = item;
+            _chapters = chapters;
+            _chapterIndex = -1; _cursor = -1;
+            ReaderBookTitle.Text = display;
+            BuildTocLabels(info, chapters);
+            PopulateChapterList();
+            PopulateReaderThemePicker(item);
+            BuildSpeakerChecks();       // 全書說話人（跨章）→ 主題色
+
+            var firstReadable = NextNonEmptyChapter(0);
+            if (firstReadable < 0)      // 整本無可閱讀段落（純圖像書／空 EPUB）
+            {
+                SetReaderControlsEnabled(false);
+                ReadingPanel.Children.Clear(); _paraViews.Clear(); _paraRows.Clear();
+                SetStatus("這本書沒有可閱讀的文字段落（可能是純圖像書）。");
+                return;
+            }
+
+            var (ch, para) = _store.GetReadingProgress(bookId);   // 還原上次章/段
+            ch = Math.Clamp(ch, 0, _chapters.Count - 1);
+            if (_chapters[ch].Count == 0) { ch = NextNonEmptyChapter(ch); if (ch < 0) { ch = firstReadable; } para = 0; }
+            SetReaderControlsEnabled(true);
+            LoadChapter(ch);
+            SetCursor(ParagraphStepper.ClampCursor(para, CurCues.Count), save: false);
+            SetStatus($"已開啟「{display}」，共 {_chapters.Count} 章。點單字查詞、按喇叭朗讀（唸完自動前進）。");
+        }
+        catch (Exception ex)
+        {
+            SetStatus("開啟這本書時發生問題：" + ex.Message);
+        }
+        finally { _loadingBook = false; }
+    }
+
+    /// <summary>定位某書藏書資料夾內之 info.json（→<see cref="EbookInfo"/>）與 .epub 複本路徑；缺 .epub 回 (null,null)（唯讀、不改寫）。</summary>
+    private (EbookInfo? Info, string? EpubPath) LocateBookFiles(EbookItem item)
+    {
+        try
+        {
+            var folder = _store.FolderPathFor(item);
+            if (!Directory.Exists(folder)) { return (null, null); }
+            var epub = Directory.EnumerateFiles(folder, "*.epub").FirstOrDefault();
+            if (epub is null) { return (null, null); }
+            var infoPath = Path.Combine(folder, "info.json");
+            EbookInfo? info = File.Exists(infoPath)
+                ? System.Text.Json.JsonSerializer.Deserialize<EbookInfo>(File.ReadAllText(infoPath))
+                : null;
+            // info.json 缺/毀：給空殼（SpineHrefs 空→ReadChaptersAsync 退回 EPUB ReadingOrder）
+            info ??= new EbookInfo { Title = item.Title, Author = item.Author, Language = item.Language };
+            return (info, epub);
+        }
+        catch { return (null, null); }
+    }
+
+    /// <summary>建左章節目錄標籤（一列對一 spine 章）：目錄樹葉章數與章數相符時用葉章名，否則退「第 N 章」。</summary>
+    private void BuildTocLabels(EbookInfo info, IReadOnlyList<IReadOnlyList<SubtitleCue>> chapters)
+    {
+        _tocLabels.Clear();
+        var leaves = FlattenTocLeaves(info.Toc);
+        var aligned = leaves.Count == chapters.Count;
+        for (int i = 0; i < chapters.Count; i++)
+        {
+            _tocLabels.Add(aligned && !string.IsNullOrWhiteSpace(leaves[i]) ? leaves[i].Trim() : $"第 {i + 1} 章");
+        }
+    }
+
+    /// <summary>把目錄樹攤平為葉章標題序（葉＝無子節點）；供左目錄與 spine 章對齊（數相符才採用）。</summary>
+    private static List<string> FlattenTocLeaves(List<EbookTocNode>? nodes)
+    {
+        var leaves = new List<string>();
+        void Walk(List<EbookTocNode>? ns)
+        {
+            if (ns is null) { return; }
+            foreach (var n in ns)
+            {
+                if (n.Children is { Count: > 0 }) { Walk(n.Children); }
+                else { leaves.Add(n.Title ?? ""); }
+            }
+        }
+        Walk(nodes);
+        return leaves;
+    }
+
+    private void PopulateChapterList()
+    {
+        ChapterList.Items.Clear();
+        for (int i = 0; i < _tocLabels.Count; i++)
+        {
+            ChapterList.Items.Add(new ListBoxItem
+            {
+                Content = new TextBlock { Text = _tocLabels[i], TextTrimming = TextTrimming.CharacterEllipsis, FontSize = 12 },
+                Tag = i,
+                Padding = new Thickness(4, 3, 4, 3),
+            });
+        }
+        ReaderEmptyHint.Visibility = _tocLabels.Count > 0 ? Visibility.Collapsed : Visibility.Visible;
+        HighlightChapter(_chapterIndex);
+    }
+
+    private void HighlightChapter(int ch)
+    {
+        if (ch >= 0 && ch < ChapterList.Items.Count)
+        {
+            ChapterList.SelectedIndex = ch;   // ChapterList 無 SelectionChanged 處理器（跳章走雙擊），設選取僅高亮
+            ChapterList.ScrollIntoView(ChapterList.Items[ch]);
+        }
+    }
+
+    /// <summary>載入某章之段落到中閱讀區與右逐段清單（不動游標；呼叫端隨後 SetCursor）。</summary>
+    private void LoadChapter(int ch)
+    {
+        _chapterIndex = ch;
+        var cues = CurCues;
+
+        ReadingPanel.Children.Clear();
+        _paraViews.Clear();
+        for (int i = 0; i < cues.Count; i++)
+        {
+            int idx = i;
+            var border = new Border
+            {
+                Tag = idx,
+                Padding = new Thickness(8, 5, 8, 5),
+                Margin = new Thickness(0, 0, 0, 2),
+                CornerRadius = new CornerRadius(4),
+                Cursor = Cursors.Hand,
+                ContextMenu = BuildParagraphContextMenu(idx),
+            };
+            border.MouseLeftButtonUp += (_, e) => OnParagraphClicked(idx, e);
+            _paraViews.Add(border);
+            ReadingPanel.Children.Add(border);
+            RenderParagraphInto(border, idx);
+        }
+
+        _paraRows.Clear();
+        for (int i = 0; i < cues.Count; i++) { _paraRows.Add(new ParaRow(i, cues[i])); }
+        RefreshParaColors();
+        _paraView?.Refresh();
+        HighlightChapter(ch);
+    }
+
+    // ---- 中閱讀區渲染 ----
+
+    /// <summary>把某段渲染入其容器：當前段＝放大、粉底高亮、逐字可點（Hyperlink→查詞）＋說話人前綴上色；其餘段＝正常字級、淡色、純文字（點選成為當前段）。無前綴段不標說話人。</summary>
+    private void RenderParagraphInto(Border border, int index)
+    {
+        var cues = CurCues;
+        if (index < 0 || index >= cues.Count) { return; }
+        var cue = cues[index];
+        var isCurrent = index == _cursor;
+        var hex = ColorForSpeaker(cue.Speaker);
+        var speakerBrush = hex is not null ? BrushOfHex(hex) : ReaderTextBrush;
+
+        var tb = new TextBlock { TextWrapping = TextWrapping.Wrap, LineHeight = isCurrent ? 26 : 20 };
+        if (!string.IsNullOrWhiteSpace(cue.Speaker))
+        {
+            tb.Inlines.Add(new Run(SpeakerPrefix(cue.Speaker)) { FontWeight = FontWeights.Bold, Foreground = speakerBrush });
+        }
+        if (isCurrent)
+        {
+            tb.FontSize = 17;
+            foreach (var tok in EnglishWordTokenizer.Tokenize(cue.Text))
+            {
+                if (tok.IsWord)
+                {
+                    var word = tok.Text;
+                    var link = new Hyperlink(new Run(word)) { Foreground = speakerBrush, Cursor = Cursors.Hand, TextDecorations = null };
+                    link.Click += (_, _) => WordLookupRequested?.Invoke(word);
+                    tb.Inlines.Add(link);
+                }
+                else { tb.Inlines.Add(new Run(tok.Text) { Foreground = speakerBrush }); }
+            }
+            border.Background = ReaderCurrentBg;
+        }
+        else
+        {
+            tb.FontSize = 13;
+            tb.Inlines.Add(new Run(cue.Text) { Foreground = ReaderMutedBrush });
+            border.Background = System.Windows.Media.Brushes.Transparent;
+        }
+        border.Child = tb;
+    }
+
+    /// <summary>中閱讀區點某段：當前段之單字點選由 Hyperlink 處理（此處不攔）；點其他段＝設為當前段（跳讀→停朗讀）。</summary>
+    private void OnParagraphClicked(int index, MouseButtonEventArgs e)
+    {
+        if (index == _cursor) { return; }
+        JumpToParagraph(index);
+    }
+
+    // ---- 段序游標與導航（line-stepped） ----
+
+    /// <summary>移動段序游標：重繪舊/新當前段（放大高亮）、捲入中閱讀區、選中右清單對應列、存閱讀進度（SetReadingProgress）。</summary>
+    private void SetCursor(int para, bool save = true)
+    {
+        var cues = CurCues;
+        if (cues.Count == 0) { _cursor = -1; return; }
+        para = ParagraphStepper.ClampCursor(para, cues.Count);
+        var old = _cursor;
+        _cursor = para;
+        if (old >= 0 && old < _paraViews.Count && old != para) { RenderParagraphInto(_paraViews[old], old); }
+        if (para >= 0 && para < _paraViews.Count)
+        {
+            RenderParagraphInto(_paraViews[para], para);
+            _paraViews[para].BringIntoView();
+        }
+        SelectParaRow(para);
+        if (save && _openBookId is not null) { _store.SetReadingProgress(_openBookId, _chapterIndex, _cursor); }
+    }
+
+    private void SelectParaRow(int index)
+    {
+        var row = _paraRows.FirstOrDefault(r => r.Index == index);
+        ParaList.SelectedItem = row; // row 可能為 null（被說話人篩選濾掉）→ 不選、正常
+        if (row is not null) { ParaList.ScrollIntoView(row); }
+    }
+
+    /// <summary>上一段（相鄰段，raw ±1；比照影片導航直達）；章首則退上一非空章末段。朗讀中則於新段續讀。</summary>
+    private void StepPrev()
+    {
+        if (_chapters.Count == 0) { return; }
+        if (CurCues.Count > 0 && _cursor > 0) { NavigateTo(_cursor - 1, keepReading: _ttsReading); return; }
+        var pc = PrevNonEmptyChapter(_chapterIndex - 1);
+        if (pc >= 0) { GoToChapter(pc, LastParagraphOf(pc), keepReading: _ttsReading); }
+    }
+
+    /// <summary>下一段（相鄰段，raw ±1）；章末則進下一非空章首段。朗讀中則於新段續讀。</summary>
+    private void StepNext()
+    {
+        if (_chapters.Count == 0) { return; }
+        if (CurCues.Count > 0 && _cursor + 1 < CurCues.Count) { NavigateTo(_cursor + 1, keepReading: _ttsReading); return; }
+        var nc = NextNonEmptyChapter(_chapterIndex + 1);
+        if (nc >= 0) { GoToChapter(nc, 0, keepReading: _ttsReading); }
+    }
+
+    /// <summary>繼續：前進到下一個「應停」段（於指定說話人暫停時跳過非勾選段，沿用 ParagraphStepper.NextStop）；章末則進下一非空章。朗讀中則於新段續讀。</summary>
+    private void ResumeReading()
+    {
+        if (_chapters.Count == 0) { return; }
+        var (targets, noSpeaker) = EffectivePauseTargets();
+        var next = ParagraphStepper.NextStop(CurCues, _cursor, targets, noSpeaker);
+        if (next >= 0) { NavigateTo(next, keepReading: _ttsReading); return; }
+        var nc = NextNonEmptyChapter(_chapterIndex + 1);
+        if (nc >= 0) { GoToChapter(nc, FirstStopOf(nc), keepReading: _ttsReading); }
+        else { StopTts(); SetStatus("已到全書最後。"); }
+    }
+
+    /// <summary>手動導航到同章某段（上/下一段/繼續共用）：先同步停朗讀（作廢待觸發之自動前進），移游標；原在朗讀則於下一輪 Dispatcher 重啟朗讀（generation guard：待觸發完成事件已被 disarm 排空）。</summary>
+    private void NavigateTo(int index, bool keepReading)
+    {
+        StopTts();
+        SetCursor(index);
+        if (keepReading) { Dispatcher.BeginInvoke(new Action(RestartReadingAtCursor), System.Windows.Threading.DispatcherPriority.Background); }
+    }
+
+    /// <summary>跨章移動（含 TOC 跳章、章末續讀滾章）：載入該章、設游標；keepReading 時於新段重啟朗讀，否則停朗讀。</summary>
+    private void GoToChapter(int ch, int para, bool keepReading)
+    {
+        StopTts();
+        if (ch < 0 || ch >= _chapters.Count) { return; }
+        LoadChapter(ch);
+        SetCursor(para < 0 ? 0 : para);
+        if (keepReading) { Dispatcher.BeginInvoke(new Action(RestartReadingAtCursor), System.Windows.Threading.DispatcherPriority.Background); }
+    }
+
+    /// <summary>雙擊左章節目錄＝跳章（跳讀→停朗讀）。</summary>
+    private void JumpToChapter(int ch) => GoToChapter(ch, 0, keepReading: false);
+
+    /// <summary>雙擊右逐段清單／點中閱讀區某段＝跳段（跳讀→停朗讀）。</summary>
+    private void JumpToParagraph(int index) { StopTts(); SetCursor(index); }
+
+    private int NextNonEmptyChapter(int from) { for (int c = Math.Max(0, from); c < _chapters.Count; c++) { if (_chapters[c].Count > 0) { return c; } } return -1; }
+    private int PrevNonEmptyChapter(int from) { for (int c = Math.Min(from, _chapters.Count - 1); c >= 0; c--) { if (_chapters[c].Count > 0) { return c; } } return -1; }
+    private int LastParagraphOf(int ch) => ch >= 0 && ch < _chapters.Count ? Math.Max(0, _chapters[ch].Count - 1) : 0;
+    private int FirstStopOf(int ch)
+    {
+        if (ch < 0 || ch >= _chapters.Count) { return 0; }
+        var (targets, noSpeaker) = EffectivePauseTargets();
+        var s = ParagraphStepper.NextStop(_chapters[ch], -1, targets, noSpeaker);
+        return s < 0 ? 0 : s;
+    }
+
+    // ---- TTS 逐段朗讀（唸完自動前進；比照影片 #208 generation guard） ----
+
+    /// <summary>朗讀鈕：未在朗讀→自當前段起連續朗讀；朗讀中→停止（暫停即止）。</summary>
+    private void ToggleReadAloud()
+    {
+        if (CurCues.Count == 0 || _cursor < 0) { return; }
+        if (_ttsReading) { StopTts(); SetStatus("已停止朗讀。"); }
+        else { _ttsReading = true; UpdateSpeakButton(); SpeakCurrentTts(stopPrevious: true); }
+    }
+
+    /// <summary>朗讀當前段（en-US；記朗讀段＝游標供完成事件比對）；無語音服務明確降級不當機；空段（理論上不存在）跳略前進。</summary>
+    private void SpeakCurrentTts(bool stopPrevious)
+    {
+        EnsureSpeechSubscription();
+        var cues = CurCues;
+        if (_cursor < 0 || _cursor >= cues.Count) { StopTts(); return; }
+        var svc = _speechProvider();
+        if (svc is null) { StopTts(); SetStatus("目前沒有可用的語音服務，無法朗讀。"); return; }
+        _ttsParagraph = _cursor;
+        var text = cues[_cursor].Text;
+        if (string.IsNullOrWhiteSpace(text)) { AdvanceTtsAfterCurrent(); return; }
+        svc.Speak(text, "en-US", stopPrevious);
+    }
+
+    /// <summary>重啟朗讀於當前段（手動導航後之續讀；由 Dispatcher 下一輪呼叫，確保待觸發完成事件已被 disarm 排空）。</summary>
+    private void RestartReadingAtCursor()
+    {
+        _ttsReading = true;
+        UpdateSpeakButton();
+        SpeakCurrentTts(stopPrevious: true);
+    }
+
+    /// <summary>停止朗讀（切書/跳讀/暫停/章變即止）：清朗讀旗標、取消語音（SpeakAsyncCancelAll——以空文字＋stopPrevious 觸發，不改 SpeechService 內部）。</summary>
+    private void StopTts()
+    {
+        _ttsReading = false;
+        _ttsParagraph = -1;
+        try { _speechProvider()?.Speak("", "en-US", stopPrevious: true); } catch { /* 取消盡力 */ }
+        UpdateSpeakButton();
+    }
+
+    /// <summary>朗讀完成（比照影片 #208 generation guard）：唸完（未被取消）且完成段仍＝當前游標才自動前進；否則（被取消／手動導航移了游標／已停朗讀）不前進，避免雙重跳段/誤讀。跨執行緒→Dispatcher。</summary>
+    private void OnSpeechCompleted(object? sender, SpeakDoneEventArgs e)
+    {
+        if (!Dispatcher.CheckAccess()) { Dispatcher.BeginInvoke(new Action(() => OnSpeechCompletedUi(e.Cancelled))); return; }
+        OnSpeechCompletedUi(e.Cancelled);
+    }
+
+    private void OnSpeechCompletedUi(bool cancelled)
+    {
+        if (cancelled || !_ttsReading) { return; }   // 被中止／已停朗讀→不前進
+        if (_ttsParagraph != _cursor) { return; }     // 手動導航已移游標→此完成作廢（generation guard）
+        AdvanceTtsAfterCurrent();
+    }
+
+    /// <summary>唸完自動前進到下一「應停」段續唸；章末滾下一非空章；全書末則停。</summary>
+    private void AdvanceTtsAfterCurrent()
+    {
+        var (targets, noSpeaker) = EffectivePauseTargets();
+        var next = ParagraphStepper.NextStop(CurCues, _cursor, targets, noSpeaker);
+        if (next >= 0)
+        {
+            SetCursor(next);
+            SpeakCurrentTts(stopPrevious: false); // 鏈接：前段已唸完、無需取消
+            return;
+        }
+        var nc = NextNonEmptyChapter(_chapterIndex + 1);
+        if (nc >= 0)
+        {
+            LoadChapter(nc);
+            SetCursor(FirstStopOf(nc));
+            SpeakCurrentTts(stopPrevious: false);
+        }
+        else { StopTts(); SetStatus("已朗讀至全書最後。"); }
+    }
+
+    /// <summary>確保 SpeakCompleted 訂閱到目前語音服務（設定換聲→App 換新 SpeechService 實例，改訂新的、免殘留）。</summary>
+    private void EnsureSpeechSubscription()
+    {
+        var svc = _speechProvider();
+        if (ReferenceEquals(svc, _subscribedSpeech)) { return; }
+        if (_subscribedSpeech is not null) { _subscribedSpeech.SpeakCompleted -= OnSpeechCompleted; }
+        _subscribedSpeech = svc;
+        if (_subscribedSpeech is not null) { _subscribedSpeech.SpeakCompleted += OnSpeechCompleted; }
+    }
+
+    private void UpdateSpeakButton() => ReaderSpeakLabel.Text = _ttsReading ? "停止" : "朗讀";
+
+    // ---- 說話人勾選面板／上色（比照影片頁；全書說話人） ----
+
+    /// <summary>建說話人勾選面板（全書跨章去重）：全部說話人＋各原子說話人（合唸拆開）+語句數＋（有旁白段時）無說話人。保留原勾選、預設全勾；同步快取與主題配色。</summary>
+    private void BuildSpeakerChecks()
+    {
+        var all = _chapters.SelectMany(c => c).ToList(); // 全書段落 cue（供說話人統計與配色）
+        var prevChecked = _speakerChecks.Count > 0
+            ? new HashSet<string>(_speakerChecks.Where(s => s.IsChecked).Select(s => s.Name), StringComparer.OrdinalIgnoreCase)
+            : null;
+        bool WasChecked(string name) => prevChecked is null || prevChecked.Contains(name);
+
+        _populatingModes = true;
+        foreach (var sc in _speakerChecks) { sc.PropertyChanged -= OnSpeakerCheckPropChanged; }
+        _speakerChecks.Clear();
+        _everyoneCheck = null; _noSpeakerCheck = null;
+
+        var hasNoSpeaker = all.Any(c => string.IsNullOrEmpty(c.Speaker));
+        var lineCounts = SpeakerTally.CountBySpeaker(all);
+        var atoms = SpeakerTally.OrderByLineCountDesc(
+            all.Where(c => !string.IsNullOrEmpty(c.Speaker))
+               .SelectMany(c => PauseDecider.SplitSpeakers(c.Speaker))
+               .Distinct(StringComparer.OrdinalIgnoreCase),
+            lineCounts, StringComparer.OrdinalIgnoreCase);
+
+        if (atoms.Count > 0 || hasNoSpeaker)
+        {
+            _everyoneCheck = AddCheck(new SpeakerCheck(ReaderEveryone, isEveryone: true) { LineCount = SpeakerTally.TotalCount(all) });
+            foreach (var a in atoms) { AddCheck(new SpeakerCheck(a) { IsChecked = WasChecked(a), LineCount = lineCounts.TryGetValue(a, out var n) ? n : 0 }); }
+            if (hasNoSpeaker) { _noSpeakerCheck = AddCheck(new SpeakerCheck(ReaderNoSpeaker, isNoSpeaker: true) { IsChecked = WasChecked(ReaderNoSpeaker), LineCount = SpeakerTally.NoSpeakerCount(all) }); }
+            _everyoneCheck.IsChecked = _speakerChecks.Where(x => !x.IsEveryone).All(x => x.IsChecked);
+        }
+        _populatingModes = false;
+
+        RebuildCheckedNames();
+        RebuildSpeakerColors();
+
+        SpeakerCheck AddCheck(SpeakerCheck sc)
+        {
+            sc.RowStripe = _speakerChecks.Count % 2 == 0 ? ReaderRowStripeEven : ReaderRowStripeOdd;
+            sc.PropertyChanged += OnSpeakerCheckPropChanged;
+            _speakerChecks.Add(sc);
+            return sc;
+        }
+    }
+
+    private void OnSpeakerCheckPropChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (_populatingModes || _syncingChecks || sender is not SpeakerCheck sc) { return; }
+        _syncingChecks = true;
+        if (sc.IsEveryone) { foreach (var other in _speakerChecks) { if (!other.IsEveryone) { other.IsChecked = sc.IsChecked; } } }
+        else if (_everyoneCheck is not null) { _everyoneCheck.IsChecked = _speakerChecks.Where(x => !x.IsEveryone).All(x => x.IsChecked); }
+        _syncingChecks = false;
+        RebuildCheckedNames();
+        RefreshParaView();
+        RefreshParaColors();
+    }
+
+    private void RebuildCheckedNames()
+    {
+        _checkedNames.Clear();
+        foreach (var sc in _speakerChecks) { if (sc.IsChecked && !sc.IsEveryone && !sc.IsNoSpeaker) { _checkedNames.Add(sc.Name); } }
+    }
+
+    private bool SpeakerChecked(string? cueSpeaker)
+    {
+        if (string.IsNullOrEmpty(cueSpeaker)) { return _noSpeakerCheck?.IsChecked == true; }
+        foreach (var a in PauseDecider.SplitSpeakers(cueSpeaker)) { if (_checkedNames.Contains(a)) { return true; } }
+        return false;
+    }
+
+    /// <summary>某段首說話人之主題色 hex（該段第一個有配色之原子說話人色）；無則 null（不上色）。</summary>
+    private string? ColorForSpeaker(string? cueSpeaker)
+    {
+        if (string.IsNullOrEmpty(cueSpeaker)) { return null; }
+        foreach (var a in PauseDecider.SplitSpeakers(cueSpeaker)) { if (_speakerColorHex.TryGetValue(a, out var hex)) { return hex; } }
+        return null;
+    }
+
+    /// <summary>依現用主題 12 色描述建每原子說話人字型色（比照影片 RebuildSpeakerColors）：描述含說話人名（不分大小寫）即用該色 hex；無主題/無命中→不上色。主題切換即重算並刷新清單與當前段。</summary>
+    private void RebuildSpeakerColors()
+    {
+        _speakerColorHex = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        var theme = CurrentReaderTheme();
+        if (theme is not null)
+        {
+            ThemeColors.Ensure(theme);
+            foreach (var sc in _speakerChecks)
+            {
+                if (sc.IsEveryone || sc.IsNoSpeaker) { continue; }
+                foreach (var col in theme.Colors)
+                {
+                    if (!string.IsNullOrWhiteSpace(col.Description) && !string.IsNullOrWhiteSpace(col.Hex)
+                        && col.Description.Contains(sc.Name, StringComparison.OrdinalIgnoreCase))
+                    {
+                        _speakerColorHex[sc.Name] = col.Hex.Trim();
+                        break;
+                    }
+                }
+            }
+        }
+        ApplySpeakerListColors();
+        RefreshParaColors();
+        if (_cursor >= 0 && _cursor < _paraViews.Count) { RenderParagraphInto(_paraViews[_cursor], _cursor); } // 當前段字色即時反映
+    }
+
+    private void ApplySpeakerListColors()
+    {
+        foreach (var sc in _speakerChecks)
+        {
+            System.Windows.Media.Brush brush = ReaderDefaultCueBrush;
+            if (!sc.IsEveryone && !sc.IsNoSpeaker && _speakerColorHex.TryGetValue(sc.Name, out var hex))
+            {
+                var readable = ColorMath.ReadableOnLight(hex);
+                if (!string.IsNullOrEmpty(readable)) { brush = BrushOfHex(readable); }
+            }
+            sc.NameBrush = brush;
+        }
+    }
+
+    /// <summary>刷新右逐段清單各列字型色（依段首說話人主題色，過淺壓暗至白底可讀）＋粗體（只加粗勾選模式且該段被勾選）。</summary>
+    private void RefreshParaColors()
+    {
+        var boldMode = _filterMode == RFilterMode.BoldSelected;
+        foreach (var row in _paraRows)
+        {
+            var bold = boldMode && SpeakerChecked(row.Cue.Speaker);
+            row.SetEmphasis(ColorForSpeaker(row.Cue.Speaker), bold);
+        }
+    }
+
+    private void RefreshParaView() => _paraView?.Refresh();
+
+    private bool ParaRowFilter(object o)
+    {
+        if (o is not ParaRow row) { return true; }
+        if (_filterMode != RFilterMode.ShowSelected) { return true; }
+        return SpeakerChecked(row.Cue.Speaker);
+    }
+
+    // ---- 顯示模式／暫停模式／語速／主題 ----
+
+    private void ApplyReaderFilterMode()
+    {
+        _filterMode = ReaderSpeakerFilter.SelectedIndex switch { 1 => RFilterMode.ShowSelected, 2 => RFilterMode.BoldSelected, _ => RFilterMode.ShowAll };
+        RefreshParaView();
+        RefreshParaColors();
+    }
+
+    private void ApplyReaderPauseMode() => _pauseMode = ReaderPauseAtSpeaker.SelectedIndex == 1 ? RPauseMode.Selected : RPauseMode.Off;
+
+    private void SyncReaderModeSelectors()
+    {
+        _populatingModes = true;
+        ReaderSpeakerFilter.SelectedIndex = _filterMode switch { RFilterMode.ShowSelected => 1, RFilterMode.BoldSelected => 2, _ => 0 };
+        ReaderPauseAtSpeaker.SelectedIndex = _pauseMode == RPauseMode.Selected ? 1 : 0;
+        _populatingModes = false;
+    }
+
+    /// <summary>導讀前進之暫停對象（繼續／朗讀自動前進用）：不暫停或全勾＝(null,false)＝每段皆停；否則＝(已勾集合, 是否含無說話人)＝只停勾選者（空集合→不停）。</summary>
+    private (IReadOnlyCollection<string>? Targets, bool NoSpeaker) EffectivePauseTargets()
+    {
+        if (_pauseMode == RPauseMode.Off) { return (null, false); }
+        if (_everyoneCheck?.IsChecked == true) { return (null, false); }
+        return (_checkedNames, _noSpeakerCheck?.IsChecked == true);
+    }
+
+    private void SetReaderControlsEnabled(bool on)
+    {
+        ReaderPrevBtn.IsEnabled = on;
+        ReaderNextBtn.IsEnabled = on;
+        ReaderResumeBtn.IsEnabled = on;
+        ReaderSpeakBtn.IsEnabled = on;
+        ReaderAddNoteBtn.IsEnabled = on;
+        ReaderSpeed.IsEnabled = on;
+        ReaderThemePicker.IsEnabled = on;
+        ReaderSpeakerFilter.IsEnabled = on;
+        ReaderPauseAtSpeaker.IsEnabled = on;
+        ReaderSpeakerChecks.IsEnabled = on;
+        if (on) { SyncReaderModeSelectors(); }
+    }
+
+    private void PopulateReaderSpeed()
+    {
+        _populatingModes = true;
+        ReaderSpeed.Items.Clear();
+        int sel = 0, i = 0;
+        for (int pct = 50; pct <= 150; pct += 10)
+        {
+            ReaderSpeed.Items.Add(new ComboBoxItem { Content = pct + "%", Tag = pct });
+            if (pct == Math.Clamp(SpeechRateSettings.Percent, 50, 150)) { sel = i; }
+            i++;
+        }
+        ReaderSpeed.SelectedIndex = sel;
+        _populatingModes = false;
+    }
+
+    private void ApplyReaderSpeed()
+    {
+        if ((ReaderSpeed.SelectedItem as ComboBoxItem)?.Tag is int pct) { SpeechRateSettings.Percent = pct; }
+    }
+
+    private void PopulateReaderThemePicker(EbookItem item)
+    {
+        _populatingModes = true;
+        ThemeFilter.PopulatePicker(ReaderThemePicker, _themes, item.ThemeId);
+        _populatingModes = false;
+    }
+
+    /// <summary>主題下拉改變：改指派此書所屬主題（存回書櫃）＋依新主題重算說話人上色。</summary>
+    private void OnReaderThemeChanged()
+    {
+        if (_openBookId is null) { return; }
+        var id = ThemeFilter.PickedThemeId(ReaderThemePicker);
+        var name = id is null ? null : ThemeStore.Find(_themes.Load(), id)?.Name;
+        _store.UpdateTheme(_openBookId, id, name);
+        if (_openBook is not null) { _openBook.ThemeId = id; _openBook.ThemeName = name; }
+        RebuildSpeakerColors();
+    }
+
+    private ThemeItem? CurrentReaderTheme()
+    {
+        var id = ThemeFilter.PickedThemeId(ReaderThemePicker);
+        return id is null ? null : ThemeStore.Find(_themes.Load(), id);
+    }
+
+    // ---- 加入筆記／複製／說話人批次筆記 ----
+
+    /// <summary>加入筆記：當前段原文→事件（App 重譯後入既有 NotesStore）。</summary>
+    private void AddCurrentParagraphNote()
+    {
+        var cues = CurCues;
+        if (_cursor < 0 || _cursor >= cues.Count) { return; }
+        var t = cues[_cursor].Text;
+        if (!string.IsNullOrWhiteSpace(t)) { AddToNotesRequested?.Invoke(t); }
+    }
+
+    private ContextMenu BuildParagraphContextMenu(int index)
+    {
+        var menu = new ContextMenu();
+        var copy = new MenuItem { Header = "複製此段" };
+        copy.Click += (_, _) => { if (index < CurCues.Count) { TryCopy(CurCues[index].Text); } };
+        menu.Items.Add(copy);
+        var note = new MenuItem { Header = "加入筆記" };
+        note.Click += (_, _) => { if (index < CurCues.Count) { var t = CurCues[index].Text; if (!string.IsNullOrWhiteSpace(t)) { AddToNotesRequested?.Invoke(t); } } };
+        menu.Items.Add(note);
+        return menu;
+    }
+
+    /// <summary>右逐段清單右鍵選單（依游標下之段動態填入）：複製此段原文＋加入筆記。</summary>
+    private void OnParaContextMenuOpening(object sender, ContextMenuEventArgs e)
+    {
+        var menu = ParaList.ContextMenu!;
+        menu.Items.Clear();
+        if (ParaList.SelectedItem is not ParaRow row) { e.Handled = true; return; }
+        var copy = new MenuItem { Header = "複製此段" };
+        copy.Click += (_, _) => TryCopy(row.Cue.Text);
+        menu.Items.Add(copy);
+        var note = new MenuItem { Header = "加入筆記" };
+        note.Click += (_, _) => { if (!string.IsNullOrWhiteSpace(row.Cue.Text)) { AddToNotesRequested?.Invoke(row.Cue.Text); } };
+        menu.Items.Add(note);
+    }
+
+    private static void TryCopy(string? text)
+    {
+        if (string.IsNullOrEmpty(text)) { return; }
+        try { System.Windows.Clipboard.SetText(text); } catch { /* 剪貼簿暫占用等—忽略 */ }
+    }
+
+    /// <summary>說話人面板某列「加入筆記」鈕：把該說話人全書所有段落原文收藏至〔書名-說話人〕資料夾（App 端確認費用後逐句翻譯）。全部說話人列不觸發。</summary>
+    private void OnAddSpeakerNotesClick(object sender, RoutedEventArgs e)
+    {
+        if ((sender as System.Windows.FrameworkElement)?.DataContext is not SpeakerCheck sc || sc.IsEveryone) { return; }
+        var label = sc.IsNoSpeaker ? "旁白" : sc.Name;
+        var lines = ParagraphsForSpeaker(sc).ToList();
+        if (lines.Count == 0) { SetStatus($"找不到「{label}」的任何段落。"); return; }
+        AddSpeakerNotesRequested?.Invoke(SpeakerNotesFolder(label), lines);
+    }
+
+    private IEnumerable<string> ParagraphsForSpeaker(SpeakerCheck sc)
+    {
+        foreach (var c in _chapters.SelectMany(ch => ch))
+        {
+            var match = sc.IsNoSpeaker
+                ? string.IsNullOrEmpty(c.Speaker)
+                : !string.IsNullOrEmpty(c.Speaker) && PauseDecider.SplitSpeakers(c.Speaker).Any(a => string.Equals(a, sc.Name, StringComparison.OrdinalIgnoreCase));
+            if (match && !string.IsNullOrWhiteSpace(c.Text)) { yield return c.Text; }
+        }
+    }
+
+    private string SpeakerNotesFolder(string speaker)
+    {
+        var title = (_openBook?.Title ?? "").Trim();
+        if (title.Length == 0) { title = _openBookId ?? "ebook"; }
+        if (title.Length > 40) { title = title[..40].Trim(); }
+        return $"{title} - {speaker}";
+    }
+
+    // ---- 閱讀器字型色（比照影片頁；凍結共用） ----
+
+    private static readonly System.Windows.Media.SolidColorBrush ReaderTextBrush = FrozenBrush(0x3A, 0x2C, 0x33);   // 當前段內文預設色
+    private static readonly System.Windows.Media.SolidColorBrush ReaderMutedBrush = FrozenBrush(0x8A, 0x7A, 0x82);  // 非當前段淡色
+    private static readonly System.Windows.Media.Brush ReaderDefaultCueBrush = FrozenBrush(0x2A, 0x2A, 0x2A);       // 清單預設近黑
+    private static readonly System.Windows.Media.Brush ReaderCurrentBg = FrozenBrush(0xFB, 0xE3, 0xEC);             // 當前段高亮粉底
+    private static readonly System.Windows.Media.Brush ReaderRowStripeEven = System.Windows.Media.Brushes.Transparent;
+    private static readonly System.Windows.Media.Brush ReaderRowStripeOdd = FrozenBrush(0xFA, 0xE8, 0xEF);
+
+    private static System.Windows.Media.SolidColorBrush FrozenBrush(byte r, byte g, byte b)
+    {
+        var br = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(r, g, b));
+        br.Freeze();
+        return br;
+    }
+
+    private static readonly Dictionary<string, System.Windows.Media.Brush> ReaderHexBrushCache = new(StringComparer.OrdinalIgnoreCase);
+    private static System.Windows.Media.Brush BrushOfHex(string hex)
+    {
+        if (ReaderHexBrushCache.TryGetValue(hex, out var b)) { return b; }
+        var color = (System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString(hex);
+        var br = new System.Windows.Media.SolidColorBrush(color); br.Freeze();
+        ReaderHexBrushCache[hex] = br;
+        return br;
+    }
+
+    /// <summary>段首說話人前綴（有前綴才呼叫；無前綴段不標，契約 spec#10）。</summary>
+    private static string SpeakerPrefix(string? speaker) => (speaker ?? "").Trim() + ": ";
+
+    /// <summary>右逐段清單一列 view-model（比照影片 CueRow）：段 index＋段首說話人前綴＋原文＋字型色/字重（過淺壓暗至白底可讀）。</summary>
+    private sealed class ParaRow : INotifyPropertyChanged
+    {
+        public event PropertyChangedEventHandler? PropertyChanged;
+        public ParaRow(int index, SubtitleCue cue) { Index = index; Cue = cue; }
+        public int Index { get; }
+        public SubtitleCue Cue { get; }
+        public string SpeakerLabel => string.IsNullOrWhiteSpace(Cue.Speaker) ? "" : Cue.Speaker + ": ";
+        public string Text => Cue.Text;
+
+        private System.Windows.Media.Brush _speakerBrush = ReaderDefaultCueBrush;
+        public System.Windows.Media.Brush SpeakerBrush { get => _speakerBrush; private set { if (!ReferenceEquals(_speakerBrush, value)) { _speakerBrush = value; Raise(nameof(SpeakerBrush)); } } }
+        private FontWeight _lineWeight = FontWeights.Normal;
+        public FontWeight LineWeight { get => _lineWeight; private set { if (_lineWeight != value) { _lineWeight = value; Raise(nameof(LineWeight)); } } }
+
+        /// <summary>設本列字型色（hex 非 null＝該說話人有主題色，過淺壓暗）＋是否加粗（只加粗勾選模式）。</summary>
+        public void SetEmphasis(string? hex, bool bold)
+        {
+            var readable = hex is null ? null : ColorMath.ReadableOnLight(hex);
+            SpeakerBrush = !string.IsNullOrEmpty(readable) ? BrushOfHex(readable) : ReaderDefaultCueBrush;
+            LineWeight = bold ? FontWeights.Bold : FontWeights.Normal;
+        }
+        private void Raise(string n) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(n));
+    }
+
+    /// <summary>說話人勾選面板一列（比照影片 SpeakerCheck）：名字＋是否 Everyone／(no speaker)＋語句數＋勾選態（TwoWay）＋列色。</summary>
+    private sealed class SpeakerCheck : INotifyPropertyChanged
+    {
+        public event PropertyChangedEventHandler? PropertyChanged;
+        public SpeakerCheck(string name, bool isEveryone = false, bool isNoSpeaker = false) { Name = name; IsEveryone = isEveryone; IsNoSpeaker = isNoSpeaker; }
+        public string Name { get; }
+        public bool IsEveryone { get; }
+        public bool IsNoSpeaker { get; }
+        public int LineCount { get; init; }
+        public string DisplayName => $"{Name} ({LineCount})";
+        public FontWeight Weight => IsEveryone ? FontWeights.Bold : FontWeights.Normal;
+        public Visibility AddNotesVisibility => IsEveryone ? Visibility.Collapsed : Visibility.Visible;
+        public System.Windows.Media.Brush RowStripe { get; set; } = System.Windows.Media.Brushes.Transparent;
+        private System.Windows.Media.Brush _nameBrush = ReaderDefaultCueBrush;
+        public System.Windows.Media.Brush NameBrush { get => _nameBrush; set { if (!ReferenceEquals(_nameBrush, value)) { _nameBrush = value; PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(NameBrush))); } } }
+        private bool _checked = true;
+        public bool IsChecked { get => _checked; set { if (_checked != value) { _checked = value; PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsChecked))); } } }
+    }
 
     private static SolidColorBrush Brush(string hex) => new((Color)ColorConverter.ConvertFromString(hex));
 
