@@ -44,6 +44,8 @@
     <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.2792.45" />
     <!-- 字幕整檔 YAML 編修（epic #145 增量5，#154）：說話人/斷句以整檔 YAML 一次編修，SubtitleYaml 往返序列化（MIT） -->
     <PackageReference Include="YamlDotNet" Version="18.1.0" />
+    <!-- 電子書解析（本增量，spec#4）[techItem電子書解析]：VersOne.Epub 解析 EPUB 2/3 之容器／中繼／spine／目錄／封面（Unlicense、netstandard2.0 零相依、.NET 9 相容、純受管無外部行程） -->
+    <PackageReference Include="VersOne.Epub" Version="3.3.6" />
   </ItemGroup>
 
   <ItemGroup>

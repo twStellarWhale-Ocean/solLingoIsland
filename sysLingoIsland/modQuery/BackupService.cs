@@ -4,7 +4,7 @@ using System.IO.Compression;
 namespace LingoIsland.Query;
 
 /// <summary>
-/// 資料備份與搬遷（#206，spec#3 維運面）：把整個 <c>%APPDATA%\LingoIsland</c>（設定／筆記／歷史／主題／截圖／影片清單與字幕）
+/// 資料備份與搬遷（#206，spec#3 維運面）：把整個 <c>%APPDATA%\LingoIsland</c>（設定／筆記／歷史／主題／截圖／影片清單與字幕／電子書書櫃與藏書）
 /// 打包為單一 zip 供另一部電腦匯入。**不含 OPENAI_API_KEY**（金鑰在使用者環境變數、本就不落地——另機須自行設定）。
 /// 打包／還原之路徑組裝與備份識別為純函式（可單元測試）；zip 內為資料夾內容之相對路徑（不含頂層資料夾名）。
 /// </summary>
@@ -26,7 +26,7 @@ public static class BackupService
         foreach (var n in entryNames)
         {
             var name = n.Replace('\\', '/');
-            if (name is "appsettings.json" or "notes.json" or "videos.json" or "themes.json" or "history.json") { return true; }
+            if (name is "appsettings.json" or "notes.json" or "videos.json" or "themes.json" or "history.json" or "ebooks.json") { return true; }
         }
         return false;
     }

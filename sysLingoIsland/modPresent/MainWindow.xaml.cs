@@ -3,8 +3,8 @@ using CancelEventArgs = System.ComponentModel.CancelEventArgs;
 
 namespace LingoIsland.Present;
 
-/// <summary>統一主視窗之分頁。</summary>
-public enum MainTab { Themes, Capture, Video, Notes, History, Options, About }
+/// <summary>統一主視窗之分頁（電子書分頁 #229 置於影片與筆記之間）。</summary>
+public enum MainTab { Themes, Capture, Video, Ebook, Notes, History, Options, About }
 
 /// <summary>
 /// 統一 Office 式主視窗（Issue #34）：頂部功能列分頁（圖示＋文字）＋下方對應功能頁，取代原
@@ -25,17 +25,19 @@ public partial class MainWindow : Window
     private readonly ThemeManagementPage _themes;
     private readonly ScreenCapturePage _capture;
     private readonly VideoCapturePage _video;
+    private readonly EbookPage _ebook;
     private readonly NotesPage _notes;
     private readonly HistoryPage _history;
     private readonly OptionsPage _options;
     private readonly AboutPage _about;
 
-    public MainWindow(ThemeManagementPage themes, ScreenCapturePage capture, VideoCapturePage video, NotesPage notes, HistoryPage history, OptionsPage options, AboutPage about)
+    public MainWindow(ThemeManagementPage themes, ScreenCapturePage capture, VideoCapturePage video, EbookPage ebook, NotesPage notes, HistoryPage history, OptionsPage options, AboutPage about)
     {
         InitializeComponent();
         _themes = themes;
         _capture = capture;
         _video = video;
+        _ebook = ebook;
         _notes = notes;
         _history = history;
         _options = options;
@@ -52,6 +54,7 @@ public partial class MainWindow : Window
         TabThemes.Checked += (_, _) => { if (!ConfirmLeaveOptions()) { ReselectOptionsTab(); return; } _themes.Reload(preferActive: true); Host.Content = _themes; ShowEntryCount(null); }; // USR：切到本頁預設選使用中主題
         TabCapture.Checked += (_, _) => { if (!ConfirmLeaveOptions()) { ReselectOptionsTab(); return; } Host.Content = _capture; ShowEntryCount(null); };
         TabVideo.Checked += (_, _) => { if (!ConfirmLeaveOptions()) { ReselectOptionsTab(); return; } Host.Content = _video; ShowEntryCount(null); };
+        TabEbook.Checked += (_, _) => { if (!ConfirmLeaveOptions()) { ReselectOptionsTab(); return; } Host.Content = _ebook; ShowEntryCount(null); }; // 電子書分頁（#229）：切入即由 EbookPage.IsVisibleChanged 重填主題篩選並重整書櫃
         TabOptions.Checked += (_, _) => { Host.Content = _options; ShowEntryCount(null); };
         TabAbout.Checked += (_, _) => { if (!ConfirmLeaveOptions()) { ReselectOptionsTab(); return; } Host.Content = _about; ShowEntryCount(null); };
         ResultBtn.Click += (_, _) => ResultRequested?.Invoke();
@@ -102,6 +105,7 @@ public partial class MainWindow : Window
             case MainTab.Themes: TabThemes.IsChecked = true; break;
             case MainTab.Capture: TabCapture.IsChecked = true; break;
             case MainTab.Video: TabVideo.IsChecked = true; break;
+            case MainTab.Ebook: TabEbook.IsChecked = true; break;
             case MainTab.Options: TabOptions.IsChecked = true; break;
             case MainTab.About: TabAbout.IsChecked = true; break;
         }
