@@ -95,4 +95,44 @@ public class BackupServiceTests
         }
         finally { Directory.Delete(src, true); }
     }
+
+    // ---- 電子書藏書納入整包備份（spec#6） ----
+
+    [Fact]
+    public void IsLingoBackup_RecognizesEbooksJson()
+    {
+        Assert.True(BackupService.IsLingoBackup(new[] { "ebooks.json" }));
+        Assert.True(BackupService.IsLingoBackup(new[] { "ebook/20260724 A/info.json", "ebooks.json" }));
+    }
+
+    [Fact]
+    public void Roundtrip_CoversEbooksJsonAndEbookFolder()
+    {
+        var src = NewTempDir(); var dst = NewTempDir();
+        var zip = Path.Combine(Path.GetTempPath(), $"lingo-bk-{Guid.NewGuid():N}.zip");
+        try
+        {
+            // 模擬藏書：ebooks.json＋每本一資料夾（info.json＋原始 .epub 複本＋封面）
+            File.WriteAllText(Path.Combine(src, "ebooks.json"), """{"Items":[{"Id":"x","Title":"A"}]}""");
+            var book = Path.Combine(src, "ebook", "20260724 A");
+            Directory.CreateDirectory(book);
+            File.WriteAllText(Path.Combine(book, "info.json"), """{"Title":"A"}""");
+            File.WriteAllText(Path.Combine(book, "A.epub"), "epub-bytes");
+            File.WriteAllBytes(Path.Combine(book, "cover.png"), new byte[] { 0x89, 0x50, 0x4E, 0x47 });
+
+            BackupService.CreateBackup(src, zip);
+            BackupService.RestoreBackup(zip, dst);
+
+            var rbook = Path.Combine(dst, "ebook", "20260724 A");
+            Assert.Equal("""{"Items":[{"Id":"x","Title":"A"}]}""", File.ReadAllText(Path.Combine(dst, "ebooks.json")));
+            Assert.True(File.Exists(Path.Combine(rbook, "info.json")));
+            Assert.True(File.Exists(Path.Combine(rbook, "A.epub")));               // 原始 .epub 複本一併帶走
+            Assert.True(File.Exists(Path.Combine(rbook, "cover.png")));            // 封面一併帶走
+        }
+        finally
+        {
+            Directory.Delete(src, true); Directory.Delete(dst, true);
+            if (File.Exists(zip)) { File.Delete(zip); }
+        }
+    }
 }
