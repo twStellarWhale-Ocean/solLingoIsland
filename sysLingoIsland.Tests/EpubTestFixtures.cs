@@ -46,6 +46,35 @@ internal static class EpubTestFixtures
         return path;
     }
 
+    /// <summary>
+    /// 產一支 EPUB 3（<c>nav</c> 目錄）測試檔，各章<b>自訂 body 內文 HTML</b>（供內容側 <c>ExtractParagraphs</c> 之 smoke——
+    /// 多段落／段首 <c>Name:</c> 說話人／區塊層退回等經真實 epub 管線驗證），回其路徑。<paramref name="chapters"/>＝(章標題, body 內 HTML)。
+    /// </summary>
+    public static string WriteEpub3Bodies(
+        string dir,
+        string identifier,
+        string title,
+        string author,
+        string language,
+        IReadOnlyList<(string NavTitle, string BodyInnerHtml)> chapters,
+        byte[]? cover = null)
+    {
+        var titles = chapters.Select(c => c.NavTitle).ToList();
+        var path = Path.Combine(dir, $"epub3body-{Guid.NewGuid():N}.epub");
+        WriteZip(path, zip =>
+        {
+            AddText(zip, "META-INF/container.xml", ContainerXml());
+            AddText(zip, "OEBPS/content.opf", Epub3Opf(identifier, title, author, language, titles, cover is not null));
+            AddText(zip, "OEBPS/nav.xhtml", Epub3Nav(titles));
+            for (var i = 0; i < chapters.Count; i++)
+            {
+                AddText(zip, $"OEBPS/c{i + 1}.xhtml", ChapterXhtmlBody(chapters[i].NavTitle, chapters[i].BodyInnerHtml));
+            }
+            if (cover is not null) { AddBytes(zip, "OEBPS/cover.png", cover); }
+        });
+        return path;
+    }
+
     /// <summary>產一支 EPUB 2（<c>ncx</c> 目錄）測試檔，回其路徑。<paramref name="cover"/>＝null 則無封面。</summary>
     public static string WriteEpub2(
         string dir,
@@ -202,6 +231,12 @@ internal static class EpubTestFixtures
         "<?xml version=\"1.0\" encoding=\"utf-8\"?>" +
         "<html xmlns=\"http://www.w3.org/1999/xhtml\"><head><title>" + Esc(title) + "</title></head>" +
         "<body><h1>" + Esc(title) + "</h1><p>Hello from " + Esc(title) + ".</p></body></html>";
+
+    /// <summary>以自訂 body 內文 HTML 組章 XHTML（供內容側 smoke；<paramref name="bodyInnerHtml"/> 已是合法 XHTML 片段、不再跳脫）。</summary>
+    private static string ChapterXhtmlBody(string title, string bodyInnerHtml) =>
+        "<?xml version=\"1.0\" encoding=\"utf-8\"?>" +
+        "<html xmlns=\"http://www.w3.org/1999/xhtml\"><head><title>" + Esc(title) + "</title></head>" +
+        "<body>" + bodyInnerHtml + "</body></html>";
 
     private static string Esc(string? s) => System.Security.SecurityElement.Escape(s ?? "") ?? "";
 }

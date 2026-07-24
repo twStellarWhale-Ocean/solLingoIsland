@@ -413,4 +413,129 @@ public class EbookStoreTests
         Assert.Single(d.Items);
         Assert.Equal("A", d.Items[0].Title);
     }
+
+    // ---- 閱讀進度（增量2 spec#7）：Set/Get roundtrip、舊檔預設 0/0、降級、不動排序/插入序 ----
+
+    [Fact]
+    public void ReadingProgress_SetGet_RoundtripAcrossReload()
+    {
+        var dir = NewTempDir();
+        try
+        {
+            var json = Path.Combine(dir, "ebooks.json");
+            var root = Path.Combine(dir, "ebook");
+            var it = new EbookStore(json, root).Add(Info("id-rp", "Reader"), DummyEpub(dir), null, null, D).Item;
+
+            new EbookStore(json, root).SetReadingProgress(it.Id, 3, 12);      // 記錄進度
+            var (chapter, para) = new EbookStore(json, root).GetReadingProgress(it.Id);  // 另一實例（模擬重啟）
+            Assert.Equal(3, chapter);
+            Assert.Equal(12, para);
+        }
+        finally { Directory.Delete(dir, true); }
+    }
+
+    [Fact]
+    public void ReadingProgress_UnknownId_ReturnsZeroZero_NoCreate()
+    {
+        var dir = NewTempDir();
+        try
+        {
+            var (store, _, _) = NewStore(dir);
+            store.Add(Info("id-a", "A"), DummyEpub(dir), null, null, D);
+            store.SetReadingProgress("no-such-id", 5, 5);   // 無此 id → 不建立、不擲例外
+            Assert.Equal((0, 0), store.GetReadingProgress("no-such-id"));
+            Assert.Single(store.Load().Items);              // 未新增任何項
+        }
+        finally { Directory.Delete(dir, true); }
+    }
+
+    [Fact]
+    public void ReadingProgress_OldFileWithoutKeys_DefaultsZeroZero()
+    {
+        var dir = NewTempDir();
+        try
+        {
+            var json = Path.Combine(dir, "ebooks.json");
+            // 舊檔（無 LastReadChapter/LastReadParagraph 鍵）→ int 預設 0/0（從頭讀起）
+            File.WriteAllText(json, """{"Items":[{"Id":"old","DcIdentifier":"i","Title":"Old","AddedAt":"t"}]}""");
+            var store = new EbookStore(json, Path.Combine(dir, "ebook"));
+            var item = store.Load().Items[0];
+            Assert.Equal(0, item.LastReadChapter);
+            Assert.Equal(0, item.LastReadParagraph);
+            Assert.Equal((0, 0), store.GetReadingProgress("old"));
+        }
+        finally { Directory.Delete(dir, true); }
+    }
+
+    [Fact]
+    public void ReadingProgress_CorruptFile_GetReturnsZeroZero()
+    {
+        var dir = NewTempDir();
+        try
+        {
+            var json = Path.Combine(dir, "ebooks.json");
+            File.WriteAllText(json, "{ not valid json ]");
+            // Load 退空 → id 找不到 → (0,0)、不致命
+            Assert.Equal((0, 0), new EbookStore(json, Path.Combine(dir, "ebook")).GetReadingProgress("any"));
+        }
+        finally { Directory.Delete(dir, true); }
+    }
+
+    [Fact]
+    public void ReadingProgress_NegativeValues_ClampedToZero()
+    {
+        var d = new EbooksData { Items = { new EbookItem { Id = "1" } } };
+        Assert.True(EbookStore.SetReadingProgress(d, "1", -5, -2));
+        Assert.Equal((0, 0), EbookStore.GetReadingProgress(d, "1"));   // 負值夾為 0
+    }
+
+    [Fact]
+    public void ReadingProgress_PureFunctions_SetGetByIdAcrossShelf()
+    {
+        var d = new EbooksData { Items = { new EbookItem { Id = "1" }, new EbookItem { Id = "2" } } };
+        Assert.True(EbookStore.SetReadingProgress(d, "2", 4, 9));      // 跨全櫃依 id 換置
+        Assert.False(EbookStore.SetReadingProgress(d, "nope", 1, 1));  // 無此 id → false
+        Assert.Equal((4, 9), EbookStore.GetReadingProgress(d, "2"));
+        Assert.Equal((0, 0), EbookStore.GetReadingProgress(d, "1"));   // 未設者仍 0/0
+        Assert.Equal((0, 0), EbookStore.GetReadingProgress(d, "nope")); // 無此 id → (0,0)
+    }
+
+    [Fact]
+    public void ReadingProgress_DoesNotTouchSortOrInsertionOrder()
+    {
+        var dir = NewTempDir();
+        try
+        {
+            var json = Path.Combine(dir, "ebooks.json");
+            var root = Path.Combine(dir, "ebook");
+            var store = new EbookStore(json, root);
+            var a = store.Add(Info("id-a", "Alpha"), DummyEpub(dir), null, null, D).Item;
+            store.Add(Info("id-b", "Beta"), DummyEpub(dir), null, null, D);   // 插最前 → 存序 [Beta, Alpha]
+            store.UpdateSort(new EbookSort { Mode = "Title", TitleAsc = false });
+
+            store.SetReadingProgress(a.Id, 2, 7);   // 更新進度
+
+            var reloaded = new EbookStore(json, root).Load();
+            Assert.Equal(new[] { "Beta", "Alpha" }, reloaded.Items.Select(i => i.Title));  // 插入序不動
+            Assert.Equal("Title", reloaded.Sort!.Mode);                                     // 排序態不動
+            Assert.False(reloaded.Sort.TitleAsc);
+            Assert.Equal((2, 7), new EbookStore(json, root).GetReadingProgress(a.Id));
+        }
+        finally { Directory.Delete(dir, true); }
+    }
+
+    [Fact]
+    public void ReadingProgress_SaveFailure_DoesNotThrow()
+    {
+        var dir = NewTempDir();
+        try
+        {
+            var asFile = Path.Combine(dir, "blocker");
+            File.WriteAllText(asFile, "x");   // 以檔擋住路徑，Save 建目錄將失敗
+            var store = new EbookStore(Path.Combine(asFile, "sub", "ebooks.json"), Path.Combine(dir, "ebook"));
+            var ex = Record.Exception(() => store.SetReadingProgress("any", 1, 1));
+            Assert.Null(ex);   // 寫入失敗靜默降級、不致命
+        }
+        finally { Directory.Delete(dir, true); }
+    }
 }
