@@ -128,8 +128,8 @@ public partial class EbookPage : UserControl
         BookList.PreviewMouseRightButtonDown += ListDeleteSupport.SelectItemUnderMouse; // 右鍵作用於游標下之書卡
         BookList.KeyDown += (_, e) => { if (e.Key == Key.Delete) { DeleteSelectedBook(); } };
 
-        // 切回本頁重填篩選（反映主題增刪改）並重整書櫃
-        IsVisibleChanged += (_, e) => { if (e.NewValue is true) { PopulateThemeFilter(); RefreshBookshelf(); } };
+        // 切回本頁重填篩選＋reader「主題：」picker（反映主題增刪改）並重整書櫃
+        IsVisibleChanged += (_, e) => { if (e.NewValue is true) { PopulateThemeFilter(); if (_openBook is not null) { PopulateReaderThemePicker(_openBook); } RefreshBookshelf(); } };
 
         PopulateThemeFilter();
         RefreshBookshelf();   // #219：四 toggle 鈕視覺於此同步（單一同步點）
