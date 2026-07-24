@@ -22,6 +22,7 @@ public partial class App : System.Windows.Application
     private WinForms.ToolStripMenuItem? _keyStatusItem;
     private MainWindow? _main;
     private VideoCapturePage? _videoPage; // 影片頁（設定變更後即時套用字幕帶字級/粗體）
+    private EbookPage? _ebookPage;        // 電子書頁（#229，spec#4/#5/#6：匯入書櫃）
     private NotesPage? _notesPage;
     private HistoryPage? _historyPage;
     private ThemeManagementPage? _themePage;
@@ -39,6 +40,7 @@ public partial class App : System.Windows.Application
     private readonly ThemeStore _themeStore = new();
     private readonly ScreenshotStore _screenshotStore = new(); // epic #145 增量3：截圖持久化
     private readonly VideoStore _videoStore = new();           // epic #145 增量4：影片清單
+    private readonly EbookStore _ebookStore = new();           // #229：電子書書櫃（spec#5/#6；比照 VideoStore）
     private readonly INotificationService _notify = new WinToastNotificationService(); // 發音回饋系統通知（#101）
     private UpdateService? _updates;
     private static readonly string LogPath = Path.Combine(Path.GetTempPath(), "LingoIsland-error.log");
@@ -141,7 +143,11 @@ public partial class App : System.Windows.Application
         _videoPage.AddSpeakerNotesRequested += AddSpeakerNotesToFolder; // 某說話人所有台詞原文→〔影片-說話人〕資料夾（免 AI，#189-checklist）
         _videoPage.ApplyThumbSize(_config.SearchThumbHeight); // 搜尋結果縮圖高度自 config 套用（選項頁可調，#複查）
 
-        _main = new MainWindow(_themePage, _capturePage, _videoPage, _notesPage, _historyPage, _optionsPage, new AboutPage(_updates));
+        // 電子書擷取分頁（#229，spec#4/#5/#6）：獲得（選/拖 .epub → 逐檔 EbookReader.ParseAsync 預解析 → 批次 EbookStore.Add 匯入書櫃）＋
+        // 書櫃（封面縮圖／主題篩選／四鍵排序／右鍵標記主題或刪除／清空）。資料層（切片1）之 EbookReader（靜態）與 EbookStore（持久化，已納入 BackupService 整包備份）已就緒，此處僅注入 store 與主題並組進主視窗。
+        _ebookPage = new EbookPage(_ebookStore, _themeStore);
+
+        _main = new MainWindow(_themePage, _capturePage, _videoPage, _ebookPage, _notesPage, _historyPage, _optionsPage, new AboutPage(_updates));
         _main.RefreshStatus(keyReady, HotkeyDisplay());
         _main.ResultRequested += SummonResult; // 功能列「Dictionary」鈕→喚出獨立字典視窗（v1.0.1 恢復）
         _main.ExitRequested += ExitApp;        // 主視窗關閉(✕)→結束整個程式（v1.0.1：移除原「關閉＝收合」防關閉行為，USR 回饋）
