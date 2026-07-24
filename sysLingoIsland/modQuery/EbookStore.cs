@@ -19,6 +19,10 @@ public sealed class EbookItem
     public string? CoverFile { get; set; }          // 封面圖檔名（相對書資料夾，如 cover.png）；無封面＝null→呈現層佔位
     public string AddedAt { get; set; } = "";        // ISO 8601
     public string Folder { get; set; } = "";         // 藏書資料夾名（相對 ebook\ 根）；供 Remove 刪夾與跨啟動定位（撞名以 Id 短碼綴尾）
+
+    // ---- 閱讀進度（增量2 spec#7）：讀到哪一章／段，跨啟動還原；舊檔無此鍵＝0/0（從頭讀起，System.Text.Json 缺鍵→int 預設 0）----
+    public int LastReadChapter { get; set; }         // spine 章索引（0＝首章）
+    public int LastReadParagraph { get; set; }       // 章內段索引（0＝首段）
 }
 
 /// <summary>書櫃清單根結構（新在前）。</summary>
@@ -186,6 +190,22 @@ public sealed class EbookStore
         Save(d);
     }
 
+    /// <summary>
+    /// 記錄某本書之閱讀進度（增量2 spec#7）：跨全櫃依 <paramref name="id"/> 換置 <c>LastReadChapter</c>／<c>LastReadParagraph</c>、
+    /// 隨 <c>ebooks.json</c> 留存跨啟動還原；<b>不動排序態與插入序</b>。無此 id／寫入失敗靜默降級（<see cref="Save"/> 已容錯）、不致命。
+    /// 負值夾為 0（防呼叫端越界寫入）。
+    /// </summary>
+    public void SetReadingProgress(string id, int chapter, int paragraph)
+    {
+        var d = Load();
+        if (SetReadingProgress(d, id, chapter, paragraph)) { Save(d); }
+    }
+
+    /// <summary>
+    /// 取某本書之閱讀進度（增量2 spec#7）：回 <c>(章索引, 段索引)</c>；無此 id／舊檔無鍵／讀取失敗（<see cref="Load"/> 退空）皆回 <c>(0, 0)</c>（從頭讀起）、不致命。
+    /// </summary>
+    public (int Chapter, int Paragraph) GetReadingProgress(string id) => GetReadingProgress(Load(), id);
+
     // ---- 純函式（可單元測試，不觸檔案） ----
 
     /// <summary>於清單最前插入（新在前）。</summary>
@@ -214,6 +234,28 @@ public sealed class EbookStore
         it.ThemeId = themeId;
         it.ThemeName = string.IsNullOrWhiteSpace(themeName) ? null : themeName!.Trim();
         return true;
+    }
+
+    /// <summary>
+    /// 換置某本閱讀進度（純函式、可單元測試、不觸檔案；增量2 spec#7）：找到即寫 <c>LastReadChapter</c>／<c>LastReadParagraph</c>
+    /// （負值夾為 0）、回 true；無此 id 回 false。<b>只動該本進度、不動排序態與插入序。</b>
+    /// </summary>
+    public static bool SetReadingProgress(EbooksData d, string id, int chapter, int paragraph)
+    {
+        var it = d.Items.FirstOrDefault(i => i.Id == id);
+        if (it is null) { return false; }
+        it.LastReadChapter = Math.Max(0, chapter);
+        it.LastReadParagraph = Math.Max(0, paragraph);
+        return true;
+    }
+
+    /// <summary>
+    /// 讀某本閱讀進度（純函式；增量2 spec#7）：回 <c>(章索引, 段索引)</c>；無此 id／舊檔無鍵皆回 <c>(0, 0)</c>（從頭讀起）。
+    /// </summary>
+    public static (int Chapter, int Paragraph) GetReadingProgress(EbooksData d, string id)
+    {
+        var it = d.Items.FirstOrDefault(i => i.Id == id);
+        return it is null ? (0, 0) : (it.LastReadChapter, it.LastReadParagraph);
     }
 
     /// <summary>

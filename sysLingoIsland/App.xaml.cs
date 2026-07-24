@@ -143,9 +143,13 @@ public partial class App : System.Windows.Application
         _videoPage.AddSpeakerNotesRequested += AddSpeakerNotesToFolder; // 某說話人所有台詞原文→〔影片-說話人〕資料夾（免 AI，#189-checklist）
         _videoPage.ApplyThumbSize(_config.SearchThumbHeight); // 搜尋結果縮圖高度自 config 套用（選項頁可調，#複查）
 
-        // 電子書擷取分頁（#229，spec#4/#5/#6）：獲得（選/拖 .epub → 逐檔 EbookReader.ParseAsync 預解析 → 批次 EbookStore.Add 匯入書櫃）＋
-        // 書櫃（封面縮圖／主題篩選／四鍵排序／右鍵標記主題或刪除／清空）。資料層（切片1）之 EbookReader（靜態）與 EbookStore（持久化，已納入 BackupService 整包備份）已就緒，此處僅注入 store 與主題並組進主視窗。
-        _ebookPage = new EbookPage(_ebookStore, _themeStore);
+        // 電子書擷取分頁（#229/#231，spec#4–#10）：獲得（選/拖 .epub → 逐檔 EbookReader.ParseAsync 預解析 → 批次 EbookStore.Add 匯入書櫃）＋
+        // 書櫃（封面縮圖／主題篩選／四鍵排序／右鍵標記主題或刪除／清空）＋【內容】三欄逐段導讀閱讀器（切片2）。資料層（切片1）之
+        // EbookReader/EbookContentReader（靜態）與 EbookStore（持久化，已納入 BackupService 整包備份）已就緒，此處注入 store／主題／語音服務並接線查詞/筆記（與影片頁共用既有後段）。
+        _ebookPage = new EbookPage(_ebookStore, _themeStore, () => _speech); // 逐段 TTS：委派取現行語音服務（換聲後仍取到新實例）
+        _ebookPage.WordLookupRequested += LookupWordFromVideo;               // 段落逐字點選→查該字（沿用影片頁同一動線：獨立字典視窗）
+        _ebookPage.AddToNotesRequested += text => _ = AddVideoNoteAsync(text); // 當前段原文→重譯後入既有 NotesStore
+        _ebookPage.AddSpeakerNotesRequested += AddSpeakerNotesToFolder;      // 某說話人全書段落原文→〔書名-說話人〕資料夾（App 端確認費用後逐句翻譯）
 
         _main = new MainWindow(_themePage, _capturePage, _videoPage, _ebookPage, _notesPage, _historyPage, _optionsPage, new AboutPage(_updates));
         _main.RefreshStatus(keyReady, HotkeyDisplay());

@@ -125,18 +125,173 @@
         </Border>
       </Grid>
 
-      <!-- 【內容】章節閱讀骨架（本增量僅佔位，閱讀／朗讀為後續版本） -->
-      <Border x:Name="EbookContentPane" Style="{StaticResource Card}" Visibility="Collapsed" Padding="24">
-        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-          <TextBlock Text="&#xE82D;" FontFamily="Segoe MDL2 Assets" FontSize="40"
-                     Foreground="{StaticResource PinkAccent}" HorizontalAlignment="Center"/>
-          <TextBlock Text="章節閱讀與朗讀將於後續版本推出。" Foreground="{StaticResource PinkText}"
-                     FontSize="14" FontWeight="SemiBold" Margin="0,12,0,0" HorizontalAlignment="Center"/>
-          <TextBlock Text="本版本專注於電子書匯入與書櫃整理，請至「獲得」子頁籤選擇或拖入 EPUB。"
-                     Foreground="{StaticResource PinkSub}" FontSize="12" TextWrapping="Wrap"
-                     TextAlignment="Center" MaxWidth="360" Margin="0,6,0,0"/>
-        </StackPanel>
-      </Border>
+      <!-- 【內容】三欄逐段導讀閱讀器（[EbookPage] 內容閱讀器契約，spec#7–#10；比照 VideoCapturePage 內容頁三欄）：
+           左＝章節目錄（雙擊跳章）｜中＝閱讀區（當前段放大高亮＋逐字可點）＋控制列｜右＝逐段清單（雙擊跳段）＋說話人勾選面板 -->
+      <Grid x:Name="EbookContentPane" Visibility="Collapsed">
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="200" MinWidth="140"/>
+          <ColumnDefinition Width="6"/>
+          <ColumnDefinition Width="*" MinWidth="320"/>
+        </Grid.ColumnDefinitions>
+
+        <!-- 左：章節目錄（書名＋葉章/spine 序清單，雙擊跳章、當前章高亮） -->
+        <Grid Grid.Column="0">
+          <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+          </Grid.RowDefinitions>
+          <TextBlock x:Name="ReaderBookTitle" Grid.Row="0" Text="章節" FontWeight="Bold" FontSize="13"
+                     Foreground="{StaticResource PinkText}" TextTrimming="CharacterEllipsis" Margin="0,0,0,6"
+                     ToolTip="目前閱讀中的書"/>
+          <Border Grid.Row="1" Style="{StaticResource Card}">
+            <Grid>
+              <ListBox x:Name="ChapterList" BorderThickness="0" Background="Transparent" Margin="4"
+                       HorizontalContentAlignment="Stretch"
+                       ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                       ToolTip="雙擊某章跳至該章開頭"/>
+              <TextBlock x:Name="ReaderEmptyHint" Foreground="#9A6A82" FontSize="12" TextWrapping="Wrap" MaxWidth="170"
+                         TextAlignment="Center" HorizontalAlignment="Center" VerticalAlignment="Center"
+                         Text="尚未開書。請至「獲得」子頁籤雙擊一本書開始閱讀。"/>
+            </Grid>
+          </Border>
+        </Grid>
+
+        <GridSplitter Grid.Column="1" Style="{StaticResource ColSplitter}"/>
+
+        <!-- 右半：中閱讀區＋右逐段清單/說話人面板 -->
+        <Border Grid.Column="2" Style="{StaticResource Card}" Margin="6,0,0,0" Padding="8">
+          <Grid>
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="*" MinWidth="240"/>
+              <ColumnDefinition Width="6"/>
+              <ColumnDefinition Width="248" MinWidth="160"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- 中：閱讀區（段落逐段呈現、當前段放大高亮、逐字可點）＋控制列 -->
+            <Grid Grid.Column="0">
+              <Grid.RowDefinitions>
+                <RowDefinition Height="*" MinHeight="120"/>
+                <RowDefinition Height="Auto"/>
+              </Grid.RowDefinitions>
+
+              <Border Grid.Row="0" Background="#66FFFFFF" BorderBrush="#F4C2D0" BorderThickness="1" CornerRadius="6">
+                <ScrollViewer x:Name="ReadingScroller" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
+                              Padding="10,8">
+                  <StackPanel x:Name="ReadingPanel"/>
+                </ScrollViewer>
+              </Border>
+
+              <!-- 控制列：主題／語速／上一段／繼續／下一段／朗讀／加入筆記／暫停 -->
+              <WrapPanel Grid.Row="1" Orientation="Horizontal" Margin="0,8,0,0">
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,10,4">
+                  <TextBlock Text="主題：" VerticalAlignment="Center" Foreground="{StaticResource PinkText}" Margin="0,0,4,0"/>
+                  <ComboBox x:Name="ReaderThemePicker" MinWidth="118" Height="26" VerticalContentAlignment="Center"
+                            IsEnabled="False" ToolTip="顯示／變更此書所屬主題（供說話人依主題色上色）"/>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,10,4">
+                  <TextBlock Text="語速：" VerticalAlignment="Center" Foreground="{StaticResource PinkText}" Margin="0,0,4,0"/>
+                  <ComboBox x:Name="ReaderSpeed" MinWidth="72" Height="26" VerticalContentAlignment="Center"
+                            IsEnabled="False" ToolTip="朗讀語速（50%–150%）"/>
+                </StackPanel>
+                <Button x:Name="ReaderPrevBtn" Content="&#x23EE; 上一段" Width="90" Height="28" Margin="0,0,6,4" IsEnabled="False"/>
+                <Button x:Name="ReaderResumeBtn" Content="&#x25B6; 繼續" Width="84" Height="28" Margin="0,0,6,4" IsEnabled="False"
+                        ToolTip="前進到下一個應停的段落（於指定說話人暫停時跳過非勾選段）"/>
+                <Button x:Name="ReaderNextBtn" Content="&#x23ED; 下一段" Width="84" Height="28" Margin="0,0,6,4" IsEnabled="False"/>
+                <Button x:Name="ReaderSpeakBtn" Width="96" Height="28" Margin="0,0,6,4" IsEnabled="False"
+                        ToolTip="朗讀當前段；唸完自動前進到下一段（再按一次停止）">
+                  <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="&#xE767;" FontFamily="Segoe MDL2 Assets" FontSize="14" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                    <TextBlock x:Name="ReaderSpeakLabel" Text="朗讀" VerticalAlignment="Center"/>
+                  </StackPanel>
+                </Button>
+                <Button x:Name="ReaderAddNoteBtn" Width="120" Height="28" Margin="8,0,0,4" IsEnabled="False">
+                  <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="&#xE70B;" FontFamily="Segoe MDL2 Assets" FontSize="13" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                    <TextBlock Text="加入筆記" VerticalAlignment="Center"/>
+                  </StackPanel>
+                </Button>
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="12,0,0,4">
+                  <TextBlock Text="暫停：" VerticalAlignment="Center" Foreground="{StaticResource PinkText}" Margin="0,0,4,0"/>
+                  <ComboBox x:Name="ReaderPauseAtSpeaker" MinWidth="130" Height="26" VerticalContentAlignment="Center"
+                            IsEnabled="False" ToolTip="於「說話人」清單中勾選者處暫停（繼續／朗讀前進時跳過非勾選段），或每段皆停。">
+                    <ComboBoxItem>不暫停</ComboBoxItem>
+                    <ComboBoxItem>於勾選者暫停</ComboBoxItem>
+                  </ComboBox>
+                </StackPanel>
+              </WrapPanel>
+            </Grid>
+
+            <GridSplitter Grid.Column="1" Width="6" HorizontalAlignment="Stretch" Background="Transparent"/>
+
+            <!-- 右：顯示模式＋逐段清單（雙擊跳段、依段首說話人上色）＋說話人勾選面板 -->
+            <Grid Grid.Column="2">
+              <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+              </Grid.RowDefinitions>
+
+              <ComboBox x:Name="ReaderSpeakerFilter" Grid.Row="0" Height="26" VerticalContentAlignment="Center" Margin="0,0,0,4"
+                        IsEnabled="False" ToolTip="如何呈現下方勾選的說話人：顯示全部段落、只顯示他們的段落，或全部保留但將他們加粗。（字型顏色為常設，取自主題。）">
+                <ComboBoxItem>全部顯示</ComboBoxItem>
+                <ComboBoxItem>只顯示勾選者</ComboBoxItem>
+                <ComboBoxItem>只加粗勾選者</ComboBoxItem>
+              </ComboBox>
+
+              <Grid Grid.Row="1">
+                <Grid.RowDefinitions>
+                  <RowDefinition Height="*" MinHeight="110"/>
+                  <RowDefinition Height="Auto"/>
+                  <RowDefinition Height="150" MinHeight="46"/>
+                </Grid.RowDefinitions>
+
+                <!-- 逐段清單（依段首說話人上色；雙擊跳段） -->
+                <ListBox x:Name="ParaList" Grid.Row="0" Background="#55FFFFFF" BorderBrush="#F4C2D0" BorderThickness="1"
+                         HorizontalContentAlignment="Stretch"
+                         ScrollViewer.HorizontalScrollBarVisibility="Disabled" ToolTip="雙擊某段跳至該段（設為當前段）；按右鍵複製整段原文">
+                  <ListBox.ItemTemplate>
+                    <DataTemplate>
+                      <TextBlock TextWrapping="Wrap" Margin="2" FontSize="12"><Run Text="{Binding SpeakerLabel, Mode=OneWay}" FontWeight="Bold" Foreground="{Binding SpeakerBrush}"/><Run Text="{Binding Text, Mode=OneWay}" FontWeight="{Binding LineWeight}" Foreground="{Binding SpeakerBrush}"/></TextBlock>
+                    </DataTemplate>
+                  </ListBox.ItemTemplate>
+                </ListBox>
+
+                <GridSplitter Grid.Row="1" Height="6" HorizontalAlignment="Stretch" VerticalAlignment="Center"
+                              ResizeDirection="Rows" ResizeBehavior="PreviousAndNext" Background="Transparent"
+                              ToolTip="拖曳以調整說話人清單大小"/>
+
+                <!-- 說話人勾選面板（全部說話人＋各說話人+語句數＋無說話人）：篩選/顯示與暫停共用同一份勾選（比照影片頁） -->
+                <Border Grid.Row="2" Background="#55FFFFFF" BorderBrush="#F4C2D0" BorderThickness="1" CornerRadius="4">
+                  <DockPanel>
+                    <TextBlock DockPanel.Dock="Top" Text="說話人（供上方篩選與暫停使用）" Foreground="#B0578D"
+                               FontSize="11" Margin="6,3,6,2" TextTrimming="CharacterEllipsis"/>
+                    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="4,0,4,4">
+                      <ItemsControl x:Name="ReaderSpeakerChecks">
+                        <ItemsControl.ItemTemplate>
+                          <DataTemplate>
+                            <Grid Background="{Binding RowStripe}">
+                              <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                              </Grid.ColumnDefinitions>
+                              <CheckBox Grid.Column="0" Content="{Binding DisplayName}" IsChecked="{Binding IsChecked, Mode=TwoWay}"
+                                        FontWeight="{Binding Weight}" FontSize="12" Foreground="{Binding NameBrush}" Margin="4,2" VerticalContentAlignment="Center"/>
+                              <Button Grid.Column="1" Content="&#xE70B;" FontFamily="Segoe MDL2 Assets" Foreground="#B0578D"
+                                      Background="Transparent" BorderThickness="0" Cursor="Hand"
+                                      Width="24" Height="22" Padding="0" FontSize="15" Margin="2,1,6,1"
+                                      Visibility="{Binding AddNotesVisibility}" Click="OnAddSpeakerNotesClick"
+                                      ToolTip="將此說話人的所有段落原文加入我的筆記（會先確認費用；逐句翻譯）"/>
+                            </Grid>
+                          </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                      </ItemsControl>
+                    </ScrollViewer>
+                  </DockPanel>
+                </Border>
+              </Grid>
+            </Grid>
+          </Grid>
+        </Border>
+      </Grid>
     </Grid>
 
     <!-- 共用狀態列（兩子頁皆可見）：匯入／解析／刪除訊息不因切子頁而被遮 -->
