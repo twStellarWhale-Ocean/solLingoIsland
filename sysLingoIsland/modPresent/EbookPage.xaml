@@ -215,14 +215,14 @@
                             IsEnabled="False" ToolTip="朗讀語速（50%–150%）"/>
                 </StackPanel>
                 <Button x:Name="ReaderPrevBtn" Content="&#x23EE; 上一段" Width="90" Height="28" Margin="0,0,6,4" IsEnabled="False"/>
-                <Button x:Name="ReaderResumeBtn" Content="&#x25B6; 繼續" Width="84" Height="28" Margin="0,0,6,4" IsEnabled="False"
-                        ToolTip="前進到下一個應停的段落（於指定說話人暫停時跳過非勾選段）"/>
+                <Button x:Name="ReaderResumeBtn" Content="&#x25B6; 播放/繼續" Width="108" Height="28" Margin="0,0,6,4" IsEnabled="False"
+                        ToolTip="連續朗讀（只念對話段）：唸完自動前進、遇暫停點停、章末停；再按一次暫停。快速鍵 Space。"/>
                 <Button x:Name="ReaderNextBtn" Content="&#x23ED; 下一段" Width="84" Height="28" Margin="0,0,6,4" IsEnabled="False"/>
-                <Button x:Name="ReaderSpeakBtn" Width="96" Height="28" Margin="0,0,6,4" IsEnabled="False"
-                        ToolTip="朗讀當前段；唸完自動前進到下一段（再按一次停止）">
+                <Button x:Name="ReaderSpeakBtn" Width="104" Height="28" Margin="0,0,6,4" IsEnabled="False"
+                        ToolTip="只朗讀當前這一段一次、不自動前進。">
                   <StackPanel Orientation="Horizontal">
                     <TextBlock Text="&#xE767;" FontFamily="Segoe MDL2 Assets" FontSize="14" VerticalAlignment="Center" Margin="0,0,5,0"/>
-                    <TextBlock x:Name="ReaderSpeakLabel" Text="朗讀" VerticalAlignment="Center"/>
+                    <TextBlock x:Name="ReaderSpeakLabel" Text="朗讀單段" VerticalAlignment="Center"/>
                   </StackPanel>
                 </Button>
                 <Button x:Name="ReaderAddNoteBtn" Width="120" Height="28" Margin="8,0,0,4" IsEnabled="False">

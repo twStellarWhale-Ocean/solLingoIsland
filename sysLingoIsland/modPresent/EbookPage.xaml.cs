@@ -130,6 +130,8 @@ public partial class EbookPage : UserControl
 
         // 切回本頁重填篩選＋reader「主題：」picker（反映主題增刪改）並重整書櫃
         IsVisibleChanged += (_, e) => { if (e.NewValue is true) { PopulateThemeFilter(); if (_openBook is not null) { PopulateReaderThemePicker(_openBook); } RefreshBookshelf(); } };
+        Focusable = true;
+        PreviewKeyDown += OnReaderHotkey; // #6 內容頁快速鍵：←/→＝上/下一段、Space＝播放/繼續（不劫持輸入框/下拉）
 
         PopulateThemeFilter();
         RefreshBookshelf();   // #219：四 toggle 鈕視覺於此同步（單一同步點）
@@ -144,6 +146,7 @@ public partial class EbookPage : UserControl
         if (acquire) { StopTts(); return; } // 切離內容：停朗讀（切書/暫停即止家規）
         // 切到內容：尚未開書但書櫃有選取→自動開該書（單擊選書＋點內容子頁即讀）
         if (_openBookId is null && _selectedBookId is not null) { _ = OpenBookInReaderAsync(_selectedBookId); }
+        Dispatcher.BeginInvoke(new Action(() => Focus()), System.Windows.Threading.DispatcherPriority.Input); // #6：取焦點供 ←→/Space
     }
 
     private void SetStatus(string msg) => StatusText.Text = msg;
@@ -732,8 +735,8 @@ public partial class EbookPage : UserControl
 
         ReaderPrevBtn.Click += (_, _) => StepPrev();
         ReaderNextBtn.Click += (_, _) => StepNext();
-        ReaderResumeBtn.Click += (_, _) => ResumeReading();
-        ReaderSpeakBtn.Click += (_, _) => ToggleReadAloud();
+        ReaderResumeBtn.Click += (_, _) => TogglePlay();     // 播放/繼續：連續朗讀（只念對話、章末停）
+        ReaderSpeakBtn.Click += (_, _) => ReadCurrentOnce(); // 朗讀單段：只念當前段一次
         ReaderAddNoteBtn.Click += (_, _) => AddCurrentParagraphNote();
 
         PopulateReaderSpeed();
@@ -1132,16 +1135,64 @@ public partial class EbookPage : UserControl
         if (nc >= 0) { GoToChapter(nc, 0, keepReading: _ttsReading); }
     }
 
-    /// <summary>繼續：前進到下一個「應停」段（於指定說話人暫停時跳過非勾選段，沿用 ParagraphStepper.NextStop）；章末則進下一非空章。朗讀中則於新段續讀。</summary>
-    private void ResumeReading()
+    /// <summary>某段是否為「對話」（可朗讀）：有說話人（<c>Name: …</c>）且非標題；旁白／<c>h1–h6</c> 標題／中文＝非對話、朗讀跳過。</summary>
+    private bool IsDialogueAt(int index)
+    {
+        var cues = CurCues;
+        if (index < 0 || index >= cues.Count || IsHeadingAt(index)) { return false; }
+        return !string.IsNullOrEmpty(cues[index].Speaker);
+    }
+
+    /// <summary>自 <paramref name="from"/> 之後找下一個「可朗讀」段（只念對話；「於勾選者暫停」模式下再限於勾選之說話人）；無則 -1（章末）。</summary>
+    private int NextReadable(int from)
+    {
+        var cues = CurCues;
+        var pauseOn = _pauseMode == RPauseMode.Selected && _everyoneCheck?.IsChecked != true; // 全勾＝不篩
+        for (int i = Math.Max(from + 1, 0); i < cues.Count; i++)
+        {
+            if (!IsDialogueAt(i)) { continue; }                             // 只念對話（跳標題/旁白/中文）
+            if (pauseOn && !SpeakerChecked(cues[i].Speaker)) { continue; }  // 暫停：只念勾選之說話人
+            return i;
+        }
+        return -1;
+    }
+
+    /// <summary>[播放/繼續]：朗讀中→暫停；否則自當前(含)起第一個可念對話段連續朗讀（只念對話、唸完自動前進、遇暫停點停、<b>章末停</b>、再按停）。</summary>
+    private void TogglePlay()
     {
         if (_chapters.Count == 0) { return; }
-        var (targets, noSpeaker) = EffectivePauseTargets();
-        var next = ParagraphStepper.NextStop(CurCues, _cursor, targets, noSpeaker);
-        if (next >= 0) { NavigateTo(next, keepReading: _ttsReading); return; }
-        var nc = NextNonEmptyChapter(_chapterIndex + 1);
-        if (nc >= 0) { GoToChapter(nc, FirstStopOf(nc), keepReading: _ttsReading); }
-        else { StopTts(); SetStatus("已到全書最後。"); }
+        if (_ttsReading) { StopTts(); SetStatus("已暫停。"); return; }
+        var start = NextReadable(_cursor - 1); // 含當前段
+        if (start < 0) { SetStatus("本章沒有可朗讀的對話段。"); return; }
+        _ttsReading = true;
+        UpdateSpeakButton();
+        if (start != _cursor) { SetCursor(start); }
+        SpeakCurrentTts(stopPrevious: true);
+    }
+
+    /// <summary>[朗讀單段]：只念當前段一次、不自動前進（明確單段動作；非對話段以英文語音念＝近乎靜音，無害）。</summary>
+    private void ReadCurrentOnce()
+    {
+        var cues = CurCues;
+        if (_cursor < 0 || _cursor >= cues.Count) { return; }
+        StopTts(); // 先停任何連續朗讀
+        var svc = _speechProvider();
+        if (svc is null) { SetStatus("目前沒有可用的語音服務，無法朗讀。"); return; }
+        var text = cues[_cursor].Text;
+        if (!string.IsNullOrWhiteSpace(text)) { svc.Speak(text, "en-US", stopPrevious: true); }
+    }
+
+    /// <summary>內容頁快速鍵（#6）：←＝上一段、→＝下一段、Space＝播放/繼續。輸入框／下拉聚焦時不劫持。</summary>
+    private void OnReaderHotkey(object sender, System.Windows.Input.KeyEventArgs e)
+    {
+        if (EbookContentPane.Visibility != Visibility.Visible || _chapters.Count == 0) { return; }
+        if (System.Windows.Input.Keyboard.FocusedElement is System.Windows.Controls.TextBox or System.Windows.Controls.ComboBox) { return; }
+        switch (e.Key)
+        {
+            case Key.Left: StepPrev(); e.Handled = true; break;
+            case Key.Right: StepNext(); e.Handled = true; break;
+            case Key.Space: TogglePlay(); e.Handled = true; break;
+        }
     }
 
     /// <summary>手動導航到同章某段（上/下一段/繼續共用）：先同步停朗讀（作廢待觸發之自動前進），移游標；原在朗讀則於下一輪 Dispatcher 重啟朗讀（generation guard：待觸發完成事件已被 disarm 排空）。</summary>
@@ -1181,14 +1232,6 @@ public partial class EbookPage : UserControl
 
     // ---- TTS 逐段朗讀（唸完自動前進；比照影片 #208 generation guard） ----
 
-    /// <summary>朗讀鈕：未在朗讀→自當前段起連續朗讀；朗讀中→停止（暫停即止）。</summary>
-    private void ToggleReadAloud()
-    {
-        if (CurCues.Count == 0 || _cursor < 0) { return; }
-        if (_ttsReading) { StopTts(); SetStatus("已停止朗讀。"); }
-        else { _ttsReading = true; UpdateSpeakButton(); SpeakCurrentTts(stopPrevious: true); }
-    }
-
     /// <summary>朗讀當前段（en-US；記朗讀段＝游標供完成事件比對）；無語音服務明確降級不當機；空段（理論上不存在）跳略前進。</summary>
     private void SpeakCurrentTts(bool stopPrevious)
     {
@@ -1206,8 +1249,11 @@ public partial class EbookPage : UserControl
     /// <summary>重啟朗讀於當前段（手動導航後之續讀；由 Dispatcher 下一輪呼叫，確保待觸發完成事件已被 disarm 排空）。</summary>
     private void RestartReadingAtCursor()
     {
+        var start = NextReadable(_cursor - 1); // 自當前(含)起第一個可念對話段
+        if (start < 0) { StopTts(); return; }
         _ttsReading = true;
         UpdateSpeakButton();
+        if (start != _cursor) { SetCursor(start); }
         SpeakCurrentTts(stopPrevious: true);
     }
 
@@ -1234,25 +1280,16 @@ public partial class EbookPage : UserControl
         AdvanceTtsAfterCurrent();
     }
 
-    /// <summary>唸完自動前進到下一「應停」段續唸；章末滾下一非空章；全書末則停。</summary>
+    /// <summary>唸完自動前進到下一「可朗讀」對話段續唸；<b>章末即停</b>（不自動滾下一章，USR：播放/繼續章末停止）。</summary>
     private void AdvanceTtsAfterCurrent()
     {
-        var (targets, noSpeaker) = EffectivePauseTargets();
-        var next = ParagraphStepper.NextStop(CurCues, _cursor, targets, noSpeaker);
+        var next = NextReadable(_cursor);
         if (next >= 0)
         {
             SetCursor(next);
             SpeakCurrentTts(stopPrevious: false); // 鏈接：前段已唸完、無需取消
-            return;
         }
-        var nc = NextNonEmptyChapter(_chapterIndex + 1);
-        if (nc >= 0)
-        {
-            LoadChapter(nc);
-            SetCursor(FirstStopOf(nc));
-            SpeakCurrentTts(stopPrevious: false);
-        }
-        else { StopTts(); SetStatus("已朗讀至全書最後。"); }
+        else { StopTts(); SetStatus("已朗讀至本章結尾。"); } // 章末停（不自動滾下一章）
     }
 
     /// <summary>確保 SpeakCompleted 訂閱到目前語音服務（設定換聲→App 換新 SpeechService 實例，改訂新的、免殘留）。</summary>
@@ -1265,7 +1302,7 @@ public partial class EbookPage : UserControl
         if (_subscribedSpeech is not null) { _subscribedSpeech.SpeakCompleted += OnSpeechCompleted; }
     }
 
-    private void UpdateSpeakButton() => ReaderSpeakLabel.Text = _ttsReading ? "停止" : "朗讀";
+    private void UpdateSpeakButton() => ReaderResumeBtn.Content = _ttsReading ? "⏸ 暫停" : "▶ 播放/繼續"; // 播放鈕切 播放/繼續↔暫停
 
     // ---- 說話人勾選面板／上色（比照影片頁；全書說話人） ----
 

@@ -239,7 +239,7 @@
                             IsEnabled="False" ToolTip="顯示／變更此影片所屬的主題"/>
                 </StackPanel>
                 <Button x:Name="ReplayBtn" Content="&#x23EE; 上一句" Width="96" Height="28" Margin="0,0,6,4" IsEnabled="False"/>
-                <Button x:Name="ResumeBtn" Content="&#x25B6; 繼續" Width="96" Height="28" Margin="0,0,6,4" IsEnabled="False"/>
+                <Button x:Name="ResumeBtn" Content="&#x25B6; 播放/繼續" Width="108" Height="28" Margin="0,0,6,4" IsEnabled="False"/>
                 <Button x:Name="NextBtn" Content="&#x23ED; 下一句" Width="84" Height="28" Margin="0,0,6,4" IsEnabled="False"/>
                 <Button x:Name="AddNoteBtn" Width="132" Height="28" Margin="10,0,0,4" IsEnabled="False">
                   <StackPanel Orientation="Horizontal">
