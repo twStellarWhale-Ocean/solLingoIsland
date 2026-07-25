@@ -39,19 +39,75 @@
   <!-- 版面統一（#182）：兩子頁籤【獲得】（關鍵字搜尋＋結果表格＋網址載入）／【內容】（左影片清單｜右播放器＋逐句字幕）＋共用狀態列 -->
   <Grid Margin="10">
     <Grid.RowDefinitions>
-      <RowDefinition Height="Auto"/>
       <RowDefinition Height="*"/>
       <RowDefinition Height="Auto"/>
     </Grid.RowDefinitions>
 
-    <!-- 子頁籤：內容 / 獲得（USR：先內容再獲得；可見性切換，非 TabControl，避免切頁卸載重建 WebView2 播放器、中斷播放） -->
-    <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,8">
-      <RadioButton x:Name="SubTabPlay" Style="{StaticResource SubTab}" GroupName="VideoSubTab" IsChecked="True" Content="內容"/>
-      <RadioButton x:Name="SubTabSearch" Style="{StaticResource SubTab}" GroupName="VideoSubTab" Content="獲得"/>
-    </StackPanel>
+    <!-- 主體（#237 比照電子書 #236）：最左常駐影片清單｜右側子頁籤＋兩 pane 疊放 -->
+    <Grid Grid.Row="0">
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="200" MinWidth="150"/>
+        <ColumnDefinition Width="6"/>
+        <ColumnDefinition Width="*" MinWidth="320"/>
+      </Grid.ColumnDefinitions>
 
-    <!-- body：兩 pane 疊放同格，靠可見性切換 -->
-    <Grid Grid.Row="1">
+      <!-- 最左：常駐影片清單（#237 自【內容】左欄上提；Clear all＋theme 篩選＋四鍵排序＋清單） -->
+        <!-- 左：Videos＋Clear all（置頂）＋依 theme 篩選＋清單 -->
+        <Grid Grid.Column="0">
+          <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+          </Grid.RowDefinitions>
+          <Grid Grid.Row="0">
+            <TextBlock Text="影片" FontWeight="Bold" FontSize="13" Foreground="{StaticResource PinkText}" VerticalAlignment="Center"/>
+            <Button x:Name="ClearVideosBtn" Content="全部清除" Style="{StaticResource GhostButton}" HorizontalAlignment="Right"/>
+          </Grid>
+          <!-- 依 theme 篩選（圖文下拉，多媒體主題管理·B） -->
+          <ComboBox x:Name="VideoThemeFilter" Grid.Row="1" Height="26" Margin="0,6,0,4"
+                    VerticalContentAlignment="Center" ToolTip="依主題篩選影片"/>
+          <!-- 排序鈕（#207 立下拉、#219 改四顆圖示 toggle）：同鈕再點翻方向；作用中＝▲/▼＋粗體深色（非顏色線索＝字圖存否，沿筆記 #126 家規）；每模式各自記方向、存 videos.json 跨啟動沿用 -->
+          <WrapPanel Grid.Row="2" Orientation="Horizontal" Margin="0,0,0,4">
+            <Button x:Name="VideoSortAddedBtn" Style="{StaticResource GhostButton}" Margin="0,0,4,2" Padding="6,2"
+                    ToolTip="依加入時間排序（新→舊／舊→新）。再點一次切換方向。"/>
+            <Button x:Name="VideoSortTitleBtn" Style="{StaticResource GhostButton}" Margin="0,0,4,2" Padding="6,2"
+                    ToolTip="依名稱排序（A→Z／Z→A，自然排序）。再點一次切換方向。"/>
+            <Button x:Name="VideoSortDurBtn" Style="{StaticResource GhostButton}" Margin="0,0,4,2" Padding="6,2"
+                    ToolTip="依時間長度排序（短→長／長→短；還沒記到長度的排最後）。再點一次切換方向。"/>
+            <Button x:Name="VideoSortThemeBtn" Style="{StaticResource GhostButton}" Margin="0,0,0,2" Padding="6,2"
+                    ToolTip="依主題分組排序（主題名正向／反向；未歸屬排最後）。再點一次切換方向。"/>
+          </WrapPanel>
+          <Border Grid.Row="3" Style="{StaticResource Card}">
+            <Grid>
+              <ListBox x:Name="VideoList" BorderThickness="0" Background="Transparent" Margin="4"
+                       HorizontalContentAlignment="Stretch"
+                       ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                       ToolTip="點擊以載入；按右鍵或 Delete 移除"/>
+              <TextBlock x:Name="VideoEmptyHint" Text="尚無影片。請於「獲得」子頁籤加入。"
+                         Foreground="#9A6A82" FontSize="12" TextWrapping="Wrap" MaxWidth="160"
+                         TextAlignment="Center" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            </Grid>
+          </Border>
+        </Grid>
+
+      <GridSplitter Grid.Column="1" Width="6" HorizontalAlignment="Stretch" Background="Transparent"/>
+
+      <!-- 右側：子頁籤＋兩 pane 疊放同格（#237） -->
+      <Grid Grid.Column="2" Margin="6,0,0,0">
+        <Grid.RowDefinitions>
+          <RowDefinition Height="Auto"/>
+          <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- 子頁籤：內容 / 獲得（USR：先內容再獲得；可見性切換，非 TabControl，避免切頁卸載重建 WebView2 播放器、中斷播放） -->
+        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,8">
+          <RadioButton x:Name="SubTabPlay" Style="{StaticResource SubTab}" GroupName="VideoSubTab" IsChecked="True" Content="內容"/>
+          <RadioButton x:Name="SubTabSearch" Style="{StaticResource SubTab}" GroupName="VideoSubTab" Content="獲得"/>
+        </StackPanel>
+
+        <!-- body：兩 pane 疊放同格，靠可見性切換 -->
+        <Grid Grid.Row="1">
 
       <!-- 【獲得】關鍵字搜尋＋結果表格＋網址載入 -->
       <!-- AllowDrop 置於整張卡片（#193 USR 回饋）：拖放範圍＝整個「加入影片」區塊，非僅輸入框；以 Preview 事件於此統一處理，子元素不各自實作 -->
@@ -115,57 +171,10 @@
         </StackPanel>
       </Border>
 
-      <!-- 【內容】左＝影片清單（Clear all＋theme 篩選；右鍵/Delete 刪）｜右＝播放器＋逐句字幕（預設隱藏，載入影片時自動切換至此） -->
+      <!-- 【內容】＝播放器＋逐句字幕（#237：影片清單已提為頁級最左常駐欄） -->
       <Grid x:Name="PlayPane">
-        <Grid.ColumnDefinitions>
-          <ColumnDefinition Width="200" MinWidth="150"/>
-          <ColumnDefinition Width="6"/>
-          <ColumnDefinition Width="*" MinWidth="300"/>
-        </Grid.ColumnDefinitions>
-
-        <!-- 左：Videos＋Clear all（置頂）＋依 theme 篩選＋清單 -->
-        <Grid Grid.Column="0">
-          <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
-          </Grid.RowDefinitions>
-          <Grid Grid.Row="0">
-            <TextBlock Text="影片" FontWeight="Bold" FontSize="13" Foreground="{StaticResource PinkText}" VerticalAlignment="Center"/>
-            <Button x:Name="ClearVideosBtn" Content="全部清除" Style="{StaticResource GhostButton}" HorizontalAlignment="Right"/>
-          </Grid>
-          <!-- 依 theme 篩選（圖文下拉，多媒體主題管理·B） -->
-          <ComboBox x:Name="VideoThemeFilter" Grid.Row="1" Height="26" Margin="0,6,0,4"
-                    VerticalContentAlignment="Center" ToolTip="依主題篩選影片"/>
-          <!-- 排序鈕（#207 立下拉、#219 改四顆圖示 toggle）：同鈕再點翻方向；作用中＝▲/▼＋粗體深色（非顏色線索＝字圖存否，沿筆記 #126 家規）；每模式各自記方向、存 videos.json 跨啟動沿用 -->
-          <WrapPanel Grid.Row="2" Orientation="Horizontal" Margin="0,0,0,4">
-            <Button x:Name="VideoSortAddedBtn" Style="{StaticResource GhostButton}" Margin="0,0,4,2" Padding="6,2"
-                    ToolTip="依加入時間排序（新→舊／舊→新）。再點一次切換方向。"/>
-            <Button x:Name="VideoSortTitleBtn" Style="{StaticResource GhostButton}" Margin="0,0,4,2" Padding="6,2"
-                    ToolTip="依名稱排序（A→Z／Z→A，自然排序）。再點一次切換方向。"/>
-            <Button x:Name="VideoSortDurBtn" Style="{StaticResource GhostButton}" Margin="0,0,4,2" Padding="6,2"
-                    ToolTip="依時間長度排序（短→長／長→短；還沒記到長度的排最後）。再點一次切換方向。"/>
-            <Button x:Name="VideoSortThemeBtn" Style="{StaticResource GhostButton}" Margin="0,0,0,2" Padding="6,2"
-                    ToolTip="依主題分組排序（主題名正向／反向；未歸屬排最後）。再點一次切換方向。"/>
-          </WrapPanel>
-          <Border Grid.Row="3" Style="{StaticResource Card}">
-            <Grid>
-              <ListBox x:Name="VideoList" BorderThickness="0" Background="Transparent" Margin="4"
-                       HorizontalContentAlignment="Stretch"
-                       ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-                       ToolTip="點擊以載入；按右鍵或 Delete 移除"/>
-              <TextBlock x:Name="VideoEmptyHint" Text="尚無影片。請於「獲得」子頁籤加入。"
-                         Foreground="#9A6A82" FontSize="12" TextWrapping="Wrap" MaxWidth="160"
-                         TextAlignment="Center" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-            </Grid>
-          </Border>
-        </Grid>
-
-        <GridSplitter Grid.Column="1" Width="6" HorizontalAlignment="Stretch" Background="Transparent"/>
-
-        <!-- 右：內容區塊（所屬主題＋播放中網址＋播放器｜逐句字幕） -->
-        <Border Grid.Column="2" Style="{StaticResource Card}" Padding="8">
+        <!-- 內容區塊（所屬主題＋播放中網址＋播放器｜逐句字幕） -->
+        <Border Style="{StaticResource Card}" Padding="8">
           <Grid>
             <Grid.RowDefinitions>
               <RowDefinition Height="Auto"/>
@@ -393,10 +402,12 @@
           </Grid>
         </Border>
       </Grid>
+        </Grid>
+      </Grid>
     </Grid>
 
     <!-- 共用狀態列（#177）：兩子頁皆可見；載入/錯誤訊息不因切到內容頁而被遮 -->
-    <TextBlock x:Name="StatusText" Grid.Row="2" Margin="4,6,4,0" FontSize="12" Foreground="#B0578D" TextWrapping="Wrap"
+    <TextBlock x:Name="StatusText" Grid.Row="1" Margin="4,6,4,0" FontSize="12" Foreground="#B0578D" TextWrapping="Wrap"
                Text="請於「獲得」子頁籤加入影片：貼上其影片網址與字幕檔網址。"/>
   </Grid>
 </UserControl>
