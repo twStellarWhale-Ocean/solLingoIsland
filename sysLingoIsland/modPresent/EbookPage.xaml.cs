@@ -1109,22 +1109,18 @@ public partial class EbookPage : UserControl
         return bi;
     }
 
-    /// <summary>上一段（相鄰段，raw ±1；比照影片導航直達）；章首則退上一非空章末段。朗讀中則於新段續讀。</summary>
+    /// <summary>上一段（相鄰段，raw ±1）；<b>只在本章內</b>——章首即止、不跨章（跨章＝PageUp·#247）。朗讀中則於新段續讀。</summary>
     private void StepPrev()
     {
         if (_chapters.Count == 0) { return; }
-        if (CurCues.Count > 0 && _cursor > 0) { NavigateTo(_cursor - 1, keepReading: _ttsReading); return; }
-        var pc = PrevNonEmptyChapter(_chapterIndex - 1);
-        if (pc >= 0) { GoToChapter(pc, LastParagraphOf(pc), keepReading: _ttsReading); }
+        if (CurCues.Count > 0 && _cursor > 0) { NavigateTo(_cursor - 1, keepReading: _ttsReading); }
     }
 
-    /// <summary>下一段（相鄰段，raw ±1）；章末則進下一非空章首段。朗讀中則於新段續讀。</summary>
+    /// <summary>下一段（相鄰段，raw ±1）；<b>只在本章內</b>——章末即止、不跨章（跨章＝PageDown·#247）。朗讀中則於新段續讀。</summary>
     private void StepNext()
     {
         if (_chapters.Count == 0) { return; }
-        if (CurCues.Count > 0 && _cursor + 1 < CurCues.Count) { NavigateTo(_cursor + 1, keepReading: _ttsReading); return; }
-        var nc = NextNonEmptyChapter(_chapterIndex + 1);
-        if (nc >= 0) { GoToChapter(nc, 0, keepReading: _ttsReading); }
+        if (CurCues.Count > 0 && _cursor + 1 < CurCues.Count) { NavigateTo(_cursor + 1, keepReading: _ttsReading); }
     }
 
     /// <summary>某段是否為「對話」（可朗讀）：有說話人（<c>Name: …</c>）且非標題；旁白／<c>h1–h6</c> 標題／中文＝非對話、朗讀跳過。</summary>
@@ -1222,7 +1218,6 @@ public partial class EbookPage : UserControl
 
     private int NextNonEmptyChapter(int from) { for (int c = Math.Max(0, from); c < _chapters.Count; c++) { if (_chapters[c].Count > 0) { return c; } } return -1; }
     private int PrevNonEmptyChapter(int from) { for (int c = Math.Min(from, _chapters.Count - 1); c >= 0; c--) { if (_chapters[c].Count > 0) { return c; } } return -1; }
-    private int LastParagraphOf(int ch) => ch >= 0 && ch < _chapters.Count ? Math.Max(0, _chapters[ch].Count - 1) : 0;
     private int FirstStopOf(int ch)
     {
         if (ch < 0 || ch >= _chapters.Count) { return 0; }
