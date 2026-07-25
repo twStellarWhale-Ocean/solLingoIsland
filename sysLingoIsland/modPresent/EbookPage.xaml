@@ -145,10 +145,9 @@
                      ToolTip="目前閱讀中的書"/>
           <Border Grid.Row="1" Style="{StaticResource Card}">
             <Grid>
-              <ListBox x:Name="ChapterList" BorderThickness="0" Background="Transparent" Margin="4"
-                       HorizontalContentAlignment="Stretch"
-                       ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-                       ToolTip="雙擊某章跳至該章開頭"/>
+              <TreeView x:Name="ChapterTree" BorderThickness="0" Background="Transparent" Margin="4"
+                        ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                        ToolTip="點章節跳至該章開頭；各層可收合／展開"/>
               <TextBlock x:Name="ReaderEmptyHint" Foreground="#9A6A82" FontSize="12" TextWrapping="Wrap" MaxWidth="170"
                          TextAlignment="Center" HorizontalAlignment="Center" VerticalAlignment="Center"
                          Text="尚未開書。請至「獲得」子頁籤雙擊一本書開始閱讀。"/>

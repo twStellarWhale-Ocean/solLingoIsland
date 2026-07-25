@@ -16,6 +16,7 @@ using TextWrapping = System.Windows.TextWrapping;
 using CollectionViewSource = System.Windows.Data.CollectionViewSource;
 using UserControl = System.Windows.Controls.UserControl;
 using ListBoxItem = System.Windows.Controls.ListBoxItem;
+using TreeViewItem = System.Windows.Controls.TreeViewItem;
 using Button = System.Windows.Controls.Button;
 using TextBlock = System.Windows.Controls.TextBlock;
 using StackPanel = System.Windows.Controls.StackPanel;
@@ -686,7 +687,8 @@ public partial class EbookPage : UserControl
     private IReadOnlyList<IReadOnlyList<SubtitleCue>> _chapters = System.Array.Empty<IReadOnlyList<SubtitleCue>>(); // 各章段落 cue（外層＝spine 章、內層＝段）
     private EbookBookContent? _content;                                                   // 增量3：整本內容（段落＋依位置場景圖＋圖片位元組）；_chapters 之 cue 由此投影
     private readonly Dictionary<string, System.Windows.Media.Imaging.BitmapImage> _imageCache = new(); // 場景圖解碼快取（key＝圖檔名）
-    private readonly List<(int Depth, string Title, int SpineIndex)> _tocEntries = new(); // 左目錄各列（層深＋標題＋對應 spine 章 index；增量3 多層目錄，SpineIndex=-1＝純標題節點不可跳）
+    private readonly Dictionary<int, TreeViewItem> _chapterNodeBySpine = new(); // spine 章 index → 目錄樹節點（供高亮）；增量3 多層可收合目錄
+    private bool _syncingChapterTree;                                            // 程式選取樹節點期間抑制 SelectedItemChanged→跳章
     private int _chapterIndex = -1;                                // 當前章（spine index；LastReadChapter）
     private int _cursor = -1;                                      // 當前段游標（章內段 index；LastReadParagraph）
     private bool _loadingBook;                                     // 開書中（防重入）
@@ -731,7 +733,7 @@ public partial class EbookPage : UserControl
             _ = OpenBookInReaderAsync(it.Id);     // 直接開該書（切書換載；同書已開則 no-op；_loadingBook 防重入）
         };
 
-        ChapterList.MouseDoubleClick += (_, _) => { if (ChapterList.SelectedItem is ListBoxItem li && li.Tag is int idx && idx >= 0) { JumpToChapter(idx); } }; // 增量3：多層目錄→依 spine 章 index 跳（純標題節點 idx=-1 不跳）
+        ChapterTree.SelectedItemChanged += (_, e) => { if (!_syncingChapterTree && e.NewValue is TreeViewItem ti && ti.Tag is int idx && idx >= 0) { JumpToChapter(idx); } }; // 增量3：多層可收合目錄→點章依 spine index 跳（純標題節點 idx=-1 不跳）
 
         ReaderPrevBtn.Click += (_, _) => StepPrev();
         ReaderNextBtn.Click += (_, _) => StepNext();
@@ -794,8 +796,7 @@ public partial class EbookPage : UserControl
             SetupSceneImageBlock(); // 增量3：依本書有無圖固定圖塊（有→常駐固定、無→純文字），跨章不跳動
             _chapterIndex = -1; _cursor = -1;
             ReaderBookTitle.Text = display;
-            BuildTocEntries(info);
-            PopulateChapterList();
+            BuildChapterTree(info);
             PopulateReaderThemePicker(item);
             BuildSpeakerChecks();       // 全書說話人（跨章）→ 主題色
 
@@ -844,26 +845,40 @@ public partial class EbookPage : UserControl
         catch { return (null, null); }
     }
 
-    /// <summary>建左章節目錄（增量3 多層）：走 <see cref="EbookInfo.Toc"/> 樹產生各列（層深＋標題＋對應 spine 章 index）；無目錄樹退回每 spine 章一列。</summary>
-    private void BuildTocEntries(EbookInfo info)
+    /// <summary>建左章節目錄（增量3 多層可收合樹狀）：走 <see cref="EbookInfo.Toc"/> 樹產生 <see cref="TreeViewItem"/>（Tag＝對應 spine 章 index）並建 spine→節點對照；無目錄樹退回每 spine 章一列。</summary>
+    private void BuildChapterTree(EbookInfo info)
     {
-        _tocEntries.Clear();
+        _chapterNodeBySpine.Clear();
+        ChapterTree.Items.Clear();
         var byPath = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
         for (int i = 0; i < info.SpineHrefs.Count; i++) { byPath[info.SpineHrefs[i]] = i; }
-        void Walk(List<EbookTocNode> nodes, int depth)
+
+        TreeViewItem MakeNode(EbookTocNode n)
         {
-            foreach (var n in nodes)
+            var spineIdx = ResolveSpineIndex(n.Href, byPath, info.SpineHrefs);
+            var ti = new TreeViewItem
             {
-                var title = string.IsNullOrWhiteSpace(n.Title) ? "—" : n.Title.Trim();
-                _tocEntries.Add((depth, title, ResolveSpineIndex(n.Href, byPath, info.SpineHrefs)));
-                if (n.Children is { Count: > 0 }) { Walk(n.Children, depth + 1); }
+                Header = string.IsNullOrWhiteSpace(n.Title) ? "—" : n.Title.Trim(),
+                Tag = spineIdx,
+                IsExpanded = true, // 預設展開、使用者可收合
+            };
+            if (spineIdx >= 0 && !_chapterNodeBySpine.ContainsKey(spineIdx)) { _chapterNodeBySpine[spineIdx] = ti; }
+            foreach (var c in n.Children) { ti.Items.Add(MakeNode(c)); }
+            return ti;
+        }
+
+        foreach (var n in info.Toc) { ChapterTree.Items.Add(MakeNode(n)); }
+        if (ChapterTree.Items.Count == 0) // 無目錄樹（如壞 nav）→ 退回每 spine 章一列
+        {
+            for (int i = 0; i < _chapters.Count; i++)
+            {
+                var ti = new TreeViewItem { Header = $"第 {i + 1} 章", Tag = i };
+                _chapterNodeBySpine[i] = ti;
+                ChapterTree.Items.Add(ti);
             }
         }
-        Walk(info.Toc, 0);
-        if (_tocEntries.Count == 0) // 無目錄樹（如壞 nav）→ 退回每 spine 章一列
-        {
-            for (int i = 0; i < _chapters.Count; i++) { _tocEntries.Add((0, $"第 {i + 1} 章", i)); }
-        }
+        ReaderEmptyHint.Visibility = ChapterTree.Items.Count > 0 ? Visibility.Collapsed : Visibility.Visible;
+        HighlightChapter(_chapterIndex);
     }
 
     /// <summary>目錄項之目標檔 → spine 章 index：先比對完整 FilePath，退比對檔名；查無回 -1（純標題節點）。</summary>
@@ -884,45 +899,17 @@ public partial class EbookPage : UserControl
         return (slash >= 0 ? s[(slash + 1)..] : s).ToLowerInvariant();
     }
 
-    private void PopulateChapterList()
-    {
-        ChapterList.Items.Clear();
-        foreach (var (depth, title, spineIdx) in _tocEntries)
-        {
-            ChapterList.Items.Add(new ListBoxItem
-            {
-                Content = new TextBlock
-                {
-                    Text = title,
-                    TextTrimming = TextTrimming.CharacterEllipsis,
-                    FontSize = 12,
-                    FontWeight = depth == 0 ? FontWeights.SemiBold : FontWeights.Normal,
-                },
-                Tag = spineIdx,
-                Padding = new Thickness(4 + depth * 14, 3, 4, 3), // 依層深縮排
-                ToolTip = "雙擊跳至該章開頭",
-            });
-        }
-        ReaderEmptyHint.Visibility = _tocEntries.Count > 0 ? Visibility.Collapsed : Visibility.Visible;
-        HighlightChapter(_chapterIndex);
-    }
-
-    /// <summary>高亮當前章所屬之目錄列＝TOC 順序中「對應 spine 章 ∈ [0, 當前章]」之最後一列（含未列於 TOC 之章，歸其前一個章節段）。</summary>
+    /// <summary>高亮當前章所屬之目錄節點：其直接對應者，或前一個有對應之章（含未列於 TOC 之章，歸其前一章節段）；程式選取以旗標抑制 SelectedItemChanged 誤跳。</summary>
     private void HighlightChapter(int ch)
     {
-        if (ch < 0 || _tocEntries.Count == 0) { return; }
-        int best = -1;
-        for (int i = 0; i < _tocEntries.Count; i++)
-        {
-            var s = _tocEntries[i].SpineIndex;
-            if (s >= 0 && s <= ch) { best = i; }
-        }
-        if (best < 0) { best = 0; }
-        if (best < ChapterList.Items.Count)
-        {
-            ChapterList.SelectedIndex = best;   // ChapterList 無 SelectionChanged 處理器（跳章走雙擊），設選取僅高亮
-            ChapterList.ScrollIntoView(ChapterList.Items[best]);
-        }
+        if (ch < 0 || _chapterNodeBySpine.Count == 0) { return; }
+        TreeViewItem? target = null;
+        for (int s = ch; s >= 0 && target is null; s--) { _chapterNodeBySpine.TryGetValue(s, out target); }
+        if (target is null) { return; }
+        _syncingChapterTree = true;
+        target.IsSelected = true;
+        target.BringIntoView();
+        _syncingChapterTree = false;
     }
 
     /// <summary>載入某章之段落到中閱讀區與右逐段清單（不動游標；呼叫端隨後 SetCursor）。</summary>
