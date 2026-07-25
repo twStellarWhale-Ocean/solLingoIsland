@@ -1,4 +1,5 @@
 using System.IO;
+using System.IO.Compression;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using LingoIsland.Ebook;
@@ -206,6 +207,34 @@ public sealed class EbookStore
     /// </summary>
     public (int Chapter, int Paragraph) GetReadingProgress(string id) => GetReadingProgress(Load(), id);
 
+    // ---- 段落編輯 override side-car（#239；存書本資料夾 edits.json，原始 .epub 唯讀不改） ----
+
+    /// <summary>讀某本書之段落編輯覆蓋（<c>{資料夾}\edits.json</c>）；無檔／毀損退空覆蓋（用原文）、不致命。</summary>
+    public EbookEdits LoadEdits(EbookItem item)
+    {
+        try
+        {
+            var path = Path.Combine(FolderPathFor(item), EditsFile);
+            if (!File.Exists(path)) { return new EbookEdits(); }
+            return JsonSerializer.Deserialize<EbookEdits>(File.ReadAllText(path)) ?? new EbookEdits();
+        }
+        catch { return new EbookEdits(); }
+    }
+
+    /// <summary>存某本書之段落編輯覆蓋至 <c>{資料夾}\edits.json</c>；資料夾不存在則建、寫入失敗靜默降級（不影響閱讀）。</summary>
+    public void SaveEdits(EbookItem item, EbookEdits edits)
+    {
+        try
+        {
+            var folder = FolderPathFor(item);
+            Directory.CreateDirectory(folder);
+            File.WriteAllText(Path.Combine(folder, EditsFile), JsonSerializer.Serialize(edits, Opts));
+        }
+        catch { /* 寫入失敗不影響主流程 */ }
+    }
+
+    private const string EditsFile = "edits.json";
+
     // ---- 純函式（可單元測試，不觸檔案） ----
 
     /// <summary>於清單最前插入（新在前）。</summary>
@@ -338,6 +367,30 @@ public sealed class EbookStore
         if (!string.IsNullOrWhiteSpace(name)) { return name; }
         return SanitizeName(title) + ".epub";
     }
+
+    // ---- 匯出 LingoIsland 書本包（#241；整個藏書資料夾＝info.json＋原始 .epub＋封面＋edits.json 打包成 .zip） ----
+
+    /// <summary>
+    /// 匯出一本書為 <b>LingoIsland 書本包</b>（<c>.zip</c>，#241）：把該書藏書資料夾整包（中繼／原始 <c>.epub</c>／封面／
+    /// <c>edits.json</c> 編輯覆蓋）壓成 zip 供備份／分享；含<b>編輯後文稿</b>（原檔＋覆蓋一起帶走、可還原）。
+    /// 目的地已存在則覆蓋。資料夾不存在／壓縮失敗回 <c>false</c>（呼叫端明訊、不當機）。標準 <c>.epub</c> 寫出列後續。
+    /// </summary>
+    public bool ExportBook(EbookItem item, string destZipPath)
+    {
+        try
+        {
+            var folder = FolderPathFor(item);
+            if (!Directory.Exists(folder)) { return false; }
+            Directory.CreateDirectory(Path.GetDirectoryName(destZipPath)!);
+            if (File.Exists(destZipPath)) { File.Delete(destZipPath); }
+            ZipFile.CreateFromDirectory(folder, destZipPath, CompressionLevel.Optimal, includeBaseDirectory: false);
+            return true;
+        }
+        catch { return false; }
+    }
+
+    /// <summary>建議之匯出檔名（書名安全化＋ <c>.lingobook.zip</c> 副檔）；純函式、可單元測試。</summary>
+    public static string SuggestExportFileName(string? title) => SanitizeName(title) + ".lingobook.zip";
 
     /// <summary>資料夾/檔名安全化：去除檔名非法字元、收合空白、截長；空→untitled（比照 <c>SubtitleStore</c>）。</summary>
     private static string SanitizeName(string? s)

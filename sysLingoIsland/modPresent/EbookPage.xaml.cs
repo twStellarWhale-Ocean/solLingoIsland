@@ -366,9 +366,36 @@ public partial class EbookPage : UserControl
         }
         menu.Items.Add(themeMenu);
         menu.Items.Add(new Separator());
+        var export = new MenuItem { Header = "匯出書本包…" };   // #241：匯出 LingoIsland 書本包（.zip，含編輯後文稿）
+        export.Click += (_, _) => ExportSelectedBook(it);
+        menu.Items.Add(export);
+        menu.Items.Add(new Separator());
         var del = new MenuItem { Header = "刪除" };
         del.Click += (_, _) => DeleteSelectedBook();
         menu.Items.Add(del);
+    }
+
+    /// <summary>匯出選取書卡為 LingoIsland 書本包（#241）：SaveFileDialog 選 <c>.zip</c>→<see cref="EbookStore.ExportBook"/> 整包壓縮（含編輯後文稿）；成敗皆明訊。</summary>
+    private void ExportSelectedBook(EbookItem item)
+    {
+        var dlg = new Microsoft.Win32.SaveFileDialog
+        {
+            Title = "匯出電子書（LingoIsland 書本包）",
+            FileName = EbookStore.SuggestExportFileName(item.Title),
+            Filter = "LingoIsland 書本包 (*.zip)|*.zip",
+            DefaultExt = ".zip",
+            AddExtension = true,
+        };
+        if (dlg.ShowDialog(System.Windows.Window.GetWindow(this)) != true) { return; }
+        var display = string.IsNullOrWhiteSpace(item.Title) ? item.Id : item.Title;
+        if (_store.ExportBook(item, dlg.FileName))
+        {
+            SetStatus($"已匯出「{display}」為書本包：{dlg.FileName}");
+        }
+        else
+        {
+            SetStatus($"匯出「{display}」失敗——找不到藏書資料夾內容或無法寫入所選位置。");
+        }
     }
 
     /// <summary>刪一本書（右鍵「刪除」或 Delete 鍵）：自書櫃與其藏書資料夾移除、重整清單。</summary>
