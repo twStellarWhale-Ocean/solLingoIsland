@@ -144,6 +144,15 @@ public static class EbookReader
         return string.IsNullOrWhiteSpace(pkg?.Language) ? "" : pkg!.Language!.Trim();
     }
 
+    /// <summary>去 href 之 <c>#anchor</c> 片段（純函式）；null／空回空字串。</summary>
+    private static string StripAnchor(string? href)
+    {
+        if (string.IsNullOrWhiteSpace(href)) { return ""; }
+        var s = href.Trim();
+        var h = s.IndexOf('#');
+        return (h >= 0 ? s[..h] : s).Trim();
+    }
+
     /// <summary>目錄 ref 樹（VersOne 型別）投影為可序列化 <see cref="EbookTocNode"/> 樹（遞迴）。null 回空清單。</summary>
     private static List<EbookTocNode> MapToc(IEnumerable<EpubNavigationItemRef>? navRefs)
     {
@@ -154,6 +163,7 @@ public static class EbookReader
             result.Add(new EbookTocNode
             {
                 Title = (n.Title ?? "").Trim(),
+                Href = StripAnchor(n.Link?.ContentFilePath),   // 目標內容檔（去 #anchor）；純標題節點無 Link→空
                 Children = MapToc(n.NestedItems),
             });
         }

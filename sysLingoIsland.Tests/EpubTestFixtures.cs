@@ -75,6 +75,61 @@ internal static class EpubTestFixtures
         return path;
     }
 
+    /// <summary>
+    /// 產一支 EPUB 3 測試檔（含<b>內嵌圖片</b>，供增量3 內容側 <see cref="LingoIsland.Ebook.EbookContentReader.ExtractContent"/> smoke）：
+    /// 各章自訂 body HTML（可含 <c>&lt;img src="images/xx.png"&gt;</c>），<paramref name="images"/>＝(相對 OEBPS 之 href, PNG 位元組)，加入 manifest＋zip。回其路徑。
+    /// </summary>
+    public static string WriteEpub3WithImages(
+        string dir,
+        string identifier,
+        string title,
+        IReadOnlyList<(string NavTitle, string BodyInnerHtml)> chapters,
+        IReadOnlyList<(string Href, byte[] Bytes)> images)
+    {
+        var titles = chapters.Select(c => c.NavTitle).ToList();
+        var path = Path.Combine(dir, $"epub3img-{Guid.NewGuid():N}.epub");
+        WriteZip(path, zip =>
+        {
+            AddText(zip, "META-INF/container.xml", ContainerXml());
+            AddText(zip, "OEBPS/content.opf", Epub3OpfWithImages(identifier, title, titles, images.Select(i => i.Href).ToList()));
+            AddText(zip, "OEBPS/nav.xhtml", Epub3Nav(titles));
+            for (var i = 0; i < chapters.Count; i++)
+            {
+                AddText(zip, $"OEBPS/c{i + 1}.xhtml", ChapterXhtmlBody(chapters[i].NavTitle, chapters[i].BodyInnerHtml));
+            }
+            foreach (var (href, bytes) in images) { AddBytes(zip, "OEBPS/" + href, bytes); }
+        });
+        return path;
+    }
+
+    private static string Epub3OpfWithImages(string identifier, string title, IReadOnlyList<string> chapters, IReadOnlyList<string> imageHrefs)
+    {
+        var sb = new StringBuilder();
+        sb.Append("<?xml version=\"1.0\" encoding=\"utf-8\"?>");
+        sb.Append("<package xmlns=\"http://www.idpf.org/2007/opf\" version=\"3.0\" unique-identifier=\"bookid\">");
+        sb.Append("<metadata xmlns:dc=\"http://purl.org/dc/elements/1.1/\">");
+        sb.Append($"<dc:identifier id=\"bookid\">{Esc(identifier)}</dc:identifier>");
+        sb.Append($"<dc:title>{Esc(title)}</dc:title>");
+        sb.Append("<dc:language>en</dc:language>");
+        sb.Append("</metadata>");
+        sb.Append("<manifest>");
+        sb.Append("<item id=\"nav\" href=\"nav.xhtml\" media-type=\"application/xhtml+xml\" properties=\"nav\"/>");
+        for (var i = 0; i < chapters.Count; i++)
+        {
+            sb.Append($"<item id=\"c{i + 1}\" href=\"c{i + 1}.xhtml\" media-type=\"application/xhtml+xml\"/>");
+        }
+        for (var i = 0; i < imageHrefs.Count; i++)
+        {
+            sb.Append($"<item id=\"img{i + 1}\" href=\"{Esc(imageHrefs[i])}\" media-type=\"image/png\"/>");
+        }
+        sb.Append("</manifest>");
+        sb.Append("<spine>");
+        for (var i = 0; i < chapters.Count; i++) { sb.Append($"<itemref idref=\"c{i + 1}\"/>"); }
+        sb.Append("</spine>");
+        sb.Append("</package>");
+        return sb.ToString();
+    }
+
     /// <summary>產一支 EPUB 2（<c>ncx</c> 目錄）測試檔，回其路徑。<paramref name="cover"/>＝null 則無封面。</summary>
     public static string WriteEpub2(
         string dir,

@@ -145,10 +145,9 @@
                      ToolTip="目前閱讀中的書"/>
           <Border Grid.Row="1" Style="{StaticResource Card}">
             <Grid>
-              <ListBox x:Name="ChapterList" BorderThickness="0" Background="Transparent" Margin="4"
-                       HorizontalContentAlignment="Stretch"
-                       ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-                       ToolTip="雙擊某章跳至該章開頭"/>
+              <TreeView x:Name="ChapterTree" BorderThickness="0" Background="Transparent" Margin="4"
+                        ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                        ToolTip="點章節跳至該章開頭；各層可收合／展開"/>
               <TextBlock x:Name="ReaderEmptyHint" Foreground="#9A6A82" FontSize="12" TextWrapping="Wrap" MaxWidth="170"
                          TextAlignment="Center" HorizontalAlignment="Center" VerticalAlignment="Center"
                          Text="尚未開書。請至「獲得」子頁籤雙擊一本書開始閱讀。"/>
@@ -167,14 +166,35 @@
               <ColumnDefinition Width="248" MinWidth="160"/>
             </Grid.ColumnDefinitions>
 
-            <!-- 中：閱讀區（段落逐段呈現、當前段放大高亮、逐字可點）＋控制列 -->
+            <!-- 中：閱讀區＝場景圖（隨閱讀位置換、增量3 spec#11）為主＋其下逐段文字（當前段放大高亮、逐字可點）＋控制列 -->
             <Grid Grid.Column="0">
               <Grid.RowDefinitions>
-                <RowDefinition Height="*" MinHeight="120"/>
+                <RowDefinition x:Name="ReaderImageRow" Height="0"/>          <!-- 場景圖（增量3）；有圖 1.4*、無圖 0 -->
+                <RowDefinition x:Name="ReaderImageSplitterRow" Height="0"/>  <!-- 可拖拉分隔線；有圖 Auto、無圖 0 -->
+                <RowDefinition Height="*" MinHeight="96"/>
                 <RowDefinition Height="Auto"/>
               </Grid.RowDefinitions>
 
-              <Border Grid.Row="0" Background="#66FFFFFF" BorderBrush="#F4C2D0" BorderThickness="1" CornerRadius="6">
+              <!-- 場景圖（增量3，spec#11）：前景完整顯示整張（Uniform、不裁切）＋背景模糊填滿留白（UniformToFill＋Blur）；
+                   圖塊大小由版面/拖拉決定、跨章固定（見 SetupSceneImageBlock），不隨圖或有無圖跳動；純文字書整塊收起 -->
+              <Border x:Name="ReaderSceneImageBox" Grid.Row="0" Background="#22000000" BorderBrush="#F4C2D0" BorderThickness="1"
+                      CornerRadius="6" ClipToBounds="True" Visibility="Collapsed">
+                <Grid>
+                  <Image x:Name="ReaderSceneImageBg" Stretch="UniformToFill">
+                    <Image.Effect>
+                      <BlurEffect Radius="26" KernelType="Gaussian" RenderingBias="Performance"/>
+                    </Image.Effect>
+                  </Image>
+                  <Image x:Name="ReaderSceneImage" Stretch="Uniform"/>
+                </Grid>
+              </Border>
+
+              <!-- 可拖拉分隔線：調整場景圖框高度（無圖時 collapse） -->
+              <GridSplitter x:Name="ReaderImageSplitter" Grid.Row="1" Height="6" HorizontalAlignment="Stretch"
+                            VerticalAlignment="Center" Background="#F4C2D0" ResizeBehavior="PreviousAndNext"
+                            ResizeDirection="Rows" Visibility="Collapsed"/>
+
+              <Border Grid.Row="2" Background="#66FFFFFF" BorderBrush="#F4C2D0" BorderThickness="1" CornerRadius="6">
                 <ScrollViewer x:Name="ReadingScroller" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
                               Padding="10,8">
                   <StackPanel x:Name="ReadingPanel"/>
@@ -182,7 +202,7 @@
               </Border>
 
               <!-- 控制列：主題／語速／上一段／繼續／下一段／朗讀／加入筆記／暫停 -->
-              <WrapPanel Grid.Row="1" Orientation="Horizontal" Margin="0,8,0,0">
+              <WrapPanel Grid.Row="3" Orientation="Horizontal" Margin="0,8,0,0">
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,10,4">
                   <TextBlock Text="主題：" VerticalAlignment="Center" Foreground="{StaticResource PinkText}" Margin="0,0,4,0"/>
                   <ComboBox x:Name="ReaderThemePicker" MinWidth="118" Height="26" VerticalContentAlignment="Center"
@@ -194,14 +214,14 @@
                             IsEnabled="False" ToolTip="朗讀語速（50%–150%）"/>
                 </StackPanel>
                 <Button x:Name="ReaderPrevBtn" Content="&#x23EE; 上一段" Width="90" Height="28" Margin="0,0,6,4" IsEnabled="False"/>
-                <Button x:Name="ReaderResumeBtn" Content="&#x25B6; 繼續" Width="84" Height="28" Margin="0,0,6,4" IsEnabled="False"
-                        ToolTip="前進到下一個應停的段落（於指定說話人暫停時跳過非勾選段）"/>
+                <Button x:Name="ReaderResumeBtn" Content="&#x25B6; 播放/繼續" Width="108" Height="28" Margin="0,0,6,4" IsEnabled="False"
+                        ToolTip="連續朗讀（只念對話段）：唸完自動前進、遇暫停點停、章末停；再按一次暫停。快速鍵 Space。"/>
                 <Button x:Name="ReaderNextBtn" Content="&#x23ED; 下一段" Width="84" Height="28" Margin="0,0,6,4" IsEnabled="False"/>
-                <Button x:Name="ReaderSpeakBtn" Width="96" Height="28" Margin="0,0,6,4" IsEnabled="False"
-                        ToolTip="朗讀當前段；唸完自動前進到下一段（再按一次停止）">
+                <Button x:Name="ReaderSpeakBtn" Width="104" Height="28" Margin="0,0,6,4" IsEnabled="False"
+                        ToolTip="只朗讀當前這一段一次、不自動前進。">
                   <StackPanel Orientation="Horizontal">
                     <TextBlock Text="&#xE767;" FontFamily="Segoe MDL2 Assets" FontSize="14" VerticalAlignment="Center" Margin="0,0,5,0"/>
-                    <TextBlock x:Name="ReaderSpeakLabel" Text="朗讀" VerticalAlignment="Center"/>
+                    <TextBlock x:Name="ReaderSpeakLabel" Text="朗讀單段" VerticalAlignment="Center"/>
                   </StackPanel>
                 </Button>
                 <Button x:Name="ReaderAddNoteBtn" Width="120" Height="28" Margin="8,0,0,4" IsEnabled="False">
@@ -231,10 +251,11 @@
               </Grid.RowDefinitions>
 
               <ComboBox x:Name="ReaderSpeakerFilter" Grid.Row="0" Height="26" VerticalContentAlignment="Center" Margin="0,0,0,4"
-                        IsEnabled="False" ToolTip="如何呈現下方勾選的說話人：顯示全部段落、只顯示他們的段落，或全部保留但將他們加粗。（字型顏色為常設，取自主題。）">
+                        IsEnabled="False" ToolTip="如何呈現下方勾選的說話人：全部顯示／只顯示他們的段落／只加粗他們／只為他們上色（其餘恢復預設色）。">
                 <ComboBoxItem>全部顯示</ComboBoxItem>
                 <ComboBoxItem>只顯示勾選者</ComboBoxItem>
                 <ComboBoxItem>只加粗勾選者</ComboBoxItem>
+                <ComboBoxItem>只著色勾選者</ComboBoxItem>
               </ComboBox>
 
               <Grid Grid.Row="1">

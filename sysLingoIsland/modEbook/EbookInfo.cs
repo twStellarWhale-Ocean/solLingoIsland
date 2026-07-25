@@ -29,6 +29,8 @@ public sealed class EbookInfo
 public sealed class EbookTocNode
 {
     public string Title { get; set; } = "";
+    /// <summary>此目錄項指向之內容檔路徑（增量3；供對應 spine 章跳讀）；去 <c>#anchor</c>、可空（純標題節點無連結）。舊 info.json 無此鍵→反序列化為空。</summary>
+    public string Href { get; set; } = "";
     public List<EbookTocNode> Children { get; set; } = new();
 }
 

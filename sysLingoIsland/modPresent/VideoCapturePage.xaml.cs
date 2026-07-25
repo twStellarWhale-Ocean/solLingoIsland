@@ -215,6 +215,7 @@ public partial class VideoCapturePage : System.Windows.Controls.UserControl
         {
             PopulateVideoThemeFilter(); // 切回本頁重填篩選（反映主題增刪改，B）
             RefreshVideoList();
+            UpdateVideoThemePicker();   // 切回亦重填「所屬主題」picker（反映主題增刪改）
             if (_rows.Count > 0) { RefreshSpeakerColoring(); } // USR：主題色描述於 Themes 頁改後,切回即更新字幕說話人字型色（含字幕帶）
             if (_guiding && _webReady) { _poll.Start(); }
         }
