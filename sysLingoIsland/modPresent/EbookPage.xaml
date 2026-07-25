@@ -251,10 +251,11 @@
               </Grid.RowDefinitions>
 
               <ComboBox x:Name="ReaderSpeakerFilter" Grid.Row="0" Height="26" VerticalContentAlignment="Center" Margin="0,0,0,4"
-                        IsEnabled="False" ToolTip="如何呈現下方勾選的說話人：顯示全部段落、只顯示他們的段落，或全部保留但將他們加粗。（字型顏色為常設，取自主題。）">
+                        IsEnabled="False" ToolTip="如何呈現下方勾選的說話人：全部顯示／只顯示他們的段落／只加粗他們／只為他們上色（其餘恢復預設色）。">
                 <ComboBoxItem>全部顯示</ComboBoxItem>
                 <ComboBoxItem>只顯示勾選者</ComboBoxItem>
                 <ComboBoxItem>只加粗勾選者</ComboBoxItem>
+                <ComboBoxItem>只著色勾選者</ComboBoxItem>
               </ComboBox>
 
               <Grid Grid.Row="1">

@@ -705,7 +705,7 @@ public partial class EbookPage : UserControl
     private readonly HashSet<string> _checkedNames = new(StringComparer.OrdinalIgnoreCase); // 已勾原子說話人（快取）
     private Dictionary<string, string> _speakerColorHex = new(StringComparer.OrdinalIgnoreCase); // 原子說話人→主題色 hex
 
-    private enum RFilterMode { ShowAll, ShowSelected, BoldSelected }
+    private enum RFilterMode { ShowAll, ShowSelected, BoldSelected, ColorSelected }
     private enum RPauseMode { Off, Selected }
     private RFilterMode _filterMode = RFilterMode.ShowAll;
     private RPauseMode _pauseMode = RPauseMode.Off;               // 預設不暫停（每段皆停＝逐段導讀）
@@ -969,6 +969,7 @@ public partial class EbookPage : UserControl
             return;
         }
         var hex = ColorForSpeaker(cue.Speaker);
+        if (_filterMode == RFilterMode.ColorSelected && !SpeakerChecked(cue.Speaker)) { hex = null; } // 只著色勾選者：未勾選者不上色
         var speakerBrush = hex is not null ? BrushOfHex(hex) : ReaderTextBrush;
 
         var tb = new TextBlock { TextWrapping = TextWrapping.Wrap, LineHeight = isCurrent ? 26 : 20 };
@@ -1414,10 +1415,14 @@ public partial class EbookPage : UserControl
     private void RefreshParaColors()
     {
         var boldMode = _filterMode == RFilterMode.BoldSelected;
+        var colorSelectedOnly = _filterMode == RFilterMode.ColorSelected;
         foreach (var row in _paraRows)
         {
-            var bold = boldMode && SpeakerChecked(row.Cue.Speaker);
-            row.SetEmphasis(ColorForSpeaker(row.Cue.Speaker), bold);
+            var checkedSpk = SpeakerChecked(row.Cue.Speaker);
+            var bold = boldMode && checkedSpk;
+            var hex = ColorForSpeaker(row.Cue.Speaker);
+            if (colorSelectedOnly && !checkedSpk) { hex = null; } // 只著色勾選者：未勾選者恢復預設色
+            row.SetEmphasis(hex, bold);
         }
     }
 
@@ -1434,9 +1439,10 @@ public partial class EbookPage : UserControl
 
     private void ApplyReaderFilterMode()
     {
-        _filterMode = ReaderSpeakerFilter.SelectedIndex switch { 1 => RFilterMode.ShowSelected, 2 => RFilterMode.BoldSelected, _ => RFilterMode.ShowAll };
+        _filterMode = ReaderSpeakerFilter.SelectedIndex switch { 1 => RFilterMode.ShowSelected, 2 => RFilterMode.BoldSelected, 3 => RFilterMode.ColorSelected, _ => RFilterMode.ShowAll };
         RefreshParaView();
         RefreshParaColors();
+        if (_cursor >= 0 && _cursor < _paraViews.Count) { RenderParagraphInto(_paraViews[_cursor], _cursor); } // 只著色模式：當前段字色即時反映
     }
 
     private void ApplyReaderPauseMode() => _pauseMode = ReaderPauseAtSpeaker.SelectedIndex == 1 ? RPauseMode.Selected : RPauseMode.Off;
@@ -1444,7 +1450,7 @@ public partial class EbookPage : UserControl
     private void SyncReaderModeSelectors()
     {
         _populatingModes = true;
-        ReaderSpeakerFilter.SelectedIndex = _filterMode switch { RFilterMode.ShowSelected => 1, RFilterMode.BoldSelected => 2, _ => 0 };
+        ReaderSpeakerFilter.SelectedIndex = _filterMode switch { RFilterMode.ShowSelected => 1, RFilterMode.BoldSelected => 2, RFilterMode.ColorSelected => 3, _ => 0 };
         ReaderPauseAtSpeaker.SelectedIndex = _pauseMode == RPauseMode.Selected ? 1 : 0;
         _populatingModes = false;
     }
