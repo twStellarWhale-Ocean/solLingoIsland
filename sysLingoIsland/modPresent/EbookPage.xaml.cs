@@ -706,7 +706,7 @@ public partial class EbookPage : UserControl
     private Dictionary<string, string> _speakerColorHex = new(StringComparer.OrdinalIgnoreCase); // 原子說話人→主題色 hex
 
     private enum RFilterMode { ShowAll, ShowSelected, BoldSelected, ColorSelected }
-    private enum RPauseMode { Off, BeforeSelected, AfterSelected }  // 勿改順序（持久化為 int·#245）：0 不暫停/1 發言前/2 發言後
+    private enum RPauseMode { Off, BeforeSelected, AfterSelected, MuteSelected }  // 勿改順序（持久化為 int·#245/#249）：0 不暫停/1 發言前/2 發言後/3 屏蔽
     private RFilterMode _filterMode = RFilterMode.ShowAll;
     private RPauseMode _pauseMode = RPauseMode.Off;               // 預設不暫停（每段皆停＝逐段導讀）
     private bool _pausedAtStop;                                    // 於勾選者暫停停下時＝true；[繼續] 據此自 _cursor 之後起念、不重念暫停段（#234）
@@ -1234,6 +1234,13 @@ public partial class EbookPage : UserControl
         EnsureSpeechSubscription();
         var cues = CurCues;
         if (_cursor < 0 || _cursor >= cues.Count) { StopTts(); return; }
+        if (_pauseMode == RPauseMode.MuteSelected && PauseHitsAt(_cursor)) // 屏蔽模式：勾選者段不發音、停在此（換學習者念）；繼續跳過此段（#249）
+        {
+            StopTts();
+            _pausedAtStop = true; _pausedNeedsCurrent = false; // 續念自其後（跳過此屏蔽段）
+            SetStatus("已屏蔽指定說話人此段（換你念），按繼續念下一段。");
+            return;
+        }
         var svc = _speechProvider();
         if (svc is null) { StopTts(); SetStatus("目前沒有可用的語音服務，無法朗讀。"); return; }
         _ttsParagraph = _cursor;
@@ -1473,7 +1480,7 @@ public partial class EbookPage : UserControl
     }
 
     /// <summary>int（下拉 index／持久化值）→ <see cref="RPauseMode"/>（越界→Off）。</summary>
-    private static RPauseMode PauseModeFromInt(int v) => v switch { 1 => RPauseMode.BeforeSelected, 2 => RPauseMode.AfterSelected, _ => RPauseMode.Off };
+    private static RPauseMode PauseModeFromInt(int v) => v switch { 1 => RPauseMode.BeforeSelected, 2 => RPauseMode.AfterSelected, 3 => RPauseMode.MuteSelected, _ => RPauseMode.Off };
 
     private void SyncReaderModeSelectors()
     {

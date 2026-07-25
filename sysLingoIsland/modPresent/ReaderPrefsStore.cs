@@ -11,7 +11,7 @@ public sealed class ReaderPrefsStore
 {
     /// <summary>
     /// 暫停模式（對映 [EbookPage] <c>RPauseMode</c> 之 int 值，<b>勿改順序</b>——已持久化）：
-    /// 0＝不暫停、1＝於指定說話人發言前暫停、2＝於指定說話人發言後暫停。
+    /// 0＝不暫停、1＝發言前暫停、2＝發言後暫停、3＝暫停並屏蔽指定說話人發言（角色扮演）。
     /// </summary>
     public int PauseMode { get; set; }  // 預設 0＝不暫停
 
