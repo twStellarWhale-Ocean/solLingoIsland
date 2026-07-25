@@ -231,6 +231,14 @@
                   </StackPanel>
                 </Button>
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="12,0,0,4">
+                  <TextBlock Text="朗讀：" VerticalAlignment="Center" Foreground="{StaticResource PinkText}" Margin="0,0,4,0"/>
+                  <ComboBox x:Name="ReaderReadScope" MinWidth="96" Height="26" VerticalContentAlignment="Center"
+                            IsEnabled="False" ToolTip="朗讀範圍（偏好跨啟動記憶）：朗讀對話＝只念有說話人（Name:）的台詞（預設）；讀全部＝連旁白敘述也念（標題不念）。">
+                    <ComboBoxItem>朗讀對話</ComboBoxItem>
+                    <ComboBoxItem>讀全部</ComboBoxItem>
+                  </ComboBox>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="12,0,0,4">
                   <TextBlock Text="暫停：" VerticalAlignment="Center" Foreground="{StaticResource PinkText}" Margin="0,0,4,0"/>
                   <ComboBox x:Name="ReaderPauseAtSpeaker" MinWidth="200" Height="26" VerticalContentAlignment="Center"
                             IsEnabled="False" ToolTip="連續朗讀時的暫停方式（偏好跨啟動記憶）：不暫停＝念到章末；發言前暫停＝停在勾選者的段落之前（按繼續才由 App 念這段）；發言後暫停＝念完勾選者的段落即停；暫停並屏蔽＝勾選者的段落不發音、停下換你自己念（角色扮演），按繼續念下一段。前兩者 App 都會念勾選者、屏蔽則不念。">
