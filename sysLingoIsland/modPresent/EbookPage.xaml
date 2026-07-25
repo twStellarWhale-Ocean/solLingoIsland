@@ -232,10 +232,11 @@
                 </Button>
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="12,0,0,4">
                   <TextBlock Text="暫停：" VerticalAlignment="Center" Foreground="{StaticResource PinkText}" Margin="0,0,4,0"/>
-                  <ComboBox x:Name="ReaderPauseAtSpeaker" MinWidth="130" Height="26" VerticalContentAlignment="Center"
-                            IsEnabled="False" ToolTip="於「說話人」清單中勾選者處暫停（繼續／朗讀前進時跳過非勾選段），或每段皆停。">
+                  <ComboBox x:Name="ReaderPauseAtSpeaker" MinWidth="180" Height="26" VerticalContentAlignment="Center"
+                            IsEnabled="False" ToolTip="連續朗讀時的暫停方式（都念全部對話、不跳過；偏好跨啟動記憶）：不暫停＝念到章末；發言前暫停＝比照影片，停在勾選者的段落之前（按繼續才念這段）；發言後暫停＝念完勾選者的段落即停（聽完再跟讀）。">
                     <ComboBoxItem>不暫停</ComboBoxItem>
-                    <ComboBoxItem>於勾選者暫停</ComboBoxItem>
+                    <ComboBoxItem>於指定說話人發言前暫停</ComboBoxItem>
+                    <ComboBoxItem>於指定說話人發言後暫停</ComboBoxItem>
                   </ComboBox>
                 </StackPanel>
               </WrapPanel>

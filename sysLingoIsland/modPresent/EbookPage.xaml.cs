@@ -706,10 +706,11 @@ public partial class EbookPage : UserControl
     private Dictionary<string, string> _speakerColorHex = new(StringComparer.OrdinalIgnoreCase); // 原子說話人→主題色 hex
 
     private enum RFilterMode { ShowAll, ShowSelected, BoldSelected, ColorSelected }
-    private enum RPauseMode { Off, Selected }
+    private enum RPauseMode { Off, BeforeSelected, AfterSelected }  // 勿改順序（持久化為 int·#245）：0 不暫停/1 發言前/2 發言後
     private RFilterMode _filterMode = RFilterMode.ShowAll;
     private RPauseMode _pauseMode = RPauseMode.Off;               // 預設不暫停（每段皆停＝逐段導讀）
     private bool _pausedAtStop;                                    // 於勾選者暫停停下時＝true；[繼續] 據此自 _cursor 之後起念、不重念暫停段（#234）
+    private bool _pausedNeedsCurrent;                              // 續念是否含當前段：發言前暫停＝true（未念）、發言後＝false（已念）（#245）
 
     private bool _ttsReading;                                      // 連續朗讀（唸完自動前進）中
     private int _ttsParagraph = -1;                               // 目前朗讀之段（供完成事件比對，防手動導航後誤前進）
@@ -748,6 +749,7 @@ public partial class EbookPage : UserControl
 
         ReaderSpeakerFilter.SelectionChanged += (_, _) => { if (!_populatingModes) { ApplyReaderFilterMode(); } };
         ReaderPauseAtSpeaker.SelectionChanged += (_, _) => { if (!_populatingModes) { ApplyReaderPauseMode(); } };
+        _pauseMode = PauseModeFromInt(ReaderPrefsStore.Load().PauseMode); // 載入暫停偏好（跨啟動·#245）
         _paraView = CollectionViewSource.GetDefaultView(_paraRows);
         _paraView.Filter = ParaRowFilter;
         ParaList.ItemsSource = _paraView;
@@ -1020,7 +1022,7 @@ public partial class EbookPage : UserControl
         para = ParagraphStepper.ClampCursor(para, cues.Count);
         var old = _cursor;
         _cursor = para;
-        _pausedAtStop = false; // 任何游標移動＝離開暫停點（#234）
+        _pausedAtStop = false; _pausedNeedsCurrent = false; // 任何游標移動＝離開暫停點（#234/#245）
         UpdateSceneImage(); // 增量3：當前段之場景圖（隨閱讀位置換）
         if (old >= 0 && old < _paraViews.Count && old != para) { RenderParagraphInto(_paraViews[old], old); }
         if (para >= 0 && para < _paraViews.Count)
@@ -1145,20 +1147,20 @@ public partial class EbookPage : UserControl
         return flags;
     }
 
-    /// <summary>「於勾選者暫停」：唸完當前段後是否停下——開了暫停模式、非全勾、且該段說話人被勾選（委派 <see cref="ParagraphStepper.PauseAfterReading"/>）。未開/全勾＝連續念到章末（#234）。</summary>
-    private bool PauseAfterCurrent()
+    /// <summary><paramref name="index"/> 段是否為暫停點（勾選之說話人；全勾＝不暫停）。落點（發言前/後）由呼叫端依 <c>_pauseMode</c> 決定（#234/#245）。委派純函式 <see cref="ParagraphStepper.PauseAfterReading"/>。</summary>
+    private bool PauseHitsAt(int index)
     {
-        if (_pauseMode != RPauseMode.Selected || _everyoneCheck?.IsChecked == true) { return false; }
-        return ParagraphStepper.PauseAfterReading(CurCues, _cursor, _checkedNames, _noSpeakerCheck?.IsChecked == true);
+        if (_everyoneCheck?.IsChecked == true) { return false; }
+        return ParagraphStepper.PauseAfterReading(CurCues, index, _checkedNames, _noSpeakerCheck?.IsChecked == true);
     }
 
-    /// <summary>[播放/繼續]：朗讀中→暫停；否則自當前段起連續朗讀對話（<b>念全部對話</b>、唸完自動前進、<b>於勾選者暫停</b>、<b>章末停</b>、再按停）。自暫停點續念時自其後起、不重念暫停段（#234）。</summary>
+    /// <summary>[播放/繼續]：朗讀中→暫停；否則自當前段起連續朗讀對話（<b>念全部對話</b>、唸完自動前進、於勾選者<b>發言前/後暫停</b>、<b>章末停</b>、再按停）。續念語意：發言後暫停＝自其後起（已念）、發言前暫停/一般＝含當前段（#234/#245）。</summary>
     private void TogglePlay()
     {
         if (_chapters.Count == 0) { return; }
         if (_ttsReading) { StopTts(); SetStatus("已暫停。"); return; }
-        var from = _pausedAtStop ? _cursor : _cursor - 1; // 自暫停點續念→跳過暫停段自其後起；否則自當前段(含)起
-        _pausedAtStop = false;
+        var from = (_pausedAtStop && !_pausedNeedsCurrent) ? _cursor : _cursor - 1; // 發言後暫停→自其後；發言前暫停/一般→含當前段
+        _pausedAtStop = false; _pausedNeedsCurrent = false;
         var start = NextReadable(from);
         if (start < 0) { SetStatus("本章沒有可朗讀的對話段。"); return; }
         _ttsReading = true;
@@ -1279,23 +1281,28 @@ public partial class EbookPage : UserControl
         AdvanceTtsAfterCurrent();
     }
 
-    /// <summary>唸完當前段後：<b>於勾選者暫停</b>——若當前段為暫停點即停下（<see cref="PauseAfterCurrent"/>）、不自動前進（供跟讀、按繼續念下一段）；否則自動前進到下一可朗讀對話段續唸；<b>章末即停</b>（不自動滾下一章）。修 #234。</summary>
+    /// <summary>唸完當前段後：依暫停模式落點——<b>發言後暫停</b>＝當前段為勾選者即停（供跟讀）；<b>發言前暫停</b>＝下一段為勾選者則移到它、停、不念（繼續才念）；否則自動前進續唸；<b>章末即停</b>。修 #234／#245。</summary>
     private void AdvanceTtsAfterCurrent()
     {
-        if (PauseAfterCurrent()) // 於勾選者暫停：唸完勾選者之段即停、不自動前進
+        if (_pauseMode == RPauseMode.AfterSelected && PauseHitsAt(_cursor)) // 發言後暫停：唸完勾選者段即停
         {
             StopTts();
-            _pausedAtStop = true;
-            SetStatus("已於指定說話人暫停，按繼續念下一段。");
+            _pausedAtStop = true; _pausedNeedsCurrent = false; // 已念、續念自其後
+            SetStatus("已於指定說話人（發言後）暫停，按繼續念下一段。");
             return;
         }
         var next = NextReadable(_cursor);
-        if (next >= 0)
+        if (next < 0) { StopTts(); SetStatus("已朗讀至本章結尾。"); return; } // 章末停（不自動滾下一章）
+        if (_pauseMode == RPauseMode.BeforeSelected && PauseHitsAt(next)) // 發言前暫停：下一段為勾選者→移到它、停、不念
         {
-            SetCursor(next);
-            SpeakCurrentTts(stopPrevious: false); // 鏈接：前段已唸完、無需取消
+            StopTts();
+            SetCursor(next);                                  // 移到勾選者段（高亮·未念）；SetCursor 會清旗標，故其後再設
+            _pausedAtStop = true; _pausedNeedsCurrent = true; // 未念、續念含當前段
+            SetStatus("已於指定說話人（發言前）暫停，按繼續念這一段。");
+            return;
         }
-        else { StopTts(); SetStatus("已朗讀至本章結尾。"); } // 章末停（不自動滾下一章）
+        SetCursor(next);
+        SpeakCurrentTts(stopPrevious: false); // 鏈接：前段已唸完、無需取消
     }
 
     /// <summary>確保 SpeakCompleted 訂閱到目前語音服務（設定換聲→App 換新 SpeechService 實例，改訂新的、免殘留）。</summary>
@@ -1463,13 +1470,21 @@ public partial class EbookPage : UserControl
         if (_cursor >= 0 && _cursor < _paraViews.Count) { RenderParagraphInto(_paraViews[_cursor], _cursor); } // 只著色模式：當前段字色即時反映
     }
 
-    private void ApplyReaderPauseMode() => _pauseMode = ReaderPauseAtSpeaker.SelectedIndex == 1 ? RPauseMode.Selected : RPauseMode.Off;
+    /// <summary>下拉→暫停模式（0 不暫停/1 發言前/2 發言後）並保存偏好（跨啟動·#245）。</summary>
+    private void ApplyReaderPauseMode()
+    {
+        _pauseMode = PauseModeFromInt(ReaderPauseAtSpeaker.SelectedIndex);
+        var prefs = ReaderPrefsStore.Load(); prefs.PauseMode = (int)_pauseMode; prefs.Save();
+    }
+
+    /// <summary>int（下拉 index／持久化值）→ <see cref="RPauseMode"/>（越界→Off）。</summary>
+    private static RPauseMode PauseModeFromInt(int v) => v switch { 1 => RPauseMode.BeforeSelected, 2 => RPauseMode.AfterSelected, _ => RPauseMode.Off };
 
     private void SyncReaderModeSelectors()
     {
         _populatingModes = true;
         ReaderSpeakerFilter.SelectedIndex = _filterMode switch { RFilterMode.ShowSelected => 1, RFilterMode.BoldSelected => 2, RFilterMode.ColorSelected => 3, _ => 0 };
-        ReaderPauseAtSpeaker.SelectedIndex = _pauseMode == RPauseMode.Selected ? 1 : 0;
+        ReaderPauseAtSpeaker.SelectedIndex = (int)_pauseMode; // Off=0/發言前=1/發言後=2（#245）
         _populatingModes = false;
     }
 
