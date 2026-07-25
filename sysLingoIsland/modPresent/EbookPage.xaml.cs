@@ -707,8 +707,10 @@ public partial class EbookPage : UserControl
 
     private enum RFilterMode { ShowAll, ShowSelected, BoldSelected, ColorSelected }
     private enum RPauseMode { Off, BeforeSelected, AfterSelected, MuteSelected }  // 勿改順序（持久化為 int·#245/#249）：0 不暫停/1 發言前/2 發言後/3 屏蔽
+    private enum RReadScope { DialogueOnly, All }                 // 朗讀範圍（#251）：0 只念對話/1 讀全部
     private RFilterMode _filterMode = RFilterMode.ShowAll;
     private RPauseMode _pauseMode = RPauseMode.Off;               // 預設不暫停（每段皆停＝逐段導讀）
+    private RReadScope _readScope = RReadScope.DialogueOnly;      // 預設只朗讀對話（#251）
     private bool _pausedAtStop;                                    // 於勾選者暫停停下時＝true；[繼續] 據此自 _cursor 之後起念、不重念暫停段（#234）
     private bool _pausedNeedsCurrent;                              // 續念是否含當前段：發言前暫停＝true（未念）、發言後＝false（已念）（#245）
 
@@ -749,7 +751,10 @@ public partial class EbookPage : UserControl
 
         ReaderSpeakerFilter.SelectionChanged += (_, _) => { if (!_populatingModes) { ApplyReaderFilterMode(); } };
         ReaderPauseAtSpeaker.SelectionChanged += (_, _) => { if (!_populatingModes) { ApplyReaderPauseMode(); } };
-        _pauseMode = PauseModeFromInt(ReaderPrefsStore.Load().PauseMode); // 載入暫停偏好（跨啟動·#245）
+        ReaderReadScope.SelectionChanged += (_, _) => { if (!_populatingModes) { ApplyReaderReadScope(); } };
+        var prefs0 = ReaderPrefsStore.Load(); // 載入閱讀偏好（跨啟動·#245/#251）
+        _pauseMode = PauseModeFromInt(prefs0.PauseMode);
+        _readScope = prefs0.ReadAll ? RReadScope.All : RReadScope.DialogueOnly;
         _paraView = CollectionViewSource.GetDefaultView(_paraRows);
         _paraView.Filter = ParaRowFilter;
         ParaList.ItemsSource = _paraView;
@@ -1131,8 +1136,8 @@ public partial class EbookPage : UserControl
         return !string.IsNullOrEmpty(cues[index].Speaker);
     }
 
-    /// <summary>自 <paramref name="from"/> 之後找下一個「可朗讀對話段」（只念對話＝有 <c>Name:</c> 且非標題）；無則 -1（章末）。委派純函式 <see cref="ParagraphStepper.NextDialogue"/>。<b>念全部對話、不因勾選跳過</b>——勾選只決定暫停點（見 <see cref="PauseAfterCurrent"/>）；修 #234（舊實作誤把勾選當讀取濾鏡→只念勾選者、其餘全跳過）。</summary>
-    private int NextReadable(int from) => ParagraphStepper.NextDialogue(CurCues, CurHeadingFlags(), from);
+    /// <summary>自 <paramref name="from"/> 之後找下一個「可朗讀段」（跳標題；朗讀對話模式再跳無 <c>Name:</c> 之旁白）；無則 -1（章末）。委派純函式 <see cref="ParagraphStepper.NextReadable"/>，範圍依 <c>_readScope</c>（#251）。不因勾選跳過——勾選只決定暫停點（見 <see cref="PauseHitsAt"/>；#234）。</summary>
+    private int NextReadable(int from) => ParagraphStepper.NextReadable(CurCues, CurHeadingFlags(), from, _readScope == RReadScope.DialogueOnly);
 
     /// <summary>當前章各段是否標題之旗標（供 <see cref="NextReadable"/> 純函式判斷；隨章重算，段數不多、成本可忽略）。</summary>
     private IReadOnlyList<bool> CurHeadingFlags()
@@ -1482,11 +1487,19 @@ public partial class EbookPage : UserControl
     /// <summary>int（下拉 index／持久化值）→ <see cref="RPauseMode"/>（越界→Off）。</summary>
     private static RPauseMode PauseModeFromInt(int v) => v switch { 1 => RPauseMode.BeforeSelected, 2 => RPauseMode.AfterSelected, 3 => RPauseMode.MuteSelected, _ => RPauseMode.Off };
 
+    /// <summary>下拉→朗讀範圍（0 只念對話/1 讀全部）並保存偏好（跨啟動·#251）。</summary>
+    private void ApplyReaderReadScope()
+    {
+        _readScope = ReaderReadScope.SelectedIndex == 1 ? RReadScope.All : RReadScope.DialogueOnly;
+        var prefs = ReaderPrefsStore.Load(); prefs.ReadAll = _readScope == RReadScope.All; prefs.Save();
+    }
+
     private void SyncReaderModeSelectors()
     {
         _populatingModes = true;
         ReaderSpeakerFilter.SelectedIndex = _filterMode switch { RFilterMode.ShowSelected => 1, RFilterMode.BoldSelected => 2, RFilterMode.ColorSelected => 3, _ => 0 };
         ReaderPauseAtSpeaker.SelectedIndex = (int)_pauseMode; // Off=0/發言前=1/發言後=2（#245）
+        ReaderReadScope.SelectedIndex = (int)_readScope;      // 對話=0/全部=1（#251）
         _populatingModes = false;
     }
 
@@ -1508,6 +1521,7 @@ public partial class EbookPage : UserControl
         ReaderSpeed.IsEnabled = on;
         ReaderThemePicker.IsEnabled = on;
         ReaderSpeakerFilter.IsEnabled = on;
+        ReaderReadScope.IsEnabled = on;
         ReaderPauseAtSpeaker.IsEnabled = on;
         ReaderSpeakerChecks.IsEnabled = on;
         if (on) { SyncReaderModeSelectors(); }

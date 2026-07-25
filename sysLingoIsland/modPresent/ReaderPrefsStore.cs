@@ -15,6 +15,9 @@ public sealed class ReaderPrefsStore
     /// </summary>
     public int PauseMode { get; set; }  // 預設 0＝不暫停
 
+    /// <summary>朗讀範圍（#251）：false＝只朗讀對話（預設）、true＝讀全部（連旁白）。</summary>
+    public bool ReadAll { get; set; }
+
     private static string Dir => Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "LingoIsland");
 

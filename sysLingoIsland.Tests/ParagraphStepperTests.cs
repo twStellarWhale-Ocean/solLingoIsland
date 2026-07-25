@@ -111,8 +111,8 @@ public class ParagraphStepperTests
         Assert.Equal(-1, ParagraphStepper.PrevStop(new List<SubtitleCue>(), 3));
     }
 
-    // ---- 連續朗讀模型（NextDialogue／PauseAfterReading，修 #234）----
-    // 應有：[播放/繼續] 念全部對話、於勾選者暫停；BUG（舊）：只念勾選者、其餘全跳過。
+    // ---- 連續朗讀模型（NextReadable／PauseAfterReading，#234/#251）----
+    // 應有：[播放/繼續] 念全部對話、於勾選者暫停；BUG（舊）：只念勾選者、其餘全跳過。dialogueOnly 控朗讀範圍（#251）。
 
     [Fact]
     public void ReadingModel_ContinuousReadsAllDialogue_PausesOnlyAfterCheckedSpeaker_Issue234()
@@ -121,10 +121,10 @@ public class ParagraphStepperTests
         var ryder = new HashSet<string>(System.StringComparer.OrdinalIgnoreCase) { "Ryder" };
 
         // 念全部對話（含未勾選之 Marshall）、不因勾選跳過：對話序 1→2→3（旁白 0/4 無 Name: 跳過）
-        Assert.Equal(1, ParagraphStepper.NextDialogue(b, null, -1));
-        Assert.Equal(2, ParagraphStepper.NextDialogue(b, null, 1)); // Marshall 未勾選仍念（修 #234：舊實作會跳過）
-        Assert.Equal(3, ParagraphStepper.NextDialogue(b, null, 2));
-        Assert.Equal(-1, ParagraphStepper.NextDialogue(b, null, 3)); // 章末
+        Assert.Equal(1, ParagraphStepper.NextReadable(b, null, -1, dialogueOnly: true));
+        Assert.Equal(2, ParagraphStepper.NextReadable(b, null, 1, dialogueOnly: true)); // Marshall 未勾選仍念（修 #234：舊實作會跳過）
+        Assert.Equal(3, ParagraphStepper.NextReadable(b, null, 2, dialogueOnly: true));
+        Assert.Equal(-1, ParagraphStepper.NextReadable(b, null, 3, dialogueOnly: true)); // 章末
 
         // 只於勾選者（Ryder）暫停：唸完 1、3 停；唸完 2（Marshall）不停、續念
         Assert.True(ParagraphStepper.PauseAfterReading(b, 1, ryder, false));
@@ -161,17 +161,28 @@ public class ParagraphStepperTests
     }
 
     [Fact]
-    public void NextDialogue_SkipsHeadings()
+    public void NextReadable_DialogueOnly_SkipsHeadingsAndNarration()
     {
         var b = Book();
         var headings = new[] { false, true, false, false, false }; // index 1（Ryder）標記為標題
-        Assert.Equal(2, ParagraphStepper.NextDialogue(b, headings, -1)); // 跳過旁白(0)、標題(1)、停 Marshall(2)
-        Assert.Equal(2, ParagraphStepper.NextDialogue(b, headings, 0));
+        Assert.Equal(2, ParagraphStepper.NextReadable(b, headings, -1, dialogueOnly: true)); // 跳旁白(0)、標題(1)、停 Marshall(2)
+        Assert.Equal(2, ParagraphStepper.NextReadable(b, headings, 0, dialogueOnly: true));
     }
 
     [Fact]
-    public void NextDialogue_NullOrEmpty_ReturnsMinusOne()
+    public void NextReadable_ReadAll_IncludesNarrationSkipsHeadings()
     {
-        Assert.Equal(-1, ParagraphStepper.NextDialogue(new List<SubtitleCue>(), null, -1));
+        var b = Book(); // 0 旁白, 1 Ryder, 2 Marshall, 3 Ryder, 4 旁白
+        var headings = new[] { false, true, false, false, false }; // index 1 標記為標題
+        // 讀全部（dialogueOnly:false）：連旁白也念（0/4），仍跳標題(1)
+        Assert.Equal(0, ParagraphStepper.NextReadable(b, null, -1, dialogueOnly: false));    // 旁白 0 也念
+        Assert.Equal(2, ParagraphStepper.NextReadable(b, headings, 0, dialogueOnly: false)); // 跳標題(1)、停 2
+        Assert.Equal(4, ParagraphStepper.NextReadable(b, null, 3, dialogueOnly: false));     // 旁白 4 也念
+    }
+
+    [Fact]
+    public void NextReadable_NullOrEmpty_ReturnsMinusOne()
+    {
+        Assert.Equal(-1, ParagraphStepper.NextReadable(new List<SubtitleCue>(), null, -1, dialogueOnly: true));
     }
 }
