@@ -1179,15 +1179,17 @@ public partial class EbookPage : UserControl
         if (!string.IsNullOrWhiteSpace(text)) { svc.Speak(text, "en-US", stopPrevious: true); }
     }
 
-    /// <summary>內容頁快速鍵（#6）：←＝上一段、→＝下一段、Space＝播放/繼續。輸入框／下拉聚焦時不劫持。</summary>
+    /// <summary>內容頁快速鍵（#6、#240）：←/↑＝上一段、→/↓＝下一段、PageUp/PageDown＝上/下一章、Space＝播放/繼續。輸入框／下拉聚焦時不劫持（↑↓ 亦劫持故閱讀區改由滑鼠/捲軸捲動）。</summary>
     private void OnReaderHotkey(object sender, System.Windows.Input.KeyEventArgs e)
     {
         if (EbookContentPane.Visibility != Visibility.Visible || _chapters.Count == 0) { return; }
         if (System.Windows.Input.Keyboard.FocusedElement is System.Windows.Controls.TextBox or System.Windows.Controls.ComboBox) { return; }
         switch (e.Key)
         {
-            case Key.Left: StepPrev(); e.Handled = true; break;
-            case Key.Right: StepNext(); e.Handled = true; break;
+            case Key.Left: case Key.Up: StepPrev(); e.Handled = true; break;       // ←/↑ 上一段
+            case Key.Right: case Key.Down: StepNext(); e.Handled = true; break;    // →/↓ 下一段
+            case Key.PageUp: GoToChapter(PrevNonEmptyChapter(_chapterIndex - 1), 0, keepReading: false); e.Handled = true; break;   // 上一章（無則 no-op）
+            case Key.PageDown: GoToChapter(NextNonEmptyChapter(_chapterIndex + 1), 0, keepReading: false); e.Handled = true; break; // 下一章（無則 no-op）
             case Key.Space: TogglePlay(); e.Handled = true; break;
         }
     }
