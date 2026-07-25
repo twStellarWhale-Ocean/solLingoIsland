@@ -694,9 +694,6 @@ public partial class EbookPage : UserControl
     private bool _loadingBook;                                     // 開書中（防重入）
     private readonly List<Border> _paraViews = new();             // 中閱讀區各段之容器（供游標移動時就地重繪高亮，免全章重建）
 
-    private readonly ObservableCollection<ParaRow> _paraRows = new(); // 右逐段清單（比照影片 CueRow）
-    private ICollectionView? _paraView;                           // _paraRows 之檢視，套顯示模式篩選
-
     private readonly ObservableCollection<SpeakerCheck> _speakerChecks = new(); // 說話人勾選面板（全書；篩選/顯示/暫停共用）
     private SpeakerCheck? _everyoneCheck;
     private SpeakerCheck? _noSpeakerCheck;
@@ -755,13 +752,6 @@ public partial class EbookPage : UserControl
         var prefs0 = ReaderPrefsStore.Load(); // 載入閱讀偏好（跨啟動·#245/#251）
         _pauseMode = PauseModeFromInt(prefs0.PauseMode);
         _readScope = prefs0.ReadAll ? RReadScope.All : RReadScope.DialogueOnly;
-        _paraView = CollectionViewSource.GetDefaultView(_paraRows);
-        _paraView.Filter = ParaRowFilter;
-        ParaList.ItemsSource = _paraView;
-        ParaList.MouseDoubleClick += (_, _) => { if (ParaList.SelectedItem is ParaRow r) { JumpToParagraph(r.Index); } };
-        ParaList.ContextMenu = new ContextMenu();
-        ParaList.ContextMenuOpening += OnParaContextMenuOpening;
-        ParaList.PreviewMouseRightButtonDown += ListDeleteSupport.SelectItemUnderMouse; // 右鍵作用於游標下之段
         ReaderSpeakerChecks.ItemsSource = _speakerChecks;
 
         SetReaderControlsEnabled(false);
@@ -812,7 +802,7 @@ public partial class EbookPage : UserControl
             if (firstReadable < 0)      // 整本無可閱讀段落（純圖像書／空 EPUB）
             {
                 SetReaderControlsEnabled(false);
-                ReadingPanel.Children.Clear(); _paraViews.Clear(); _paraRows.Clear();
+                ReadingPanel.Children.Clear(); _paraViews.Clear();
                 UpdateSceneImage(); // 純圖像書/空章：collapse 場景圖列（_cursor=-1→無 key）
                 SetStatus("這本書沒有可閱讀的文字段落（可能是純圖像書）。");
                 return;
@@ -920,7 +910,7 @@ public partial class EbookPage : UserControl
         _syncingChapterTree = false;
     }
 
-    /// <summary>載入某章之段落到中閱讀區與右逐段清單（不動游標；呼叫端隨後 SetCursor）。</summary>
+    /// <summary>載入某章之段落到中閱讀區（不動游標；呼叫端隨後 SetCursor）。</summary>
     private void LoadChapter(int ch)
     {
         _chapterIndex = ch;
@@ -946,16 +936,13 @@ public partial class EbookPage : UserControl
             RenderParagraphInto(border, idx);
         }
 
-        _paraRows.Clear();
-        for (int i = 0; i < cues.Count; i++) { _paraRows.Add(new ParaRow(i, cues[i])); }
-        RefreshParaColors();
-        _paraView?.Refresh();
+        ApplyReadingFilter();
         HighlightChapter(ch);
     }
 
     // ---- 中閱讀區渲染 ----
 
-    /// <summary>把某段渲染入其容器：當前段＝放大、粉底高亮、逐字可點（Hyperlink→查詞）＋說話人前綴上色；其餘段＝正常字級、淡色、純文字（點選成為當前段）。無前綴段不標說話人。</summary>
+    /// <summary>把某段渲染入其容器：當前段＝放大、粉底高亮、逐字可點（Hyperlink→查詞）＋說話人前綴上色；其餘段＝正常字級、淡色、純文字（點選成為當前段）。無前綴段不標說話人；只加粗勾選者模式＝勾選者段落全文加粗（#235 作用於閱讀區）。</summary>
     private void RenderParagraphInto(Border border, int index)
     {
         var cues = CurCues;
@@ -981,6 +968,7 @@ public partial class EbookPage : UserControl
         var speakerBrush = hex is not null ? BrushOfHex(hex) : ReaderTextBrush;
 
         var tb = new TextBlock { TextWrapping = TextWrapping.Wrap, LineHeight = isCurrent ? 26 : 20 };
+        if (_filterMode == RFilterMode.BoldSelected && SpeakerChecked(cue.Speaker)) { tb.FontWeight = FontWeights.Bold; } // 只加粗勾選者（#235：未另設字重之 Run 皆繼承）
         if (!string.IsNullOrWhiteSpace(cue.Speaker))
         {
             tb.Inlines.Add(new Run(SpeakerPrefix(cue.Speaker)) { FontWeight = FontWeights.Bold, Foreground = speakerBrush });
@@ -1019,7 +1007,7 @@ public partial class EbookPage : UserControl
 
     // ---- 段序游標與導航（line-stepped） ----
 
-    /// <summary>移動段序游標：重繪舊/新當前段（放大高亮）、捲入中閱讀區、選中右清單對應列、存閱讀進度（SetReadingProgress）。</summary>
+    /// <summary>移動段序游標：重繪舊/新當前段（放大高亮）、捲入中閱讀區、存閱讀進度（SetReadingProgress）；只顯示勾選者模式下重套段落可見性（#235）。</summary>
     private void SetCursor(int para, bool save = true)
     {
         var cues = CurCues;
@@ -1035,15 +1023,8 @@ public partial class EbookPage : UserControl
             RenderParagraphInto(_paraViews[para], para);
             _paraViews[para].BringIntoView();
         }
-        SelectParaRow(para);
+        if (_filterMode == RFilterMode.ShowSelected) { ApplyReadingFilter(); } // 只顯示勾選者：游標移動＝舊當前段或須收合、新當前段須顯（#235）
         if (save && _openBookId is not null) { _store.SetReadingProgress(_openBookId, _chapterIndex, _cursor); }
-    }
-
-    private void SelectParaRow(int index)
-    {
-        var row = _paraRows.FirstOrDefault(r => r.Index == index);
-        ParaList.SelectedItem = row; // row 可能為 null（被說話人篩選濾掉）→ 不選、正常
-        if (row is not null) { ParaList.ScrollIntoView(row); }
     }
 
     // ---- 增量3：場景圖（隨閱讀位置換、整片圖為主，spec#11） ----
@@ -1377,8 +1358,7 @@ public partial class EbookPage : UserControl
         else if (_everyoneCheck is not null) { _everyoneCheck.IsChecked = _speakerChecks.Where(x => !x.IsEveryone).All(x => x.IsChecked); }
         _syncingChecks = false;
         RebuildCheckedNames();
-        RefreshParaView();
-        RefreshParaColors();
+        RefreshReadingPanel();
     }
 
     private void RebuildCheckedNames()
@@ -1425,8 +1405,7 @@ public partial class EbookPage : UserControl
             }
         }
         ApplySpeakerListColors();
-        RefreshParaColors();
-        if (_cursor >= 0 && _cursor < _paraViews.Count) { RenderParagraphInto(_paraViews[_cursor], _cursor); } // 當前段字色即時反映
+        RefreshReadingPanel(); // 全章重繪＝說話人色即時反映（#235：原右清單之列刷新改落閱讀區）
     }
 
     private void ApplySpeakerListColors()
@@ -1443,28 +1422,24 @@ public partial class EbookPage : UserControl
         }
     }
 
-    /// <summary>刷新右逐段清單各列字型色（依段首說話人主題色，過淺壓暗至白底可讀）＋粗體（只加粗勾選模式且該段被勾選）。</summary>
-    private void RefreshParaColors()
+    /// <summary>顯示模式或勾選變更＝中閱讀區全章重繪（色／粗／當前段樣式）＋重套段落可見性（#235 移除右逐段清單後，閱讀區為唯一段落面）。</summary>
+    private void RefreshReadingPanel()
     {
-        var boldMode = _filterMode == RFilterMode.BoldSelected;
-        var colorSelectedOnly = _filterMode == RFilterMode.ColorSelected;
-        foreach (var row in _paraRows)
-        {
-            var checkedSpk = SpeakerChecked(row.Cue.Speaker);
-            var bold = boldMode && checkedSpk;
-            var hex = ColorForSpeaker(row.Cue.Speaker);
-            if (colorSelectedOnly && !checkedSpk) { hex = null; } // 只著色勾選者：未勾選者恢復預設色
-            row.SetEmphasis(hex, bold);
-        }
+        for (int i = 0; i < _paraViews.Count; i++) { RenderParagraphInto(_paraViews[i], i); }
+        ApplyReadingFilter();
     }
 
-    private void RefreshParaView() => _paraView?.Refresh();
-
-    private bool ParaRowFilter(object o)
+    /// <summary>套「只顯示勾選者」之段落可見性於中閱讀區（判定純函式見 <see cref="ReaderViewFilter.ParaVisible"/>：章節標題與當前段恆顯）；其餘模式全顯。</summary>
+    private void ApplyReadingFilter()
     {
-        if (o is not ParaRow row) { return true; }
-        if (_filterMode != RFilterMode.ShowSelected) { return true; }
-        return SpeakerChecked(row.Cue.Speaker);
+        var cues = CurCues;
+        var showSelected = _filterMode == RFilterMode.ShowSelected;
+        for (int i = 0; i < _paraViews.Count; i++)
+        {
+            var visible = ReaderViewFilter.ParaVisible(showSelected,
+                i < cues.Count && SpeakerChecked(cues[i].Speaker), i == _cursor, IsHeadingAt(i));
+            _paraViews[i].Visibility = visible ? Visibility.Visible : Visibility.Collapsed;
+        }
     }
 
     // ---- 顯示模式／暫停模式／語速／主題 ----
@@ -1472,9 +1447,7 @@ public partial class EbookPage : UserControl
     private void ApplyReaderFilterMode()
     {
         _filterMode = ReaderSpeakerFilter.SelectedIndex switch { 1 => RFilterMode.ShowSelected, 2 => RFilterMode.BoldSelected, 3 => RFilterMode.ColorSelected, _ => RFilterMode.ShowAll };
-        RefreshParaView();
-        RefreshParaColors();
-        if (_cursor >= 0 && _cursor < _paraViews.Count) { RenderParagraphInto(_paraViews[_cursor], _cursor); } // 只著色模式：當前段字色即時反映
+        RefreshReadingPanel();
     }
 
     /// <summary>下拉→暫停模式（0 不暫停/1 發言前/2 發言後）並保存偏好（跨啟動·#245）。</summary>
@@ -1594,20 +1567,6 @@ public partial class EbookPage : UserControl
         return menu;
     }
 
-    /// <summary>右逐段清單右鍵選單（依游標下之段動態填入）：複製此段原文＋加入筆記。</summary>
-    private void OnParaContextMenuOpening(object sender, ContextMenuEventArgs e)
-    {
-        var menu = ParaList.ContextMenu!;
-        menu.Items.Clear();
-        if (ParaList.SelectedItem is not ParaRow row) { e.Handled = true; return; }
-        var copy = new MenuItem { Header = "複製此段" };
-        copy.Click += (_, _) => TryCopy(row.Cue.Text);
-        menu.Items.Add(copy);
-        var note = new MenuItem { Header = "加入筆記" };
-        note.Click += (_, _) => { if (!string.IsNullOrWhiteSpace(row.Cue.Text)) { AddToNotesRequested?.Invoke(row.Cue.Text); } };
-        menu.Items.Add(note);
-    }
-
     private static void TryCopy(string? text)
     {
         if (string.IsNullOrEmpty(text)) { return; }
@@ -1671,31 +1630,6 @@ public partial class EbookPage : UserControl
 
     /// <summary>段首說話人前綴（有前綴才呼叫；無前綴段不標，契約 spec#10）。</summary>
     private static string SpeakerPrefix(string? speaker) => (speaker ?? "").Trim() + ": ";
-
-    /// <summary>右逐段清單一列 view-model（比照影片 CueRow）：段 index＋段首說話人前綴＋原文＋字型色/字重（過淺壓暗至白底可讀）。</summary>
-    private sealed class ParaRow : INotifyPropertyChanged
-    {
-        public event PropertyChangedEventHandler? PropertyChanged;
-        public ParaRow(int index, SubtitleCue cue) { Index = index; Cue = cue; }
-        public int Index { get; }
-        public SubtitleCue Cue { get; }
-        public string SpeakerLabel => string.IsNullOrWhiteSpace(Cue.Speaker) ? "" : Cue.Speaker + ": ";
-        public string Text => Cue.Text;
-
-        private System.Windows.Media.Brush _speakerBrush = ReaderDefaultCueBrush;
-        public System.Windows.Media.Brush SpeakerBrush { get => _speakerBrush; private set { if (!ReferenceEquals(_speakerBrush, value)) { _speakerBrush = value; Raise(nameof(SpeakerBrush)); } } }
-        private FontWeight _lineWeight = FontWeights.Normal;
-        public FontWeight LineWeight { get => _lineWeight; private set { if (_lineWeight != value) { _lineWeight = value; Raise(nameof(LineWeight)); } } }
-
-        /// <summary>設本列字型色（hex 非 null＝該說話人有主題色，過淺壓暗）＋是否加粗（只加粗勾選模式）。</summary>
-        public void SetEmphasis(string? hex, bool bold)
-        {
-            var readable = hex is null ? null : ColorMath.ReadableOnLight(hex);
-            SpeakerBrush = !string.IsNullOrEmpty(readable) ? BrushOfHex(readable) : ReaderDefaultCueBrush;
-            LineWeight = bold ? FontWeights.Bold : FontWeights.Normal;
-        }
-        private void Raise(string n) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(n));
-    }
 
     /// <summary>說話人勾選面板一列（比照影片 SpeakerCheck）：名字＋是否 Everyone／(no speaker)＋語句數＋勾選態（TwoWay）＋列色。</summary>
     private sealed class SpeakerCheck : INotifyPropertyChanged
