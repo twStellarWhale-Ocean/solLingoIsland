@@ -42,4 +42,36 @@ public static class ParagraphStepper
 
     /// <summary>把段序游標鉗制在 <c>[0, count-1]</c>（開書以 <c>GetReadingProgress</c> 還原進度時防越界；空章回 -1）。純函式。</summary>
     public static int ClampCursor(int index, int count) => count <= 0 ? -1 : Math.Clamp(index, 0, count - 1);
+
+    /// <summary>
+    /// 連續朗讀前進（[EbookPage] [播放/繼續]／唸完自動前進共用）：自 <paramref name="from"/> 之後找下一個「可朗讀對話段」＝
+    /// 有說話人（<c>Name:</c>，<c>Speaker</c> 非空）且非標題（<paramref name="isHeading"/>[i] 為 false）；無則 -1（章末）。純函式。
+    /// <b>不因說話人勾選與否而跳過</b>——念全部對話段，勾選只決定「暫停點」（見 <see cref="PauseAfterReading"/>）、不決定「念不念」。
+    /// （修 #234：舊實作於「於勾選者暫停」模式誤把勾選集合當<b>讀取濾鏡</b>、只念勾選者、其餘全跳過。）
+    /// </summary>
+    public static int NextDialogue(IReadOnlyList<SubtitleCue> paragraphs, IReadOnlyList<bool>? isHeading, int from)
+    {
+        if (paragraphs is null || paragraphs.Count == 0) { return -1; }
+        for (int i = Math.Max(from + 1, 0); i < paragraphs.Count; i++)
+        {
+            if (isHeading is not null && i < isHeading.Count && isHeading[i]) { continue; }  // 跳標題（h1–h6）
+            if (!string.IsNullOrEmpty(paragraphs[i].Speaker)) { return i; }                  // 對話段（跳旁白/中文＝無 Name:）
+        }
+        return -1;
+    }
+
+    /// <summary>
+    /// 「於勾選者暫停」判定（比照影片 <see cref="PauseDecider"/>「於句暫停」）：連續朗讀念全部對話，但<b>唸完</b>
+    /// <paramref name="index"/> 段後、若該段說話人命中暫停集合即停下（供跟讀）、否則續念。
+    /// <paramref name="pauseTargets"/> 空且 <paramref name="pauseNoSpeaker"/> 為 false＝<b>無暫停點＝連續念到章末</b>
+    /// （勿把空/ null 當「每段皆停」）；否則沿用 <see cref="PauseDecider.PauseMatchesSet"/>（含合唸句拆原子）。純函式。
+    /// </summary>
+    public static bool PauseAfterReading(IReadOnlyList<SubtitleCue> paragraphs, int index,
+        IReadOnlyCollection<string>? pauseTargets, bool pauseNoSpeaker)
+    {
+        if (paragraphs is null || index < 0 || index >= paragraphs.Count) { return false; }
+        var targets = pauseTargets ?? System.Array.Empty<string>();
+        if (targets.Count == 0 && !pauseNoSpeaker) { return false; }  // 無暫停點＝連續念
+        return PauseDecider.PauseMatchesSet(targets, pauseNoSpeaker, paragraphs[index].Speaker);
+    }
 }

@@ -709,6 +709,7 @@ public partial class EbookPage : UserControl
     private enum RPauseMode { Off, Selected }
     private RFilterMode _filterMode = RFilterMode.ShowAll;
     private RPauseMode _pauseMode = RPauseMode.Off;               // 預設不暫停（每段皆停＝逐段導讀）
+    private bool _pausedAtStop;                                    // 於勾選者暫停停下時＝true；[繼續] 據此自 _cursor 之後起念、不重念暫停段（#234）
 
     private bool _ttsReading;                                      // 連續朗讀（唸完自動前進）中
     private int _ttsParagraph = -1;                               // 目前朗讀之段（供完成事件比對，防手動導航後誤前進）
@@ -1019,6 +1020,7 @@ public partial class EbookPage : UserControl
         para = ParagraphStepper.ClampCursor(para, cues.Count);
         var old = _cursor;
         _cursor = para;
+        _pausedAtStop = false; // 任何游標移動＝離開暫停點（#234）
         UpdateSceneImage(); // 增量3：當前段之場景圖（隨閱讀位置換）
         if (old >= 0 && old < _paraViews.Count && old != para) { RenderParagraphInto(_paraViews[old], old); }
         if (para >= 0 && para < _paraViews.Count)
@@ -1131,26 +1133,33 @@ public partial class EbookPage : UserControl
         return !string.IsNullOrEmpty(cues[index].Speaker);
     }
 
-    /// <summary>自 <paramref name="from"/> 之後找下一個「可朗讀」段（只念對話；「於勾選者暫停」模式下再限於勾選之說話人）；無則 -1（章末）。</summary>
-    private int NextReadable(int from)
+    /// <summary>自 <paramref name="from"/> 之後找下一個「可朗讀對話段」（只念對話＝有 <c>Name:</c> 且非標題）；無則 -1（章末）。委派純函式 <see cref="ParagraphStepper.NextDialogue"/>。<b>念全部對話、不因勾選跳過</b>——勾選只決定暫停點（見 <see cref="PauseAfterCurrent"/>）；修 #234（舊實作誤把勾選當讀取濾鏡→只念勾選者、其餘全跳過）。</summary>
+    private int NextReadable(int from) => ParagraphStepper.NextDialogue(CurCues, CurHeadingFlags(), from);
+
+    /// <summary>當前章各段是否標題之旗標（供 <see cref="NextReadable"/> 純函式判斷；隨章重算，段數不多、成本可忽略）。</summary>
+    private IReadOnlyList<bool> CurHeadingFlags()
     {
-        var cues = CurCues;
-        var pauseOn = _pauseMode == RPauseMode.Selected && _everyoneCheck?.IsChecked != true; // 全勾＝不篩
-        for (int i = Math.Max(from + 1, 0); i < cues.Count; i++)
-        {
-            if (!IsDialogueAt(i)) { continue; }                             // 只念對話（跳標題/旁白/中文）
-            if (pauseOn && !SpeakerChecked(cues[i].Speaker)) { continue; }  // 暫停：只念勾選之說話人
-            return i;
-        }
-        return -1;
+        var n = CurCues.Count;
+        var flags = new bool[n];
+        for (int i = 0; i < n; i++) { flags[i] = IsHeadingAt(i); }
+        return flags;
     }
 
-    /// <summary>[播放/繼續]：朗讀中→暫停；否則自當前(含)起第一個可念對話段連續朗讀（只念對話、唸完自動前進、遇暫停點停、<b>章末停</b>、再按停）。</summary>
+    /// <summary>「於勾選者暫停」：唸完當前段後是否停下——開了暫停模式、非全勾、且該段說話人被勾選（委派 <see cref="ParagraphStepper.PauseAfterReading"/>）。未開/全勾＝連續念到章末（#234）。</summary>
+    private bool PauseAfterCurrent()
+    {
+        if (_pauseMode != RPauseMode.Selected || _everyoneCheck?.IsChecked == true) { return false; }
+        return ParagraphStepper.PauseAfterReading(CurCues, _cursor, _checkedNames, _noSpeakerCheck?.IsChecked == true);
+    }
+
+    /// <summary>[播放/繼續]：朗讀中→暫停；否則自當前段起連續朗讀對話（<b>念全部對話</b>、唸完自動前進、<b>於勾選者暫停</b>、<b>章末停</b>、再按停）。自暫停點續念時自其後起、不重念暫停段（#234）。</summary>
     private void TogglePlay()
     {
         if (_chapters.Count == 0) { return; }
         if (_ttsReading) { StopTts(); SetStatus("已暫停。"); return; }
-        var start = NextReadable(_cursor - 1); // 含當前段
+        var from = _pausedAtStop ? _cursor : _cursor - 1; // 自暫停點續念→跳過暫停段自其後起；否則自當前段(含)起
+        _pausedAtStop = false;
+        var start = NextReadable(from);
         if (start < 0) { SetStatus("本章沒有可朗讀的對話段。"); return; }
         _ttsReading = true;
         UpdateSpeakButton();
@@ -1268,9 +1277,16 @@ public partial class EbookPage : UserControl
         AdvanceTtsAfterCurrent();
     }
 
-    /// <summary>唸完自動前進到下一「可朗讀」對話段續唸；<b>章末即停</b>（不自動滾下一章，USR：播放/繼續章末停止）。</summary>
+    /// <summary>唸完當前段後：<b>於勾選者暫停</b>——若當前段為暫停點即停下（<see cref="PauseAfterCurrent"/>）、不自動前進（供跟讀、按繼續念下一段）；否則自動前進到下一可朗讀對話段續唸；<b>章末即停</b>（不自動滾下一章）。修 #234。</summary>
     private void AdvanceTtsAfterCurrent()
     {
+        if (PauseAfterCurrent()) // 於勾選者暫停：唸完勾選者之段即停、不自動前進
+        {
+            StopTts();
+            _pausedAtStop = true;
+            SetStatus("已於指定說話人暫停，按繼續念下一段。");
+            return;
+        }
         var next = NextReadable(_cursor);
         if (next >= 0)
         {
