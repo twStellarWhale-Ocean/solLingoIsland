@@ -681,7 +681,9 @@ public partial class EbookPage : UserControl
     private string? _openBookId;                                   // 目前開啟閱讀之書 Id（切書判定／進度存取鍵）
     private EbookItem? _openBook;                                  // 目前開啟之書卡（主題指派用）
     private IReadOnlyList<IReadOnlyList<SubtitleCue>> _chapters = System.Array.Empty<IReadOnlyList<SubtitleCue>>(); // 各章段落 cue（外層＝spine 章、內層＝段）
-    private readonly List<string> _tocLabels = new();             // 左章節目錄各列標籤（葉章名或「第 N 章」）
+    private EbookBookContent? _content;                                                   // 增量3：整本內容（段落＋依位置場景圖＋圖片位元組）；_chapters 之 cue 由此投影
+    private readonly Dictionary<string, System.Windows.Media.Imaging.BitmapImage> _imageCache = new(); // 場景圖解碼快取（key＝圖檔名）
+    private readonly List<(int Depth, string Title, int SpineIndex)> _tocEntries = new(); // 左目錄各列（層深＋標題＋對應 spine 章 index；增量3 多層目錄，SpineIndex=-1＝純標題節點不可跳）
     private int _chapterIndex = -1;                                // 當前章（spine index；LastReadChapter）
     private int _cursor = -1;                                      // 當前段游標（章內段 index；LastReadParagraph）
     private bool _loadingBook;                                     // 開書中（防重入）
@@ -726,7 +728,7 @@ public partial class EbookPage : UserControl
             _ = OpenBookInReaderAsync(it.Id);     // 直接開該書（切書換載；同書已開則 no-op；_loadingBook 防重入）
         };
 
-        ChapterList.MouseDoubleClick += (_, _) => { if (ChapterList.SelectedIndex >= 0) { JumpToChapter(ChapterList.SelectedIndex); } };
+        ChapterList.MouseDoubleClick += (_, _) => { if (ChapterList.SelectedItem is ListBoxItem li && li.Tag is int idx && idx >= 0) { JumpToChapter(idx); } }; // 增量3：多層目錄→依 spine 章 index 跳（純標題節點 idx=-1 不跳）
 
         ReaderPrevBtn.Click += (_, _) => StepPrev();
         ReaderNextBtn.Click += (_, _) => StepNext();
@@ -768,20 +770,28 @@ public partial class EbookPage : UserControl
             var display = string.IsNullOrWhiteSpace(item.Title) ? item.Id : item.Title;
             SetStatus($"開啟「{display}」中…");
 
-            var (info, epubPath) = LocateBookFiles(item);
-            if (info is null || epubPath is null)
+            var (storedInfo, epubPath) = LocateBookFiles(item);
+            if (storedInfo is null || epubPath is null)
             {
                 SetStatus("無法開啟這本書——找不到藏書資料夾內的內容檔（.epub）。");
                 return;
             }
-            var chapters = await EbookContentReader.ReadChaptersAsync(epubPath, info); // 讀整本→逐章段落 cue（背景 IO；smoke）
+            // 增量3：重新解析取新鮮目錄樹（含 Href——舊 info.json 無此鍵）＋一致 SpineHrefs；失敗退回 info.json。
+            var info = (await EbookReader.ParseAsync(epubPath)).Info ?? storedInfo;
+            var content = await EbookContentReader.ReadContentAsync(epubPath, info); // 增量3：讀整本→逐章段落＋依位置場景圖＋圖片位元組
+            var chapters = content.Chapters
+                .Select(ch => (IReadOnlyList<SubtitleCue>)ch.Select(p => p.Cue).ToList())
+                .ToList();
 
             _openBookId = bookId;
             _openBook = item;
+            _content = content;
+            _imageCache.Clear();
             _chapters = chapters;
+            SetupSceneImageBlock(); // 增量3：依本書有無圖固定圖塊（有→常駐固定、無→純文字），跨章不跳動
             _chapterIndex = -1; _cursor = -1;
             ReaderBookTitle.Text = display;
-            BuildTocLabels(info, chapters);
+            BuildTocEntries(info);
             PopulateChapterList();
             PopulateReaderThemePicker(item);
             BuildSpeakerChecks();       // 全書說話人（跨章）→ 主題色
@@ -791,6 +801,7 @@ public partial class EbookPage : UserControl
             {
                 SetReaderControlsEnabled(false);
                 ReadingPanel.Children.Clear(); _paraViews.Clear(); _paraRows.Clear();
+                UpdateSceneImage(); // 純圖像書/空章：collapse 場景圖列（_cursor=-1→無 key）
                 SetStatus("這本書沒有可閱讀的文字段落（可能是純圖像書）。");
                 return;
             }
@@ -830,57 +841,84 @@ public partial class EbookPage : UserControl
         catch { return (null, null); }
     }
 
-    /// <summary>建左章節目錄標籤（一列對一 spine 章）：目錄樹葉章數與章數相符時用葉章名，否則退「第 N 章」。</summary>
-    private void BuildTocLabels(EbookInfo info, IReadOnlyList<IReadOnlyList<SubtitleCue>> chapters)
+    /// <summary>建左章節目錄（增量3 多層）：走 <see cref="EbookInfo.Toc"/> 樹產生各列（層深＋標題＋對應 spine 章 index）；無目錄樹退回每 spine 章一列。</summary>
+    private void BuildTocEntries(EbookInfo info)
     {
-        _tocLabels.Clear();
-        var leaves = FlattenTocLeaves(info.Toc);
-        var aligned = leaves.Count == chapters.Count;
-        for (int i = 0; i < chapters.Count; i++)
+        _tocEntries.Clear();
+        var byPath = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+        for (int i = 0; i < info.SpineHrefs.Count; i++) { byPath[info.SpineHrefs[i]] = i; }
+        void Walk(List<EbookTocNode> nodes, int depth)
         {
-            _tocLabels.Add(aligned && !string.IsNullOrWhiteSpace(leaves[i]) ? leaves[i].Trim() : $"第 {i + 1} 章");
+            foreach (var n in nodes)
+            {
+                var title = string.IsNullOrWhiteSpace(n.Title) ? "—" : n.Title.Trim();
+                _tocEntries.Add((depth, title, ResolveSpineIndex(n.Href, byPath, info.SpineHrefs)));
+                if (n.Children is { Count: > 0 }) { Walk(n.Children, depth + 1); }
+            }
+        }
+        Walk(info.Toc, 0);
+        if (_tocEntries.Count == 0) // 無目錄樹（如壞 nav）→ 退回每 spine 章一列
+        {
+            for (int i = 0; i < _chapters.Count; i++) { _tocEntries.Add((0, $"第 {i + 1} 章", i)); }
         }
     }
 
-    /// <summary>把目錄樹攤平為葉章標題序（葉＝無子節點）；供左目錄與 spine 章對齊（數相符才採用）。</summary>
-    private static List<string> FlattenTocLeaves(List<EbookTocNode>? nodes)
+    /// <summary>目錄項之目標檔 → spine 章 index：先比對完整 FilePath，退比對檔名；查無回 -1（純標題節點）。</summary>
+    private static int ResolveSpineIndex(string? href, Dictionary<string, int> byPath, IReadOnlyList<string> spine)
     {
-        var leaves = new List<string>();
-        void Walk(List<EbookTocNode>? ns)
-        {
-            if (ns is null) { return; }
-            foreach (var n in ns)
-            {
-                if (n.Children is { Count: > 0 }) { Walk(n.Children); }
-                else { leaves.Add(n.Title ?? ""); }
-            }
-        }
-        Walk(nodes);
-        return leaves;
+        if (string.IsNullOrWhiteSpace(href)) { return -1; }
+        if (byPath.TryGetValue(href, out var idx)) { return idx; }
+        var name = TocFileName(href);
+        for (int i = 0; i < spine.Count; i++) { if (TocFileName(spine[i]) == name) { return i; } }
+        return -1;
+    }
+
+    /// <summary>取路徑最後一段檔名（小寫）；純函式。</summary>
+    private static string TocFileName(string path)
+    {
+        var s = path.Replace('\\', '/');
+        var slash = s.LastIndexOf('/');
+        return (slash >= 0 ? s[(slash + 1)..] : s).ToLowerInvariant();
     }
 
     private void PopulateChapterList()
     {
         ChapterList.Items.Clear();
-        for (int i = 0; i < _tocLabels.Count; i++)
+        foreach (var (depth, title, spineIdx) in _tocEntries)
         {
             ChapterList.Items.Add(new ListBoxItem
             {
-                Content = new TextBlock { Text = _tocLabels[i], TextTrimming = TextTrimming.CharacterEllipsis, FontSize = 12 },
-                Tag = i,
-                Padding = new Thickness(4, 3, 4, 3),
+                Content = new TextBlock
+                {
+                    Text = title,
+                    TextTrimming = TextTrimming.CharacterEllipsis,
+                    FontSize = 12,
+                    FontWeight = depth == 0 ? FontWeights.SemiBold : FontWeights.Normal,
+                },
+                Tag = spineIdx,
+                Padding = new Thickness(4 + depth * 14, 3, 4, 3), // 依層深縮排
+                ToolTip = "雙擊跳至該章開頭",
             });
         }
-        ReaderEmptyHint.Visibility = _tocLabels.Count > 0 ? Visibility.Collapsed : Visibility.Visible;
+        ReaderEmptyHint.Visibility = _tocEntries.Count > 0 ? Visibility.Collapsed : Visibility.Visible;
         HighlightChapter(_chapterIndex);
     }
 
+    /// <summary>高亮當前章所屬之目錄列＝TOC 順序中「對應 spine 章 ∈ [0, 當前章]」之最後一列（含未列於 TOC 之章，歸其前一個章節段）。</summary>
     private void HighlightChapter(int ch)
     {
-        if (ch >= 0 && ch < ChapterList.Items.Count)
+        if (ch < 0 || _tocEntries.Count == 0) { return; }
+        int best = -1;
+        for (int i = 0; i < _tocEntries.Count; i++)
         {
-            ChapterList.SelectedIndex = ch;   // ChapterList 無 SelectionChanged 處理器（跳章走雙擊），設選取僅高亮
-            ChapterList.ScrollIntoView(ChapterList.Items[ch]);
+            var s = _tocEntries[i].SpineIndex;
+            if (s >= 0 && s <= ch) { best = i; }
+        }
+        if (best < 0) { best = 0; }
+        if (best < ChapterList.Items.Count)
+        {
+            ChapterList.SelectedIndex = best;   // ChapterList 無 SelectionChanged 處理器（跳章走雙擊），設選取僅高亮
+            ChapterList.ScrollIntoView(ChapterList.Items[best]);
         }
     }
 
@@ -926,6 +964,20 @@ public partial class EbookPage : UserControl
         if (index < 0 || index >= cues.Count) { return; }
         var cue = cues[index];
         var isCurrent = index == _cursor;
+        if (IsHeadingAt(index)) // 增量3：h1–h6 標題段渲染為章節標題（粗體、放大、非對白／不逐字可點）
+        {
+            border.Child = new TextBlock
+            {
+                Text = cue.Text,
+                TextWrapping = TextWrapping.Wrap,
+                FontWeight = FontWeights.Bold,
+                FontSize = isCurrent ? 19 : 16,
+                Foreground = BrushOfHex("#8A4B63"),
+                Margin = new Thickness(0, 8, 0, 2),
+            };
+            border.Background = isCurrent ? ReaderCurrentBg : System.Windows.Media.Brushes.Transparent;
+            return;
+        }
         var hex = ColorForSpeaker(cue.Speaker);
         var speakerBrush = hex is not null ? BrushOfHex(hex) : ReaderTextBrush;
 
@@ -976,6 +1028,7 @@ public partial class EbookPage : UserControl
         para = ParagraphStepper.ClampCursor(para, cues.Count);
         var old = _cursor;
         _cursor = para;
+        UpdateSceneImage(); // 增量3：當前段之場景圖（隨閱讀位置換）
         if (old >= 0 && old < _paraViews.Count && old != para) { RenderParagraphInto(_paraViews[old], old); }
         if (para >= 0 && para < _paraViews.Count)
         {
@@ -991,6 +1044,74 @@ public partial class EbookPage : UserControl
         var row = _paraRows.FirstOrDefault(r => r.Index == index);
         ParaList.SelectedItem = row; // row 可能為 null（被說話人篩選濾掉）→ 不選、正常
         if (row is not null) { ParaList.ScrollIntoView(row); }
+    }
+
+    // ---- 增量3：場景圖（隨閱讀位置換、整片圖為主，spec#11） ----
+
+    /// <summary>當前段落生效之場景圖 key（圖檔名；無 <c>&lt;img&gt;</c>／無 _content／游標無效回 null）。</summary>
+    private string? CurrentImageKey()
+    {
+        if (_content is null || _chapterIndex < 0 || _chapterIndex >= _content.Chapters.Count) { return null; }
+        var ch = _content.Chapters[_chapterIndex];
+        return _cursor >= 0 && _cursor < ch.Count ? ch[_cursor].ImageHref : null;
+    }
+
+    /// <summary>當前章第 <paramref name="index"/> 段是否為標題（h1–h6，增量3）：供 <see cref="RenderParagraphInto"/> 渲染為章節標題。</summary>
+    private bool IsHeadingAt(int index)
+    {
+        if (_content is null || _chapterIndex < 0 || _chapterIndex >= _content.Chapters.Count) { return false; }
+        var ch = _content.Chapters[_chapterIndex];
+        return index >= 0 && index < ch.Count && ch[index].IsHeading;
+    }
+
+    /// <summary>依當前段更新場景圖之<b>影像來源</b>（前景完整＋背景模糊）；<b>圖塊大小/去留不在此改</b>——由 <see cref="SetupSceneImageBlock"/> 依本書有無圖固定，避免逐段跳動。該段無圖則清空影像（塊仍固定在）。</summary>
+    private void UpdateSceneImage()
+    {
+        var key = CurrentImageKey();
+        if (key is null || _content is null || !_content.Images.TryGetValue(key, out var bytes))
+        {
+            ReaderSceneImage.Source = null;
+            ReaderSceneImageBg.Source = null; // 該段無圖：塊固定不動、僅清空影像（本書有圖時塊仍在）
+            return;
+        }
+        var bmp = GetSceneBitmap(key, bytes);
+        ReaderSceneImage.Source = bmp;    // 前景：完整整張（Uniform、不裁切）
+        ReaderSceneImageBg.Source = bmp;  // 背景：模糊填滿留白（UniformToFill＋Blur）
+    }
+
+    /// <summary>依<b>本書</b>有無圖片決定<b>固定圖塊</b>（增量3）：有圖→圖塊常駐、可拖拉且高度跨章固定（不隨各章有無圖跳動）；純文字書→整塊收起。開書時呼叫一次。</summary>
+    private void SetupSceneImageBlock()
+    {
+        if (_content is { Images.Count: > 0 })
+        {
+            ReaderSceneImageBox.Visibility = System.Windows.Visibility.Visible;
+            ReaderImageSplitter.Visibility = System.Windows.Visibility.Visible;
+            if (ReaderImageRow.Height.Value <= 0) { ReaderImageRow.Height = new System.Windows.GridLength(1.4, System.Windows.GridUnitType.Star); } // 保留使用者拖拉後高度
+            ReaderImageSplitterRow.Height = System.Windows.GridLength.Auto;
+        }
+        else
+        {
+            ReaderSceneImageBox.Visibility = System.Windows.Visibility.Collapsed;
+            ReaderImageSplitter.Visibility = System.Windows.Visibility.Collapsed;
+            ReaderImageRow.Height = new System.Windows.GridLength(0);
+            ReaderImageSplitterRow.Height = new System.Windows.GridLength(0);
+            ReaderSceneImage.Source = null;
+            ReaderSceneImageBg.Source = null;
+        }
+    }
+
+    /// <summary>解碼並快取場景圖（key＝圖檔名；OnLoad 不鎖檔、Freeze 跨執行緒安全、DecodePixelWidth 節省記憶體）。</summary>
+    private System.Windows.Media.Imaging.BitmapImage GetSceneBitmap(string key, byte[] bytes)
+    {
+        if (_imageCache.TryGetValue(key, out var cached)) { return cached; }
+        var bi = new System.Windows.Media.Imaging.BitmapImage();
+        bi.BeginInit();
+        bi.CacheOption = System.Windows.Media.Imaging.BitmapCacheOption.OnLoad; // 載入即解碼、不鎖來源
+        bi.StreamSource = new System.IO.MemoryStream(bytes);
+        bi.EndInit();
+        bi.Freeze();
+        _imageCache[key] = bi;
+        return bi;
     }
 
     /// <summary>上一段（相鄰段，raw ±1；比照影片導航直達）；章首則退上一非空章末段。朗讀中則於新段續讀。</summary>

@@ -167,14 +167,35 @@
               <ColumnDefinition Width="248" MinWidth="160"/>
             </Grid.ColumnDefinitions>
 
-            <!-- 中：閱讀區（段落逐段呈現、當前段放大高亮、逐字可點）＋控制列 -->
+            <!-- 中：閱讀區＝場景圖（隨閱讀位置換、增量3 spec#11）為主＋其下逐段文字（當前段放大高亮、逐字可點）＋控制列 -->
             <Grid Grid.Column="0">
               <Grid.RowDefinitions>
-                <RowDefinition Height="*" MinHeight="120"/>
+                <RowDefinition x:Name="ReaderImageRow" Height="0"/>          <!-- 場景圖（增量3）；有圖 1.4*、無圖 0 -->
+                <RowDefinition x:Name="ReaderImageSplitterRow" Height="0"/>  <!-- 可拖拉分隔線；有圖 Auto、無圖 0 -->
+                <RowDefinition Height="*" MinHeight="96"/>
                 <RowDefinition Height="Auto"/>
               </Grid.RowDefinitions>
 
-              <Border Grid.Row="0" Background="#66FFFFFF" BorderBrush="#F4C2D0" BorderThickness="1" CornerRadius="6">
+              <!-- 場景圖（增量3，spec#11）：前景完整顯示整張（Uniform、不裁切）＋背景模糊填滿留白（UniformToFill＋Blur）；
+                   圖塊大小由版面/拖拉決定、跨章固定（見 SetupSceneImageBlock），不隨圖或有無圖跳動；純文字書整塊收起 -->
+              <Border x:Name="ReaderSceneImageBox" Grid.Row="0" Background="#22000000" BorderBrush="#F4C2D0" BorderThickness="1"
+                      CornerRadius="6" ClipToBounds="True" Visibility="Collapsed">
+                <Grid>
+                  <Image x:Name="ReaderSceneImageBg" Stretch="UniformToFill">
+                    <Image.Effect>
+                      <BlurEffect Radius="26" KernelType="Gaussian" RenderingBias="Performance"/>
+                    </Image.Effect>
+                  </Image>
+                  <Image x:Name="ReaderSceneImage" Stretch="Uniform"/>
+                </Grid>
+              </Border>
+
+              <!-- 可拖拉分隔線：調整場景圖框高度（無圖時 collapse） -->
+              <GridSplitter x:Name="ReaderImageSplitter" Grid.Row="1" Height="6" HorizontalAlignment="Stretch"
+                            VerticalAlignment="Center" Background="#F4C2D0" ResizeBehavior="PreviousAndNext"
+                            ResizeDirection="Rows" Visibility="Collapsed"/>
+
+              <Border Grid.Row="2" Background="#66FFFFFF" BorderBrush="#F4C2D0" BorderThickness="1" CornerRadius="6">
                 <ScrollViewer x:Name="ReadingScroller" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
                               Padding="10,8">
                   <StackPanel x:Name="ReadingPanel"/>
@@ -182,7 +203,7 @@
               </Border>
 
               <!-- 控制列：主題／語速／上一段／繼續／下一段／朗讀／加入筆記／暫停 -->
-              <WrapPanel Grid.Row="1" Orientation="Horizontal" Margin="0,8,0,0">
+              <WrapPanel Grid.Row="3" Orientation="Horizontal" Margin="0,8,0,0">
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,10,4">
                   <TextBlock Text="主題：" VerticalAlignment="Center" Foreground="{StaticResource PinkText}" Margin="0,0,4,0"/>
                   <ComboBox x:Name="ReaderThemePicker" MinWidth="118" Height="26" VerticalContentAlignment="Center"

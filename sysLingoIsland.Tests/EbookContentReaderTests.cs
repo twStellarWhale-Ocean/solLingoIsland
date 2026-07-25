@@ -127,6 +127,101 @@ public class EbookContentReaderTests
         Assert.Equal("Text lives in a div.", cues[0].Text);
     }
 
+    // ---- 增量3：內嵌圖依閱讀位置關聯段落（spec#11，純函式） ----
+
+    [Fact]
+    public void WithImages_SceneImageThenParagraphs_ParagraphsCarryImage_ImageOnlyPNotACue()
+    {
+        var xhtml =
+            "<p class=\"scene-image\"><img src=\"../images/01.png\" alt=\"x\"/></p>" +
+            "<p>First line.</p><p>Second line.</p>";
+        var ps = EbookContentReader.ExtractParagraphsWithImages(xhtml);
+        Assert.Equal(2, ps.Count);                                                   // 純圖片 <p> 只更新圖、不成段
+        Assert.Equal(new[] { "First line.", "Second line." }, ps.Select(p => p.Cue.Text));
+        Assert.All(ps, p => Assert.Equal("../images/01.png", p.ImageHref));          // 其後各段皆帶該場景圖
+    }
+
+    [Fact]
+    public void WithImages_LeadingParagraphBeforeFirstImage_BackfilledWithSceneImage()
+    {
+        var xhtml = "<p>Intro.</p><p class=\"scene-image\"><img src=\"a.png\"/></p><p>After.</p>";
+        var ps = EbookContentReader.ExtractParagraphsWithImages(xhtml);
+        // 增量3：圖前之開頭段（Intro）回填該章首張場景圖，使整個場景自開頭即顯示圖；跨圖後仍為該圖。
+        Assert.Equal(new[] { "a.png", "a.png" }, ps.Select(p => p.ImageHref));
+        Assert.Equal(new[] { "Intro.", "After." }, ps.Select(p => p.Cue.Text));
+    }
+
+    [Fact]
+    public void WithImages_LeadingNullsBackfilled_ButLaterImageStillSupersedes()
+    {
+        var xhtml =
+            "<p>opening</p>" +                                    // 圖前開頭段 → 回填 one.png
+            "<p><img src=\"one.png\"/></p><p>alpha</p>" +
+            "<p><img src=\"two.png\"/></p><p>beta</p>";
+        var ps = EbookContentReader.ExtractParagraphsWithImages(xhtml);
+        Assert.Equal(new[] { "one.png", "one.png", "two.png" }, ps.Select(p => p.ImageHref)); // 開頭回填 one；後段仍換 two
+        Assert.Equal(new[] { "opening", "alpha", "beta" }, ps.Select(p => p.Cue.Text));
+    }
+
+    [Fact]
+    public void WithImages_ImageOutsideParagraph_InFigure_AssociatesWithFollowingParagraphs()
+    {
+        // 首頁封面圖常在 <figure>（非 <p>）內——須依文件順序全章掃 img，否則漏（simulation.epub title.xhtml 實例）。
+        var xhtml =
+            "<h1>Title</h1>" +
+            "<figure class=\"cover-photo\"><img src=\"cover.png\" alt=\"c\"/></figure>" +
+            "<p>VERSION 1.1</p><p>PRODUCER x</p>";
+        var ps = EbookContentReader.ExtractParagraphsWithImages(xhtml);
+        Assert.Equal(new[] { "Title", "VERSION 1.1", "PRODUCER x" }, ps.Select(p => p.Cue.Text)); // h1 亦捕捉為標題段
+        Assert.True(ps[0].IsHeading);                                   // h1 標記為標題（渲染為章節標題、非對白）
+        Assert.All(ps.Skip(1), p => Assert.False(p.IsHeading));         // <p> 段非標題
+        Assert.All(ps, p => Assert.Equal("cover.png", p.ImageHref));   // figure 內之 img 關聯至其後段落＋回填至含標題之開頭
+    }
+
+    [Fact]
+    public void WithImages_HeadingsCapturedAndMarked_InterleavedWithParagraphs()
+    {
+        var xhtml = "<h2>Scene Title</h2><p>Ryder: Go!</p><p>Narration.</p><h3>Sub</h3><p>More.</p>";
+        var ps = EbookContentReader.ExtractParagraphsWithImages(xhtml);
+        Assert.Equal(new[] { "Scene Title", "Go!", "Narration.", "Sub", "More." }, ps.Select(p => p.Cue.Text)); // 說話人前綴已剝
+        Assert.Equal(new[] { true, false, false, true, false }, ps.Select(p => p.IsHeading));                   // h2/h3 為標題、<p> 非
+        Assert.Equal("Ryder", ps[1].Cue.Speaker);                                                              // 對白說話人不受影響
+    }
+
+    [Fact]
+    public void WithImages_MultipleImages_SwitchByReadingPosition_NotByChapter()
+    {
+        var xhtml =
+            "<p><img src=\"one.png\"/></p><p>alpha</p><p>beta</p>" +
+            "<p><img src=\"two.png\"/></p><p>gamma</p>";
+        var ps = EbookContentReader.ExtractParagraphsWithImages(xhtml);
+        Assert.Equal(new[] { "one.png", "one.png", "two.png" }, ps.Select(p => p.ImageHref)); // 讀到 two 之後才換（一章多圖）
+        Assert.Equal(new[] { "alpha", "beta", "gamma" }, ps.Select(p => p.Cue.Text));
+    }
+
+    [Fact]
+    public void WithImages_NoImages_AllNull_CuesMatchExtractParagraphs()
+    {
+        var xhtml = "<p>one</p><p>two</p>";
+        var ps = EbookContentReader.ExtractParagraphsWithImages(xhtml);
+        Assert.All(ps, p => Assert.Null(p.ImageHref));
+        Assert.Equal(                                                                 // 委派：cue 與舊 ExtractParagraphs 一致
+            EbookContentReader.ExtractParagraphs(xhtml).Select(c => c.Text),
+            ps.Select(p => p.Cue.Text));
+    }
+
+    [Fact]
+    public void WithImages_SpeakerPrefixParagraph_StillDetectsSpeaker_AndImage()
+    {
+        var xhtml =
+            "<p class=\"scene-image\"><img src=\"s.png\"/></p>" +
+            "<p><strong class=\"speaker\">Staff:</strong> Good morning.</p>";
+        var ps = EbookContentReader.ExtractParagraphsWithImages(xhtml);
+        Assert.Single(ps);
+        Assert.Equal("s.png", ps[0].ImageHref);
+        Assert.Equal("Staff", ps[0].Cue.Speaker);                                     // 說話人沿用增量2 之行首 Name: 抽取
+    }
+
     // ---- 段首 Name: 說話人（沿用 ExtractInlineSpeakers；含合唸／防誤判） ----
 
     [Fact]
@@ -228,6 +323,70 @@ public class EbookContentReaderTests
         }
         finally { Directory.Delete(dir, true); }
     }
+
+    // ---- 增量3 組合方法（smoke）：ReadContentAsync 由真實 epub 管線取段落＋依位置場景圖＋圖片位元組 ----
+
+    [Fact]
+    public async Task ReadContentAsync_RealEpub_ResolvesSceneImagesByPosition()
+    {
+        var dir = NewTempDir();
+        try
+        {
+            var path = EpubTestFixtures.WriteEpub3WithImages(dir, "urn:uuid:img-01", "Image Book",
+                new[]
+                {
+                    ("Scene 1", "<p class=\"scene-image\"><img src=\"images/01-first.png\"/></p><p>Alpha line.</p><p>Beta line.</p>"),
+                    ("Scene 2", "<p>No image yet.</p><p class=\"scene-image\"><img src=\"images/02-second.png\"/></p><p>Gamma line.</p>"),
+                },
+                new[]
+                {
+                    ("images/01-first.png", EpubTestFixtures.SamplePng),
+                    ("images/02-second.png", EpubTestFixtures.SamplePng),
+                });
+
+            var info = (await EbookReader.ParseAsync(path)).Info!;
+            var content = await EbookContentReader.ReadContentAsync(path, info);
+
+            // 兩張圖以檔名 key 收入、位元組非空。
+            Assert.True(content.Images.ContainsKey("01-first.png"));
+            Assert.True(content.Images.ContainsKey("02-second.png"));
+            Assert.All(content.Images.Values, b => Assert.NotEmpty(b));
+
+            Assert.Equal(2, content.Chapters.Count);
+            // 章1：純圖片 <p> 不成段；其後兩段皆帶場景圖1（key＝檔名）。
+            Assert.Equal(new[] { "Alpha line.", "Beta line." }, content.Chapters[0].Select(p => p.Cue.Text));
+            Assert.All(content.Chapters[0], p => Assert.Equal("01-first.png", p.ImageHref));
+            // 章2：圖前開頭段回填場景圖2（整個場景自開頭顯示圖）、圖後段亦帶場景圖2。
+            Assert.Equal(new[] { "02-second.png", "02-second.png" }, content.Chapters[1].Select(p => p.ImageHref));
+        }
+        finally { Directory.Delete(dir, true); }
+    }
+
+    [Fact]
+    public async Task ReadContentAsync_NoImages_TextOnly_EmptyImageMap()
+    {
+        var dir = NewTempDir();
+        try
+        {
+            var path = EpubTestFixtures.WriteEpub3Bodies(dir, "urn:uuid:noimg", "Plain", "A", "en",
+                new[] { ("Ch1", "<p>Just text.</p>") });
+            var info = (await EbookReader.ParseAsync(path)).Info!;
+            var content = await EbookContentReader.ReadContentAsync(path, info);
+            Assert.Empty(content.Images);                                                        // 無圖 → 空圖表
+            Assert.All(content.Chapters.SelectMany(c => c), p => Assert.Null(p.ImageHref));      // 各段退純文字
+        }
+        finally { Directory.Delete(dir, true); }
+    }
+
+    [Fact]
+    public async Task ReadContentAsync_MissingPath_ReturnsEmptyContent()
+    {
+        var content = await EbookContentReader.ReadContentAsync(
+            Path.Combine(Path.GetTempPath(), $"nope-{Guid.NewGuid():N}.epub"), new EbookInfo());
+        Assert.Empty(content.Chapters);
+        Assert.Empty(content.Images);
+    }
+
 
     [Fact]
     public async Task ReadChaptersAsync_MissingPath_ReturnsEmpty()
