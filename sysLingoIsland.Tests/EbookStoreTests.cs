@@ -538,4 +538,46 @@ public class EbookStoreTests
         }
         finally { Directory.Delete(dir, true); }
     }
+
+    // ---- #239：段落編輯 override 之 edits.json roundtrip ----
+
+    [Fact]
+    public void SaveEdits_LoadEdits_RoundTrips()
+    {
+        var dir = NewTempDir();
+        try
+        {
+            var (store, _, _) = NewStore(dir);
+            var src = DummyEpub(dir);
+            var item = store.Add(Info("urn:isbn:edit1", "Editable Book"), src, null, null, D).Item;
+
+            Assert.False(store.LoadEdits(item).HasAny);   // 無 edits.json → 空覆蓋（用原文）
+
+            var edits = new EbookEdits();
+            edits.Set(0, 2, "Alice: Edited line");
+            edits.Set(1, 0, "Narration only");
+            store.SaveEdits(item, edits);
+
+            var loaded = store.LoadEdits(item);
+            Assert.True(loaded.HasAny);
+            Assert.Equal("Alice: Edited line", loaded.TextFor(0, 2));
+            Assert.Equal("Narration only", loaded.TextFor(1, 0));
+        }
+        finally { Directory.Delete(dir, true); }
+    }
+
+    [Fact]
+    public void SaveEdits_Empty_ThenLoad_IsEmpty()
+    {
+        var dir = NewTempDir();
+        try
+        {
+            var (store, _, _) = NewStore(dir);
+            var src = DummyEpub(dir);
+            var item = store.Add(Info("urn:isbn:edit2", "Book2"), src, null, null, D).Item;
+            store.SaveEdits(item, new EbookEdits());   // 全清空存回
+            Assert.False(store.LoadEdits(item).HasAny);
+        }
+        finally { Directory.Delete(dir, true); }
+    }
 }
