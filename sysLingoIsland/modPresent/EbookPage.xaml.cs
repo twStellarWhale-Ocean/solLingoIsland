@@ -366,9 +366,36 @@ public partial class EbookPage : UserControl
         }
         menu.Items.Add(themeMenu);
         menu.Items.Add(new Separator());
+        var export = new MenuItem { Header = "匯出書本包…" };   // #241：匯出 LingoIsland 書本包（.zip，含編輯後文稿）
+        export.Click += (_, _) => ExportSelectedBook(it);
+        menu.Items.Add(export);
+        menu.Items.Add(new Separator());
         var del = new MenuItem { Header = "刪除" };
         del.Click += (_, _) => DeleteSelectedBook();
         menu.Items.Add(del);
+    }
+
+    /// <summary>匯出選取書卡為 LingoIsland 書本包（#241）：SaveFileDialog 選 <c>.zip</c>→<see cref="EbookStore.ExportBook"/> 整包壓縮（含編輯後文稿）；成敗皆明訊。</summary>
+    private void ExportSelectedBook(EbookItem item)
+    {
+        var dlg = new Microsoft.Win32.SaveFileDialog
+        {
+            Title = "匯出電子書（LingoIsland 書本包）",
+            FileName = EbookStore.SuggestExportFileName(item.Title),
+            Filter = "LingoIsland 書本包 (*.zip)|*.zip",
+            DefaultExt = ".zip",
+            AddExtension = true,
+        };
+        if (dlg.ShowDialog(System.Windows.Window.GetWindow(this)) != true) { return; }
+        var display = string.IsNullOrWhiteSpace(item.Title) ? item.Id : item.Title;
+        if (_store.ExportBook(item, dlg.FileName))
+        {
+            SetStatus($"已匯出「{display}」為書本包：{dlg.FileName}");
+        }
+        else
+        {
+            SetStatus($"匯出「{display}」失敗——找不到藏書資料夾內容或無法寫入所選位置。");
+        }
     }
 
     /// <summary>刪一本書（右鍵「刪除」或 Delete 鍵）：自書櫃與其藏書資料夾移除、重整清單。</summary>
@@ -686,6 +713,8 @@ public partial class EbookPage : UserControl
     private EbookItem? _openBook;                                  // 目前開啟之書卡（主題指派用）
     private IReadOnlyList<IReadOnlyList<SubtitleCue>> _chapters = System.Array.Empty<IReadOnlyList<SubtitleCue>>(); // 各章段落 cue（外層＝spine 章、內層＝段）
     private EbookBookContent? _content;                                                   // 增量3：整本內容（段落＋依位置場景圖＋圖片位元組）；_chapters 之 cue 由此投影
+    private IReadOnlyList<IReadOnlyList<EbookParagraph>> _rawChapters = System.Array.Empty<IReadOnlyList<EbookParagraph>>(); // #239：原始章節（未套編輯覆蓋）——編輯後自此重套 Apply，免累積誤差
+    private EbookEdits _edits = new();                                                    // #239：目前開啟書之段落編輯覆蓋（edits.json override side-car）
     private readonly Dictionary<string, System.Windows.Media.Imaging.BitmapImage> _imageCache = new(); // 場景圖解碼快取（key＝圖檔名）
     private readonly Dictionary<int, TreeViewItem> _chapterNodeBySpine = new(); // spine 章 index → 目錄樹節點（供高亮）；增量3 多層可收合目錄
     private bool _syncingChapterTree;                                            // 程式選取樹節點期間抑制 SelectedItemChanged→跳章
@@ -782,6 +811,9 @@ public partial class EbookPage : UserControl
             // 增量3：重新解析取新鮮目錄樹（含 Href——舊 info.json 無此鍵）＋一致 SpineHrefs；失敗退回 info.json。
             var info = (await EbookReader.ParseAsync(epubPath)).Info ?? storedInfo;
             var content = await EbookContentReader.ReadContentAsync(epubPath, info); // 增量3：讀整本→逐章段落＋依位置場景圖＋圖片位元組
+            _rawChapters = content.Chapters;                            // #239：原始章節（未套覆蓋）——供編輯後自原始重套
+            _edits = _store.LoadEdits(item);                            // #239：載入段落編輯 override（edits.json；無檔退空覆蓋）
+            content = content with { Chapters = _edits.Apply(_rawChapters) }; // #239：閱讀渲染以覆蓋後為準（Apply 保留 ImageHref/IsHeading、只換 Cue、重抽段首 Name: 說話人）
             var chapters = content.Chapters
                 .Select(ch => (IReadOnlyList<SubtitleCue>)ch.Select(p => p.Cue).ToList())
                 .ToList();
@@ -1564,7 +1596,111 @@ public partial class EbookPage : UserControl
         var note = new MenuItem { Header = "加入筆記" };
         note.Click += (_, _) => { if (index < CurCues.Count) { var t = CurCues[index].Text; if (!string.IsNullOrWhiteSpace(t)) { AddToNotesRequested?.Invoke(t); } } };
         menu.Items.Add(note);
+        menu.Items.Add(new Separator());
+        var edit = new MenuItem { Header = "編輯此段…" };   // #239：改寫本段完整文字（含段首 Name: 說話人）
+        edit.Click += (_, _) => EditParagraph(index);
+        menu.Items.Add(edit);
+        if (_chapterIndex >= 0 && _edits.TextFor(_chapterIndex, index) is not null) // 本段已有編輯覆蓋→提供還原
+        {
+            var revert = new MenuItem { Header = "還原此段原文" };
+            revert.Click += (_, _) => RevertParagraph(index);
+            menu.Items.Add(revert);
+        }
         return menu;
+    }
+
+    // ---- 段落編輯（#239：閱讀器內改寫段落文字·補/改 Name: 說話人；override side-car，原始 EPUB 唯讀不改） ----
+
+    /// <summary>編輯某段完整文字（#239）：彈多行編輯框（預填目前完整文字＝含段首 <c>Name:</c> 說話人），確定即存 <c>edits.json</c> 覆蓋並自原始重套（閱讀／朗讀／上色／說話人一律以覆蓋後為準）；編輯結果＝原文或清空＝移除覆蓋（還原）。</summary>
+    private void EditParagraph(int index)
+    {
+        var cues = CurCues;
+        if (_openBook is null || _chapterIndex < 0 || index < 0 || index >= cues.Count) { return; }
+        var current = FullParagraphText(cues[index]);
+        if (!PromptParagraphText(current, out var edited)) { return; } // 取消＝不動
+        var raw = _chapterIndex < _rawChapters.Count && index < _rawChapters[_chapterIndex].Count
+            ? FullParagraphText(_rawChapters[_chapterIndex][index].Cue).Trim() : null;
+        var normalized = string.IsNullOrWhiteSpace(edited) ? null : edited.Trim();
+        // 空白或改回原文＝移除覆蓋（還原）；否則存覆蓋
+        _edits.Set(_chapterIndex, index, normalized is null || normalized == raw ? null : normalized);
+        _store.SaveEdits(_openBook, _edits);
+        ReapplyEdits(index);
+        SetStatus(_edits.TextFor(_chapterIndex, index) is null
+            ? "已還原本段原文。"
+            : "已更新本段文字（存於本書編輯覆蓋、原始 EPUB 未改，可還原）。");
+    }
+
+    /// <summary>還原某段原文（#239）：移除該段編輯覆蓋、自原始重套。</summary>
+    private void RevertParagraph(int index)
+    {
+        if (_openBook is null || _chapterIndex < 0) { return; }
+        _edits.Set(_chapterIndex, index, null);
+        _store.SaveEdits(_openBook, _edits);
+        ReapplyEdits(index);
+        SetStatus("已還原本段原文。");
+    }
+
+    /// <summary>某段完整文字（含段首 <c>Name:</c> 說話人前綴；無說話人＝純正文）——編輯框預填／原文比對用。</summary>
+    private static string FullParagraphText(SubtitleCue cue)
+        => string.IsNullOrWhiteSpace(cue.Speaker) ? cue.Text : SpeakerPrefix(cue.Speaker) + cue.Text;
+
+    /// <summary>自 <see cref="_rawChapters"/> 重套 <see cref="_edits"/>→重投影 <see cref="_chapters"/>／<see cref="_content"/>、重建說話人面板（編輯可能增減說話人）、重載當前章並保持游標。</summary>
+    private void ReapplyEdits(int keepCursor)
+    {
+        if (_content is null) { return; }
+        var edited = _edits.Apply(_rawChapters);
+        _content = _content with { Chapters = edited };
+        _chapters = edited.Select(ch => (IReadOnlyList<SubtitleCue>)ch.Select(p => p.Cue).ToList()).ToList();
+        BuildSpeakerChecks();                                        // 說話人可能因編輯（補／改 Name:）增減→重建面板與配色
+        LoadChapter(_chapterIndex);                                 // 重建當前章段落（含右鍵「還原」項狀態）
+        SetCursor(ParagraphStepper.ClampCursor(keepCursor, CurCues.Count), save: false);
+    }
+
+    /// <summary>段落編輯對話框（#239）：多行 TextBox 預填 <paramref name="current"/>，確定回 <c>true</c>＋編輯後文字（清空＝還原原文）。程式碼建構、沿用淺粉底風格。</summary>
+    private bool PromptParagraphText(string current, out string text)
+    {
+        text = current;
+        var win = new System.Windows.Window
+        {
+            Title = "編輯段落",
+            Width = 540, Height = 340,
+            WindowStartupLocation = System.Windows.WindowStartupLocation.CenterOwner,
+            Owner = System.Windows.Window.GetWindow(this),
+            ResizeMode = System.Windows.ResizeMode.CanResize,
+            Background = BrushOfHex("#FFF3F7"),
+        };
+        var grid = new Grid { Margin = new Thickness(12) };
+        grid.RowDefinitions.Add(new System.Windows.Controls.RowDefinition { Height = System.Windows.GridLength.Auto });
+        grid.RowDefinitions.Add(new System.Windows.Controls.RowDefinition { Height = new System.Windows.GridLength(1, System.Windows.GridUnitType.Star) });
+        grid.RowDefinitions.Add(new System.Windows.Controls.RowDefinition { Height = System.Windows.GridLength.Auto });
+
+        var hint = new TextBlock
+        {
+            Text = "改寫本段文字；段首可加「說話人： 」標記說話人（清空＝還原原文）。",
+            TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 8), Foreground = BrushOfHex("#8A4B63"),
+        };
+        Grid.SetRow(hint, 0); grid.Children.Add(hint);
+
+        var box = new System.Windows.Controls.TextBox
+        {
+            Text = current, AcceptsReturn = true, TextWrapping = TextWrapping.Wrap,
+            VerticalScrollBarVisibility = System.Windows.Controls.ScrollBarVisibility.Auto,
+            VerticalContentAlignment = VerticalAlignment.Top, FontSize = 14, Padding = new Thickness(6),
+        };
+        Grid.SetRow(box, 1); grid.Children.Add(box);
+
+        var buttons = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = System.Windows.HorizontalAlignment.Right, Margin = new Thickness(0, 10, 0, 0) };
+        var ok = new Button { Content = "確定", Width = 76, Margin = new Thickness(0, 0, 8, 0), IsDefault = true };
+        var cancel = new Button { Content = "取消", Width = 76, IsCancel = true };
+        buttons.Children.Add(ok); buttons.Children.Add(cancel);
+        Grid.SetRow(buttons, 2); grid.Children.Add(buttons);
+
+        ok.Click += (_, _) => { win.DialogResult = true; };
+        win.Content = grid;
+        win.Loaded += (_, _) => { box.Focus(); box.SelectAll(); };
+        var confirmed = win.ShowDialog() == true;
+        if (confirmed) { text = box.Text; }
+        return confirmed;
     }
 
     private static void TryCopy(string? text)
