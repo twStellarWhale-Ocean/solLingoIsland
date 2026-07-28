@@ -29,13 +29,14 @@ public static class EbookContentReader
     // <script>／<style> 整塊先移除（其內文非閱讀內容，避免 CSS／JS 漏成段落）。
     private static readonly Regex ScriptStyle = new(
         @"<(script|style)\b[^>]*>.*?</\1\s*>", RegexOptions.Singleline | RegexOptions.IgnoreCase | RegexOptions.Compiled);
-    // <p> 段落（**優先**）：XHTML 之 p 不得巢狀 p，非貪婪配對安全。Singleline 使 . 跨行。
+    // <p> 段落：XHTML 之 p 不得巢狀 p，非貪婪配對安全。Singleline 使 . 跨行。
     private static readonly Regex ParagraphTag = new(
         @"<p\b[^>]*>(?<inner>.*?)</p\s*>", RegexOptions.Singleline | RegexOptions.IgnoreCase | RegexOptions.Compiled);
-    // 章內無 <p> 時**退回**之區塊層元素（div／li／blockquote；h1–h6 另由 HeadingTag 處理、不重複）：非貪婪配對同名結束標籤
-    // （巢狀 div 混排文字為 MVP 邊界、可能漏取——契約已聲明本增量僅純文字段落）。
-    private static readonly Regex BlockTag = new(
-        @"<(?<tag>div|li|blockquote)\b[^>]*>(?<inner>.*?)</\k<tag>\s*>",
+    // 會巢狀之區塊層元素（li／blockquote／div）之起訖標記（#262）：此三者**可自我巢狀**（<li> 內含 <ul><li>、<div> 內含 <div>），
+    // 非貪婪同名配對會把外層結束標籤配到內層的 </li>、內層元素則整個配不出來（去重救不了）——故改以**深度感知掃描**（見 ScanNestable）。
+    // <p> 不在此列：XHTML 之 p 不得巢狀 p，沿用非貪婪正則、不動既有行為。
+    private static readonly Regex NestableToken = new(
+        @"<(?<slash>/?)(?<tag>li|blockquote|div)\b[^>]*?(?<self>/?)>",
         RegexOptions.Singleline | RegexOptions.IgnoreCase | RegexOptions.Compiled);
     // 標題 h1–h6（增量3）：獨立於本文區塊匹配、依文件位置合併，渲染為<b>章節標題</b>（非對白內文）。
     private static readonly Regex HeadingTag = new(
@@ -45,18 +46,28 @@ public static class EbookContentReader
     private static readonly Regex BrTag = new(@"<br\s*/?>", RegexOptions.IgnoreCase | RegexOptions.Compiled);
     private static readonly Regex AnyTag = new(@"<[^>]+>", RegexOptions.Compiled);
     private static readonly Regex Ws = new(@"\s+", RegexOptions.Compiled);
+    // 語意說話人標記（#262）：<strong class="speaker">Staff:</strong> 等——EPUB 以 class 明示說話人時**優先採信**，
+    // 免受行首正則之 ≤3 詞／≤24 字與「冒號後須空白」邊界所限。
+    private static readonly Regex SpeakerMark = new(
+        @"<(?<t>strong|span|b)\b[^>]*\bclass\s*=\s*(?:""[^""]*\bspeaker\b[^""]*""|'[^']*\bspeaker\b[^']*')[^>]*>(?<name>.*?)</\k<t>\s*>",
+        RegexOptions.Singleline | RegexOptions.IgnoreCase | RegexOptions.Compiled);
+    // 連結元素（純導覽清單項判定用）：<li> 剝掉所有 <a>…</a> 後若無剩餘文字，該 li ＝目錄／導覽項、不成段。
+    private static readonly Regex AnchorTag = new(
+        @"<a\b[^>]*>.*?</a\s*>", RegexOptions.Singleline | RegexOptions.IgnoreCase | RegexOptions.Compiled);
     // 段內首個 <img src="…">（增量3 內嵌圖）：擷取場景圖相對 href（雙或單引號皆容）。
     private static readonly Regex ImgSrc = new(
         @"<img\b[^>]*\bsrc\s*=\s*(?:""(?<src>[^""]*)""|'(?<src>[^']*)')",
         RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
     /// <summary>
-    /// 由章節 XHTML 萃取<b>段落純文字 cue</b>（純函式）：<b>優先 <c>&lt;p&gt;</c></b>；章內無 <c>&lt;p&gt;</c> 時
-    /// <b>退回區塊層</b>（<c>&lt;div&gt;</c>／<c>&lt;h1&gt;</c>–<c>&lt;h6&gt;</c>／<c>&lt;li&gt;</c>／<c>&lt;blockquote&gt;</c>）
-    /// 以免「文字不在 <c>&lt;p&gt;</c>」之章整章空白。每段：<c>&lt;br&gt;</c> 轉空白、剝其餘標籤、解 HTML 實體、折疊空白、<b>丟空段</b>；
-    /// 圖片／表格／複雜排版本增量略過為純文字（MVP）。每段投影為 <see cref="SubtitleCue"/>（<c>StartSec=null</c>＝無時間軸、以段序導讀）；
-    /// 段首 <c>Name:</c> 前綴以既有 <see cref="SubtitleParser.ExtractInlineSpeakers"/> 抽說話人
-    /// （合唸交 <see cref="PauseDecider.SplitSpeakers"/> 拆原子、≤3 詞／≤24 字防誤判）、無前綴 <c>Speaker=null</c>、<b>免 AI</b>。
+    /// 由章節 XHTML 萃取<b>內文純文字 cue</b>（純函式）：本文區塊<b>逐區塊判定、非整章二選一</b>（#262）——
+    /// <c>&lt;p&gt;</c>／<c>&lt;li&gt;</c>／<c>&lt;blockquote&gt;</c> 依文件位置<b>合流</b>（旁白 <c>&lt;p&gt;</c> 與對白
+    /// <c>&lt;ul&gt;&lt;li&gt;</c> 混排之章兩者皆成段、對白零遺漏），<c>&lt;div&gt;</c> 僅在章內無 <c>&lt;p&gt;</c> 時納入，
+    /// 巢狀取內層，<b>純導覽 <c>&lt;li&gt;</c>（僅單一 <c>&lt;a&gt;</c>）不成段</b>；<c>&lt;h1&gt;</c>–<c>&lt;h6&gt;</c> 另以標題段合併。
+    /// 每段：<c>&lt;br&gt;</c> 轉空白、剝其餘標籤、解 HTML 實體、折疊空白、<b>丟空段</b>；表格／複雜排版略過為純文字（MVP）。
+    /// 每段投影為 <see cref="SubtitleCue"/>（<c>StartSec=null</c>＝無時間軸、以段序導讀）；說話人採<b>兩段式</b>——
+    /// 先取語意標記（<c>class="speaker"</c>），無則退回 <see cref="SubtitleParser.ExtractInlineSpeakers"/> 之段首 <c>Name:</c> 抽取
+    /// （合唸交 <see cref="PauseDecider.SplitSpeakers"/> 拆原子、≤3 詞／≤24 字防誤判），皆無則 <c>Speaker=null</c>、<b>免 AI</b>。
     /// null／空／真正空章回空清單、不當機。
     /// </summary>
     public static IReadOnlyList<SubtitleCue> ExtractParagraphs(string? chapterXhtml) =>
@@ -76,14 +87,15 @@ public static class EbookContentReader
         var doc = ScriptStyle.Replace(chapterXhtml, " ");
         var imgs = ImgSrc.Matches(doc); // 全章 <img>（依文件順序、含 <figure>/<div>/裸 img，非只 <p> 內——如封面 <figure class="cover-photo">）
         var headings = HeadingTag.Matches(doc); // 全章 h1–h6（增量3：渲染為標題、非對白內文）
-        // 本文區塊：**優先 <p>**（與 <p> 並存之外層 <div> 不重覆計段）；無 <p>／<p> 全空 → **退回區塊層**避免整章空白。標題與圖依位置合併。
-        var body = AnyPStart.IsMatch(doc) ? ParagraphTag.Matches(doc) : BlockTag.Matches(doc);
-        var blocks = MergeBlocks(body, headings, imgs);
-        if (blocks.Count == 0) { blocks = MergeBlocks(BlockTag.Matches(doc), headings, imgs); } // 退回區塊層取本文
+        // 本文區塊（#262：**逐區塊判定、非整章二選一**）：<p>／<li>／<blockquote> 恆合流，<div> 僅在章內無 <p> 時納入。
+        var blocks = MergeBlocks(CollectBody(doc, includeDiv: !AnyPStart.IsMatch(doc)), headings, imgs);
+        // <p> 存在但全空（文字不在 <p>、亦無清單項）→ 退回含 <div> 之區塊層，避免整章空白。
+        if (blocks.Count == 0) { blocks = MergeBlocks(CollectBody(doc, includeDiv: true), headings, imgs); }
         if (blocks.Count == 0) { return Array.Empty<EbookParagraph>(); }
 
-        // 每段一 cue（無時間軸）；段首 Name: 說話人以既有行首抽取填入（沿用影片同一函式、免 AI、合唸留待下游 SplitSpeakers 拆原子）。
-        var cues = blocks.Select(b => new SubtitleCue(b.Text, null, null)).ToList();
+        // 每段一 cue（無時間軸）；說話人兩段式——① 區塊已由語意標記（class="speaker"）取得者直接帶入、
+        // ② 其餘交既有行首 Name: 抽取（沿用影片同一函式、免 AI、合唸留待下游 SplitSpeakers 拆原子；已有 Speaker 者該函式不動）。
+        var cues = blocks.Select(b => new SubtitleCue(b.Text, null, b.Speaker)).ToList();
         var withSpeakers = SubtitleParser.ExtractInlineSpeakers(cues); // 不改段數、保序
         var result = withSpeakers.Select((c, i) => new EbookParagraph(c, blocks[i].Image, blocks[i].IsHeading)).ToList();
         // 增量3：把該章**首張場景圖回填至其「之前」的無圖開頭段**（如日期標籤、場景開頭旁白），
@@ -109,31 +121,116 @@ public static class EbookContentReader
     /// 依<b>文件位置</b>合併為有序段落，並逐段關聯「當前生效場景圖」（依 <paramref name="imgMatches"/> 位置推進，含 &lt;figure&gt;/裸 img）。
     /// 標題段標 <c>IsHeading</c>；清洗後之空段丟棄（純圖片段只更新圖、不成段）。
     /// </summary>
-    private static List<(string Text, string? Image, bool IsHeading)> MergeBlocks(
-        MatchCollection bodyMatches, MatchCollection headingMatches, MatchCollection imgMatches)
+    private static List<(string Text, string? Image, bool IsHeading, string? Speaker)> MergeBlocks(
+        IReadOnlyList<Block> bodyBlocks, MatchCollection headingMatches, MatchCollection imgMatches)
     {
-        var merged = new List<(Match M, bool IsHeading)>();
-        foreach (Match m in bodyMatches) { merged.Add((m, false)); }
-        foreach (Match m in headingMatches) { merged.Add((m, true)); }
-        merged.Sort((a, b) => a.M.Index.CompareTo(b.M.Index)); // 依文件順序
+        var merged = new List<Block>(bodyBlocks);
+        foreach (Match m in headingMatches)
+        {
+            merged.Add(new Block(m.Index, m.Length, m.Groups["inner"].Value, true));
+        }
+        merged.Sort((a, b) => a.Index.CompareTo(b.Index)); // 依文件順序
 
-        var result = new List<(string Text, string? Image, bool IsHeading)>();
+        var result = new List<(string Text, string? Image, bool IsHeading, string? Speaker)>();
         string? currentImage = null;
         var imgIdx = 0;
-        foreach (var (m, isHeading) in merged)
+        foreach (var block in merged)
         {
+            var isHeading = block.IsHeading;
             // 依文件順序推進「當前生效圖」至本區塊結束前之最後一個 <img>——含區塊外之 <figure>/<div>/裸 img 與區塊內之 img。
-            var blockEnd = m.Index + m.Length;
+            var blockEnd = block.Index + block.Length;
             while (imgIdx < imgMatches.Count && imgMatches[imgIdx].Index < blockEnd)
             {
                 currentImage = WebUtility.HtmlDecode(imgMatches[imgIdx].Groups["src"].Value).Trim();
                 imgIdx++;
             }
-            var text = CleanBlock(m.Groups["inner"].Value);
-            if (text.Length > 0) { result.Add((text, currentImage, isHeading)); }
+            var inner = block.Inner;
+            string? speaker = null;
+            if (!isHeading)
+            {
+                // 語意說話人標記（#262）：取首個 class="speaker" 元素為說話人，並自內文移除該前綴（標題段不參與說話人）。
+                var mark = SpeakerMark.Match(inner);
+                if (mark.Success)
+                {
+                    var name = CleanBlock(mark.Groups["name"].Value).TrimEnd('：', ':').Trim();
+                    if (name.Length > 0)
+                    {
+                        speaker = name;
+                        inner = inner.Remove(mark.Index, mark.Length);
+                    }
+                }
+            }
+            var text = CleanBlock(inner);
+            if (text.Length > 0) { result.Add((text, currentImage, isHeading, speaker)); }
         }
         return result;
     }
+
+    /// <summary>
+    /// 蒐集本文區塊（#262，純函式）：<c>&lt;p&gt;</c>／<c>&lt;li&gt;</c>／<c>&lt;blockquote&gt;</c> 恆納入、
+    /// <c>&lt;div&gt;</c> 依 <paramref name="includeDiv"/>（僅章內無 <c>&lt;p&gt;</c> 時為 true）；再套兩條收斂規則：
+    /// <b>巢狀取內層</b>（範圍完全包住另一區塊者捨去，如 <c>&lt;div&gt;</c> 包 <c>&lt;ul&gt;</c>、<c>&lt;li&gt;</c> 內含 <c>&lt;p&gt;</c>，
+    /// 避免同段文字重複計段）與<b>純導覽清單項排除</b>（<c>&lt;li&gt;</c> 剝去所有 <c>&lt;a&gt;</c> 後無剩餘文字＝目錄／導覽項，不成段、不朗讀）。
+    /// 回依文件位置排序之區塊 match。
+    /// </summary>
+    private static List<Block> CollectBody(string doc, bool includeDiv)
+    {
+        var raw = new List<Block>();
+        foreach (Match m in ParagraphTag.Matches(doc))
+        {
+            raw.Add(new Block(m.Index, m.Length, m.Groups["inner"].Value, false));
+        }
+        foreach (var b in ScanNestable(doc))
+        {
+            if (b.Tag == "div" && !includeDiv) { continue; }
+            // 純導覽清單項不成段（結構判定、不靠 class 名猜測）。<blockquote>／<div> 不適用此判定。
+            if (b.Tag == "li" && CleanBlock(AnchorTag.Replace(b.Inner, " ")).Length == 0) { continue; }
+            raw.Add(new Block(b.Index, b.Length, b.Inner, false));
+        }
+
+        // 巢狀取內層前**先濾掉無文字區塊**（純圖片段、空 <p>、空白容器）——否則「<div>有文字<p></p></div>」之空 <p>
+        // 會把唯一帶文字的外層 <div> 判為容器而丟掉，該章反而整章空白（退回路徑之既有保障不得因本次修正失效）。
+        var solid = raw.Where(b => CleanBlock(b.Inner).Length > 0).ToList();
+        // 巢狀取內層：捨去「完全包住另一個候選區塊」者（如 <div> 包 <ul>、<li> 內含 <p>；範圍相等不可能發生，故用嚴格包含）。
+        var kept = solid.Where(a => !solid.Any(b => b.Index >= a.Index
+                                                    && b.Index + b.Length <= a.Index + a.Length
+                                                    && b.Length < a.Length))
+                        .ToList();
+        kept.Sort((a, b) => a.Index.CompareTo(b.Index));
+        return kept;
+    }
+
+    /// <summary>
+    /// 深度感知掃描可巢狀之區塊層元素（<c>li</c>／<c>blockquote</c>／<c>div</c>；#262，純函式）：以每個標籤名各一支堆疊配對
+    /// 起訖標記，故 <c>&lt;li&gt;Outer&lt;ul&gt;&lt;li&gt;Nested&lt;/li&gt;&lt;/ul&gt;&lt;/li&gt;</c> 之內外層皆能各自取得
+    /// （非貪婪正則只會配出一個錯範圍）。回<b>所有深度</b>之元素，取內層與否交呼叫端之巢狀去重。
+    /// 未配對之孤兒結束標記略過、未閉合之起始標記捨去（畸形 XHTML 不當機——MVP 邊界）。
+    /// </summary>
+    private static List<(string Tag, int Index, int Length, string Inner)> ScanNestable(string doc)
+    {
+        var open = new Dictionary<string, Stack<Match>>(StringComparer.OrdinalIgnoreCase);
+        var result = new List<(string Tag, int Index, int Length, string Inner)>();
+        foreach (Match t in NestableToken.Matches(doc))
+        {
+            if (t.Groups["self"].Value.Length > 0) { continue; } // 自閉合＝無內容
+            var tag = t.Groups["tag"].Value.ToLowerInvariant();
+            if (t.Groups["slash"].Value.Length == 0)
+            {
+                if (!open.TryGetValue(tag, out var stack)) { open[tag] = stack = new Stack<Match>(); }
+                stack.Push(t);
+            }
+            else if (open.TryGetValue(tag, out var stack) && stack.Count > 0)
+            {
+                var start = stack.Pop();
+                var innerStart = start.Index + start.Length;
+                result.Add((tag, start.Index, t.Index + t.Length - start.Index, doc[innerStart..t.Index]));
+            }
+        }
+        return result;
+    }
+
+    /// <summary>本文區塊（#262）：文件位置、範圍長度、原始內文（未清洗）。<c>IsHeading</c> 由 <see cref="MergeBlocks"/> 另行帶入。</summary>
+    private readonly record struct Block(int Index, int Length, string Inner, bool IsHeading);
 
     /// <summary>
     /// 清一段區塊內文（純函式）：<c>&lt;br&gt;</c>→空白、<b>先剝標籤再解實體</b>（避免 <c>&amp;lt;</c> 解出之 <c>&lt;</c> 被當標籤）、
