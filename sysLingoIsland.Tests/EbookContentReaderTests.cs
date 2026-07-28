@@ -463,4 +463,108 @@ public class EbookContentReaderTests
     {
         Assert.Empty(EbookContentReader.ExtractChapters(null, new[] { "x" }));
     }
+
+    // ---- #262：段落與清單項混排（intTest#66–#69）。fixture 取自真實 EPUB 之結構樣態、去識別化。 ----
+
+    /// <summary>真實教材書常見樣態：旁白／標籤用 &lt;p&gt;、對白用 &lt;ul class="exchange"&gt;&lt;li&gt;。</summary>
+    private const string MixedSceneXhtml =
+        "<body class=\"scene-document\"><article class=\"scene\">" +
+        "<p class=\"day-label\">Day 1</p>" +
+        "<h1 id=\"section-1\">08:30 Registration</h1>" +
+        "<p class=\"scene-image\"><img src=\"../images/01.png\" alt=\"x\" /></p>" +
+        "<ul class=\"exchange\">" +
+        "<li class=\"prompt\"><strong class=\"speaker\">Staff:</strong> Good morning. May I have your name?</li>" +
+        "<li class=\"response\"><strong class=\"speaker\">Me:</strong> Good morning. My name is Alex.</li>" +
+        "</ul>" +
+        "<p>(The staff hands you a badge.)</p>" +
+        "</article></body>";
+
+    [Fact]
+    public void ExtractParagraphs_MixedPAndListItems_BothBecomeCues_InDocumentOrder()
+    {
+        // intTest#66：舊制「章內有 <p> 即只取 <p>」會靜默丟棄整章清單項——此處斷言對白零遺漏且保持原文順序。
+        var cues = EbookContentReader.ExtractParagraphs(MixedSceneXhtml);
+        Assert.Equal(new[]
+        {
+            "Day 1",
+            "08:30 Registration",
+            "Good morning. May I have your name?",   // <li> 對白（說話人前綴已抽離）
+            "Good morning. My name is Alex.",
+            "(The staff hands you a badge.)",
+        }, cues.Select(c => c.Text));
+    }
+
+    [Fact]
+    public void ExtractParagraphs_MixedChapter_HeadingFlaggedAndImageCarried()
+    {
+        var ps = EbookContentReader.ExtractParagraphsWithImages(MixedSceneXhtml);
+        Assert.Equal(5, ps.Count);
+        Assert.True(ps[1].IsHeading);                                  // <h1> 為標題段
+        Assert.All(ps, p => Assert.Equal("../images/01.png", p.ImageHref)); // 首圖回填至其前之開頭段
+    }
+
+    [Fact]
+    public void ExtractParagraphs_SemanticSpeakerMark_TakesPrecedence()
+    {
+        // intTest#67：class="speaker" 語意標記優先，不受行首正則之 ≤3 詞／≤24 字與「冒號後須空白」邊界所限。
+        var cues = EbookContentReader.ExtractParagraphs(
+            "<p>Intro.</p><ul class=\"exchange\">" +
+            "<li><strong class=\"speaker\">Faculty:</strong> What is the aim of your study?</li>" +
+            "<li><span class=\"speaker\">Visiting Research Fellow:</span>The aim is to develop an intervention.</li>" +
+            "</ul>");
+        Assert.Equal(new[] { null, "Faculty", "Visiting Research Fellow" }, cues.Select(c => c.Speaker));
+        Assert.Equal("What is the aim of your study?", cues[1].Text);
+        // 說話人逾 3 詞／逾 24 字、且冒號後無空白——行首正則抽不到，語意標記才抽得到。
+        Assert.Equal("The aim is to develop an intervention.", cues[2].Text);
+    }
+
+    [Fact]
+    public void ExtractParagraphs_NoSpeakerMark_StillFallsBackToInlineNamePrefix()
+    {
+        // 既有行首 Name: 抽取不迴歸（無語意標記之書照舊）。
+        var cues = EbookContentReader.ExtractParagraphs("<p>Intro.</p><ul><li>Anna: Hello there.</li></ul>");
+        Assert.Equal("Anna", cues[1].Speaker);
+        Assert.Equal("Hello there.", cues[1].Text);
+    }
+
+    [Fact]
+    public void ExtractParagraphs_NavigationOnlyListItems_NotCues()
+    {
+        // intTest#68：目錄／導覽章之 <li> 僅含單一 <a>＝導覽項，不成段、不朗讀；含連結外文字者仍成段。
+        var cues = EbookContentReader.ExtractParagraphs(
+            "<h1>Programme</h1><ol class=\"programme-list\">" +
+            "<li><a href=\"day-1.xhtml#section-1\">Day 1</a></li>" +
+            "<li><a href=\"day-2.xhtml#section-1\">Day 2</a></li>" +
+            "<li>Read the <a href=\"notes.xhtml\">notes</a> before you start.</li>" +
+            "</ol>");
+        Assert.Equal(new[] { "Programme", "Read the notes before you start." }, cues.Select(c => c.Text));
+    }
+
+    [Fact]
+    public void ExtractParagraphs_NestedBlocks_InnerOnly_NoDuplicate()
+    {
+        // intTest#69：<li> 內含 <p>、<ul> 巢狀 <ul> → 只取內層、同一段文字不重複計段。
+        var cues = EbookContentReader.ExtractParagraphs(
+            "<ul><li><p>Inner paragraph.</p></li>" +
+            "<li>Outer item.<ul><li>Nested item.</li></ul></li></ul>");
+        Assert.Equal(new[] { "Inner paragraph.", "Nested item." }, cues.Select(c => c.Text));
+    }
+
+    [Fact]
+    public void ExtractParagraphs_DivWithTextAndEmptyP_StillFallsBackToDiv()
+    {
+        // 巢狀去重不得吃掉退回路徑之保障：空 <p> 不算內容區塊，故帶文字之外層 <div> 仍成段、不整章空白。
+        var cues = EbookContentReader.ExtractParagraphs("<div>Text lives in a div.<p></p></div>");
+        Assert.Single(cues);
+        Assert.Equal("Text lives in a div.", cues[0].Text);
+    }
+
+    [Fact]
+    public void ExtractParagraphs_DivWrappingList_NoP_TakesListItemsOnly()
+    {
+        // <div> 包 <ul>（章內無 <p>）→ div 被巢狀規則捨去、只取清單項，不重複計段。
+        var cues = EbookContentReader.ExtractParagraphs(
+            "<div class=\"chapter\"><ul><li>First item.</li><li>Second item.</li></ul></div>");
+        Assert.Equal(new[] { "First item.", "Second item." }, cues.Select(c => c.Text));
+    }
 }
