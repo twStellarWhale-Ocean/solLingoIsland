@@ -49,7 +49,7 @@ Write-Host "# II.參考準備 ================================" -ForegroundColor
 Write-Host "# III.內容程序 ================================" -ForegroundColor Blue
 
 $fails = @()
-$proc = $null
+$app = $null
 try {
 
   #region A.APPDATA 備份＋植入兩章樣書 --------------------------------
@@ -96,14 +96,22 @@ try {
 
   #region B.啟動 App、開書 --------------------------------
   Write-Host "## B.啟動 App、開書 --------------------------------" -ForegroundColor Cyan
-  $proc = Start-Process -FilePath $ExePath -PassThru
-  $hwnd = [IntPtr]::Zero
-  for ($i = 0; $i -lt 60; $i++) { Start-Sleep -Milliseconds 500; $proc.Refresh(); if ($proc.MainWindowHandle -ne [IntPtr]::Zero) { $hwnd = $proc.MainWindowHandle; break } }
-  if ($hwnd -eq [IntPtr]::Zero) { throw "主視窗未出現（逾時 30 秒）" }
+  # 取窗工法見 uiaCommon.ps1 之 Start-AppAndGetWindow（Issue #270）：以「具主視窗之 LingoIsland 行程」
+  # 為錨、非 Start-Process 回傳之行程，故對 dev build 與 Velopack 打包成品皆適用。
+  $app  = Start-AppAndGetWindow -ExePath $ExePath -TimeoutSec 30
+  $hwnd = $app.Hwnd
+  Write-Host ("* 受測行程 pid={0}（自主視窗反查）" -f $app.ProcessId)
   $fg = Set-WindowForeground -Hwnd $hwnd
   if (-not $fg) { throw "主視窗無法取得前景——本腳本以真實鍵盤事件驅動，鍵盤焦點必須在受測視窗，否則按鍵會送到別的程式（不可放行）" }
   Write-Host "* 主視窗 hwnd=$hwnd 已在前景"
   $root = [System.Windows.Automation.AutomationElement]::FromHandle($hwnd)
+
+  # 最大化（Issue #270）：視窗沿用 ui-state.json 之保存尺寸時可能偏小，植入之樣書排在書櫃清單末端、
+  # 書卡中心落在視窗可視範圍外——該點屬桌面或他窗，下方點擊命中斷言即判「被他窗覆蓋」而中止
+  # （實撞：本機保存尺寸下書卡中心 y=909 落在視窗外）。比照 captureEbookSplitter.ps1，
+  # 須在 App 套用 ui-state.json「之後」才最大化，否則會被其覆寫。
+  $wr = Set-WindowMaximized -Hwnd $hwnd
+  Write-Host ("* 視窗尺寸＝{0}x{1}" -f ($wr.Right - $wr.Left), ($wr.Bottom - $wr.Top))
 
   $tabEbook = Find-ByAutomationId -Root $root -Id "TabEbook"
   if ($null -eq $tabEbook) { throw "找不到「電子書」分頁鈕" }
@@ -127,9 +135,23 @@ try {
   $scroller = $null
   for ($try = 1; $try -le 3 -and $null -eq $scroller; $try++) {
     Set-WindowForeground -Hwnd $hwnd | Out-Null
+    # 先捲到可見再取座標（Issue #270）：植入之樣書排在書櫃清單末端，清單可視高度不足以容納全部書卡時
+    # 該卡 IsOffscreen=True，UIA 仍給出「虛擬」BoundingRectangle——其中心落在清單可視區之外，
+    # 點下去屬別的控件，命中斷言即判「被他窗覆蓋」（實撞：書卡 y=873 落在清單可視範圍 512–828 之外）。
+    if ($target.GetSupportedPatterns() -contains [System.Windows.Automation.ScrollItemPattern]::Pattern) {
+      $target.GetCurrentPattern([System.Windows.Automation.ScrollItemPattern]::Pattern).ScrollIntoView()
+      Start-Sleep -Milliseconds 600
+    }
     $r = $target.Current.BoundingRectangle
+    if ($target.Current.IsOffscreen) { throw ("樣書書卡捲動後仍不可見（rect={0}、清單 rect={1}）——書櫃清單可視高度不足" -f $r, $bookList.Current.BoundingRectangle) }
     $cx = [int]($r.X + $r.Width / 2); $cy = [int]($r.Y + $r.Height / 2)
-    if ([Win32Ui]::PidAtPoint($cx, $cy) -ne [uint32]$proc.Id) { throw "點擊命中斷言失敗：($cx,$cy) 被他窗覆蓋" }
+    $pidAt = [Win32Ui]::PidAtPoint($cx, $cy)
+    if ($pidAt -ne [uint32]$app.ProcessId) {
+      $pt = New-Object Win32Ui+POINT -Property @{ X = $cx; Y = $cy }
+      throw ("點擊命中斷言失敗：({0},{1}) 屬 pid={2}、非受測行程 pid={3}｜書卡 rect={4} offscreen={5}｜書櫃清單 rect={6}｜視窗 rect=L{7} T{8} R{9} B{10}｜該點視窗標題='{11}'" -f
+             $cx, $cy, $pidAt, $app.ProcessId, $r, $target.Current.IsOffscreen, $bookList.Current.BoundingRectangle,
+             $wr.Left, $wr.Top, $wr.Right, $wr.Bottom, [Win32Ui]::WindowTitle([Win32Ui]::WindowFromPoint($pt)))
+    }
     Write-Host "* 第 $try 輪：雙擊樣書書卡於 ($cx,$cy)"
     [Win32Ui]::DoubleClick($cx, $cy)
     for ($i = 0; $i -lt 16; $i++) { Start-Sleep -Milliseconds 500; $scroller = Find-ByAutomationId -Root $root -Id "ReadingScroller"; if ($null -ne $scroller) { break } }
@@ -210,7 +232,7 @@ try {
 } finally {
   #region IV.收尾 ================================
   Write-Host "# IV.收尾 ================================" -ForegroundColor Blue
-  if ($null -ne $proc -and -not $proc.HasExited) { $proc.Kill(); $proc.WaitForExit(5000) }
+  # 收尾一律以行程名掃殺（涵蓋外殼另起之 app 行程）；不再另留 $proc.Kill()，該行原與本行重複。
   Get-Process -Name "LingoIsland" -ErrorAction SilentlyContinue | ForEach-Object { $_.Kill(); $_.WaitForExit(5000) }
   Start-Sleep -Milliseconds 500
   if (Test-Path $backupDir) {
