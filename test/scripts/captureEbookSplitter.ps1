@@ -9,7 +9,8 @@ param(
   [string]$OutDir  = "",
   [string]$Tag     = "after",
   [int]$DragUpPx   = 160,
-  [string]$BookKeyword = "PHPCI"
+  [string]$BookKeyword = "PHPCI",
+  [string]$TextOnlyBookKeyword = "ZZ 純文字測試樣書"
 )
 
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
@@ -202,6 +203,47 @@ try {
   }
   #endregion
 
+  #region A2.植入純文字樣書（無內嵌圖；供 intTest#70 之「整塊收起」不回歸項） --------------------------------
+  Write-Host "## A2.植入純文字樣書 --------------------------------" -ForegroundColor Cyan
+  # 本機書櫃未必有純文字書（含封面/題名頁圖之書仍算有圖），故就地產一本最小 EPUB3 樣書。
+  # %APPDATA% 已於 A 備份、finally 還原，樣書不會留在使用者書櫃。
+  $sampleFolder = "zz-test-textonly"
+  $sampleDir    = Join-Path $appData ("ebook\" + $sampleFolder)
+  New-Item -ItemType Directory -Path $sampleDir -Force | Out-Null
+  $epubPath = Join-Path $sampleDir "zz-textonly.epub"
+  Add-Type -AssemblyName System.IO.Compression, System.IO.Compression.FileSystem
+  if (Test-Path $epubPath) { Remove-Item $epubPath -Force }
+  $zip = [System.IO.Compression.ZipFile]::Open($epubPath, [System.IO.Compression.ZipArchiveMode]::Create)
+  $addEntry = {
+    param($name, $text, $store)
+    $lvl = if ($store) { [System.IO.Compression.CompressionLevel]::NoCompression } else { [System.IO.Compression.CompressionLevel]::Optimal }
+    $e = $zip.CreateEntry($name, $lvl)
+    $sw = New-Object System.IO.StreamWriter($e.Open(), (New-Object System.Text.UTF8Encoding($false)))
+    $sw.Write($text); $sw.Flush(); $sw.Dispose()
+  }
+  # mimetype 須為首筆且不壓縮（EPUB 規範）
+  & $addEntry "mimetype" "application/epub+zip" $true
+  & $addEntry "META-INF/container.xml" '<?xml version="1.0" encoding="UTF-8"?><container version="1.0" xmlns="urn:oasis:names:tc:opendocument:xmlns:container"><rootfiles><rootfile full-path="OEBPS/content.opf" media-type="application/oebps-package+xml"/></rootfiles></container>' $false
+  & $addEntry "OEBPS/content.opf" '<?xml version="1.0" encoding="UTF-8"?><package xmlns="http://www.idpf.org/2007/opf" version="3.0" unique-identifier="bookid"><metadata xmlns:dc="http://purl.org/dc/elements/1.1/"><dc:identifier id="bookid">urn:uuid:zz-textonly-sample</dc:identifier><dc:title>ZZ 純文字測試樣書</dc:title><dc:language>en</dc:language><meta property="dcterms:modified">2026-07-29T00:00:00Z</meta></metadata><manifest><item id="nav" href="nav.xhtml" media-type="application/xhtml+xml" properties="nav"/><item id="ch1" href="ch1.xhtml" media-type="application/xhtml+xml"/></manifest><spine><itemref idref="ch1"/></spine></package>' $false
+  & $addEntry "OEBPS/nav.xhtml" '<?xml version="1.0" encoding="UTF-8"?><html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops"><head><title>Contents</title></head><body><nav epub:type="toc"><ol><li><a href="ch1.xhtml">Chapter One</a></li></ol></nav></body></html>' $false
+  & $addEntry "OEBPS/ch1.xhtml" '<?xml version="1.0" encoding="UTF-8"?><html xmlns="http://www.w3.org/1999/xhtml"><head><title>Chapter One</title></head><body><h1>Chapter One</h1><p>Anna: Good morning. This sample book has no embedded images at all.</p><p>Ben: Right. The scene image block and its splitter should be collapsed entirely.</p><p>Anna: The speaker filter row should sit right at the top of the reading column.</p></body></html>' $false
+  $zip.Dispose()
+
+  $ebooksJson = Join-Path $appData "ebooks.json"
+  $shelf = Get-Content $ebooksJson -Raw -Encoding UTF8 | ConvertFrom-Json
+  $sampleTitle = "ZZ 純文字測試樣書"
+  $entry = [pscustomobject]@{
+    Id = "zzzz0000000000000000000000000000"; DcIdentifier = "urn:uuid:zz-textonly-sample"
+    Title = $sampleTitle; Author = "LingoIsland Test"; Language = "en"; ChapterCount = 1
+    ThemeId = $null; ThemeName = $null; CoverFile = $null
+    AddedAt = "2026-07-29T00:00:00.0000000+08:00"; Folder = $sampleFolder
+    LastReadChapter = 0; LastReadParagraph = 0
+  }
+  $shelf.Items = @($shelf.Items) + $entry
+  ($shelf | ConvertTo-Json -Depth 8) | Set-Content -Path $ebooksJson -Encoding UTF8
+  Write-Host "* 已植入純文字樣書「$sampleTitle」（$sampleFolder）"
+  #endregion
+
   #region B.啟動 App 並前景確保 --------------------------------
   Write-Host "## B.啟動 App 並前景確保 --------------------------------" -ForegroundColor Cyan
   $proc = Start-Process -FilePath $ExePath -PassThru
@@ -380,6 +422,90 @@ try {
     foreach ($f in $fails) { Write-Host "  - $f" -ForegroundColor Red }
   } else {
     Write-Host "* 結果：PASS（場景圖塊與閱讀區互為消長、篩選列不受影響、無空白帶）" -ForegroundColor Green
+  }
+  #endregion
+
+  #region G2.拖拉後高度跨章保留（intTest#70 之不回歸項） --------------------------------
+  Write-Host "## G2.拖拉後高度跨章保留 --------------------------------" -ForegroundColor Cyan
+  $tree = & $byId "ChapterTree"
+  if ($null -eq $tree) { throw "找不到章節清單（AutomationId=ChapterTree）" }
+  $treeItemCond = New-Object System.Windows.Automation.PropertyCondition(
+    [System.Windows.Automation.AutomationElement]::ControlTypeProperty,
+    [System.Windows.Automation.ControlType]::TreeItem)
+  $nodes = $tree.FindAll([System.Windows.Automation.TreeScope]::Descendants, $treeItemCond)
+  $jumped = $false
+  foreach ($n in $nodes) {
+    if (-not $n.Current.IsOffscreen -and $n.GetSupportedPatterns() -contains [System.Windows.Automation.SelectionItemPattern]::Pattern) {
+      $n.GetCurrentPattern([System.Windows.Automation.SelectionItemPattern]::Pattern).Select()
+      Start-Sleep -Milliseconds 1200
+      $jumped = $true
+      Write-Host ("* 已跳至章節節點「{0}」" -f $n.Current.Name)
+      break
+    }
+  }
+  if (-not $jumped) { throw "章節清單中找不到可選取之節點，無法驗跨章保留" }
+  $sp2 = $splitter.Current.BoundingRectangle
+  $keepDiff = [math]::Round([math]::Abs($sp2.Y - $sp1.Y), 1)
+  if ($keepDiff -gt $tolerancePx) {
+    $fails += "切章後圖塊高度未保留（分隔線 Y 位移 $keepDiff px > 容差 $tolerancePx px）"
+    Write-Host "* 跨章保留斷言：FAIL（位移 $keepDiff px）" -ForegroundColor Red
+  } else {
+    Write-Host "* 跨章保留斷言：PASS（切章後分隔線 Y 位移 $keepDiff px、維持拖拉後高度）" -ForegroundColor Green
+  }
+  #endregion
+
+  #region G3.反向拖曳（往下）：反向消長且閱讀區不低於下限 --------------------------------
+  Write-Host "## G3.反向拖曳（往下） --------------------------------" -ForegroundColor Cyan
+  $spD0 = $splitter.Current.BoundingRectangle
+  $scD0 = $scroller.Current.BoundingRectangle
+  $cxD = [int]($spD0.X + $spD0.Width / 2); $cyD = [int]($spD0.Y + $spD0.Height / 2)
+  if ([Win32Ui]::PidAtPoint($cxD, $cyD) -ne [uint32]$proc.Id) { throw "反向拖曳命中斷言失敗：($cxD,$cyD) 被他窗覆蓋" }
+  [Win32Ui]::DragVertical($cxD, $cyD, $cyD + ($DragUpPx * 4))   # 刻意拖過頭，驗下限攔得住
+  Start-Sleep -Milliseconds 500
+  $spD1 = $splitter.Current.BoundingRectangle
+  $scD1 = $scroller.Current.BoundingRectangle
+  $flD1 = $filter.Current.BoundingRectangle
+  $gapD1 = [math]::Round($flD1.Y - ($spD1.Y + $spD1.Height), 1)
+  Write-Host ("* [量] 分隔線 Y {0:N1}→{1:N1}｜閱讀區 高 {2:N1}→{3:N1}｜分隔線→篩選列間距={4:N1}" -f $spD0.Y, $spD1.Y, $scD0.Height, $scD1.Height, $gapD1)
+  if (($spD1.Y - $spD0.Y) -lt $minDeltaPx) { $fails += "往下拖時場景圖塊未變高（分隔線僅下移 $([math]::Round($spD1.Y - $spD0.Y,1)) px）" }
+  if ($scD1.Height -ge $scD0.Height)       { $fails += "往下拖時閱讀區未縮小（$($scD0.Height)→$($scD1.Height)）" }
+  if ($scD1.Height -lt 90)                 { $fails += "閱讀區被壓過下限（高 $($scD1.Height) px < 90 px）——MinHeight 未攔住" }
+  if ([math]::Abs($gapD1 - $gap0) -gt $tolerancePx) { $fails += "反向拖曳仍撐開空白帶（間距 $gapD1 px vs 基準 $gap0 px）" }
+  if ($fails.Count -eq 0) { Write-Host "* 反向拖曳斷言：PASS（反向消長、閱讀區守住下限、無空白帶）" -ForegroundColor Green }
+  #endregion
+
+  #region H.純文字書：整塊收起（intTest#70 之不回歸項） --------------------------------
+  Write-Host "## H.純文字書：整塊收起 --------------------------------" -ForegroundColor Cyan
+  if (-not $TextOnlyBookKeyword) {
+    Write-Host "* 略過（未指定 -TextOnlyBookKeyword；本機書櫃無確定之純文字樣書）" -ForegroundColor Yellow
+    $skippedTextOnly = $true
+  } else {
+    $t2 = $null; $seen2 = @()
+    $items2 = $bookList.FindAll([System.Windows.Automation.TreeScope]::Children,
+                [System.Windows.Automation.Condition]::TrueCondition)
+    foreach ($it in $items2) {
+      foreach ($t in $it.FindAll([System.Windows.Automation.TreeScope]::Descendants, $textCond)) {
+        $n = $t.Current.Name
+        if ($n) { $seen2 += $n }
+        if ($n -like "*$TextOnlyBookKeyword*") { $t2 = $it; break }
+      }
+      if ($null -ne $t2) { break }
+    }
+    if ($null -eq $t2) { throw ("書櫃中找不到含「$TextOnlyBookKeyword」之書；現有：" + (($seen2 | Select-Object -Unique) -join " / ")) }
+    $r2 = $t2.Current.BoundingRectangle
+    $cx2 = [int]($r2.X + $r2.Width / 2); $cy2 = [int]($r2.Y + $r2.Height / 2)
+    if ([Win32Ui]::PidAtPoint($cx2, $cy2) -ne [uint32]$proc.Id) { throw "點擊命中斷言失敗：($cx2,$cy2) 被他窗覆蓋" }
+    [Win32Ui]::DoubleClick($cx2, $cy2)
+    Start-Sleep -Milliseconds 2500
+    # Collapsed 元素離開 UIA 樹：分隔線「不在樹中」即為整塊收起之直接證據
+    $sp2 = & $byId "ReaderImageSplitter"
+    $fl2 = & $byId "ReaderSpeakerFilter"
+    if ($null -ne $sp2) {
+      $fails += "純文字書仍出現場景圖分隔線（應與圖塊一併收起）"
+      Write-Host "* 純文字書斷言：FAIL（分隔線仍在 UIA 樹中）" -ForegroundColor Red
+    } else {
+      Write-Host ("* 純文字書斷言：PASS（分隔線已離開 UIA 樹；篩選列 Y={0:N1}）" -f $fl2.Current.BoundingRectangle.Y) -ForegroundColor Green
+    }
   }
   #endregion
 
