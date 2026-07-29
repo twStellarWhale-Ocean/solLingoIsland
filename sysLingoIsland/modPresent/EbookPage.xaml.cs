@@ -251,20 +251,51 @@ public partial class EbookPage : UserControl
         btn.Foreground = (Brush)FindResource(active ? "PinkText" : "PinkSub");
     }
 
-    /// <summary>一張書卡：封面縮圖（無封面→書本佔位字圖，比照影片離線縮圖回退）＋書名/作者/「{章數} 章 · 主題」。</summary>
-    private StackPanel BookItemView(EbookItem it)
+    /// <summary>
+    /// 一張書卡（#275）：封面縮圖（無封面→書本佔位字圖，比照影片離線縮圖回退）｜文字欄——
+    /// 由上而下＝<b>主題標籤 → 書名 → 作者 → 章數</b>。
+    /// <para>
+    /// 外層採 <see cref="Grid"/>（縮圖 <c>Auto</c>／文字欄 <c>*</c>）而非 <c>Horizontal StackPanel</c>：
+    /// 後者以「無限寬」量測子元素，文字欄拿不到寬度上界，<see cref="TextWrapping"/> 永遠不會生效。
+    /// </para>
+    /// <para>
+    /// 書名 <c>Wrap</c> 不截斷（#275）：同系列書之差異常在標題尾端（<c>Level 1 · 大學生</c>／
+    /// <c>Level 2 · 博士生</c>…），單行截尾後各卡難以分辨，spec#5「一覽整理／易於在多本藏書間切換管理」失效。
+    /// </para>
+    /// </summary>
+    private Grid BookItemView(EbookItem it)
     {
-        var sp = new StackPanel { Orientation = Orientation.Horizontal };
-        sp.Children.Add(MakeCover(it));
+        var grid = new Grid();
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+
+        var cover = MakeCover(it);
+        Grid.SetColumn(cover, 0);
+        grid.Children.Add(cover);
+
         var col = new StackPanel { VerticalAlignment = VerticalAlignment.Center };
-        col.Children.Add(new TextBlock
+        // 主題標籤置於書名之前（#275）；無主題顯「未分類」＝維持本頁原有資訊量（影片卡原本即不顯示、不擅自統一）
+        var theme = new TextBlock
+        {
+            Text = string.IsNullOrWhiteSpace(it.ThemeName) ? "未分類" : it.ThemeName,
+            FontSize = 10,
+            Foreground = Brush("#9A6A82"),
+            TextTrimming = TextTrimming.CharacterEllipsis,
+        };
+        System.Windows.Automation.AutomationProperties.SetAutomationId(theme, "BookCardTheme");
+        col.Children.Add(theme);
+
+        var title = new TextBlock
         {
             Text = string.IsNullOrWhiteSpace(it.Title) ? "(未命名)" : it.Title,
             FontSize = 12.5,
             FontWeight = FontWeights.SemiBold,
-            TextTrimming = TextTrimming.CharacterEllipsis,
+            TextWrapping = TextWrapping.Wrap,
             Foreground = Brush("#3A2C33"),
-        });
+        };
+        System.Windows.Automation.AutomationProperties.SetAutomationId(title, "BookCardTitle");
+        col.Children.Add(title);
+
         if (!string.IsNullOrWhiteSpace(it.Author))
         {
             col.Children.Add(new TextBlock
@@ -275,16 +306,17 @@ public partial class EbookPage : UserControl
                 Foreground = Brush("#6A6A6A"),
             });
         }
-        var meta = $"{it.ChapterCount} 章  ·  " + (string.IsNullOrWhiteSpace(it.ThemeName) ? "未分類" : it.ThemeName);
         col.Children.Add(new TextBlock
         {
-            Text = meta,
+            Text = $"{it.ChapterCount} 章",
             FontSize = 10,
             Foreground = Brush("#9A6A82"),
             TextTrimming = TextTrimming.CharacterEllipsis,
         });
-        sp.Children.Add(col);
-        return sp;
+
+        Grid.SetColumn(col, 1);
+        grid.Children.Add(col);
+        return grid;
     }
 
     /// <summary>封面元素：有封面→縮圖 <see cref="Image"/>（<see cref="EbookItem.CoverFile"/> → <see cref="BitmapImage"/>）；無封面→書本佔位字圖。</summary>

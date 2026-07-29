@@ -34,7 +34,7 @@ public static class Win32Ui
     [StructLayout(LayoutKind.Sequential)] public struct RECT { public int Left, Top, Right, Bottom; }
     [StructLayout(LayoutKind.Sequential)] public struct POINT { public int X, Y; }
 
-    public const uint LEFTDOWN = 0x0002, LEFTUP = 0x0004, KEYUP = 0x0002;
+    public const uint LEFTDOWN = 0x0002, LEFTUP = 0x0004, RIGHTDOWN = 0x0008, RIGHTUP = 0x0010, KEYUP = 0x0002;
 
     // DPI 一致化（必須早於任何座標取用）：本行程若為 DPI-unaware，GetWindowRect／SetCursorPos 會取得
     // 虛擬化（縮放後）座標，而 UIA BoundingRectangle 恆為實體像素——兩者對不上會使點擊落空、截圖失真。
@@ -98,6 +98,17 @@ public static class Win32Ui
         mouse_event(LEFTDOWN, 0, 0, 0, IntPtr.Zero); mouse_event(LEFTUP, 0, 0, 0, IntPtr.Zero);
         System.Threading.Thread.Sleep(60);
         mouse_event(LEFTDOWN, 0, 0, 0, IntPtr.Zero); mouse_event(LEFTUP, 0, 0, 0, IntPtr.Zero);
+        System.Threading.Thread.Sleep(400);
+    }
+
+    /// <summary>於指定座標按一次滑鼠右鍵（喚出 ContextMenu 供 hit-test 驗證）。</summary>
+    public static void RightClick(int x, int y)
+    {
+        SetCursorPos(x, y);
+        System.Threading.Thread.Sleep(120);
+        mouse_event(RIGHTDOWN, 0, 0, 0, IntPtr.Zero);
+        System.Threading.Thread.Sleep(60);
+        mouse_event(RIGHTUP, 0, 0, 0, IntPtr.Zero);
         System.Threading.Thread.Sleep(400);
     }
 
