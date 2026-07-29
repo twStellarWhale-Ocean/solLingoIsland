@@ -1,12 +1,12 @@
 ---
-name: techItem字幕擷取
+name: cmpTechItem字幕擷取
 date: 2026-07-13
-description: 技術選型·元件層(techItem) Profile —— 「影片字幕擷取（video subtitle/caption fetch）」功能型態，統一標準產品本機 curl（經 System.Diagnostics.Process 呼叫取字幕檔原文），或本機自製字幕檔。於 design.md ＜III.C.(A) 技術選型＞落地版本/用法；與 techStack 多對多。專責「取得指定影片之逐句字幕文字與時間軸」，與 [techItem影片播放]（播放控制）互為姊妹、責任區隔。
+description: 技術選型·元件層(cmpTechItem) Profile —— 「影片字幕擷取（video subtitle/caption fetch）」功能型態，統一標準產品本機 curl（經 System.Diagnostics.Process 呼叫取字幕檔原文），或本機自製字幕檔。於 design.md ＜II.C.(B).1 技術選型＞落地版本/用法；與 modTechStack 多對多。專責「取得指定影片之逐句字幕文字與時間軸」，與 [cmpTechItem影片播放]（播放控制）互為姊妹、責任區隔。
 ---
 
 # I. 主旨目的
 
-定義建置單元需要「取得指定線上影片（YouTube 等）之字幕（逐句文字＋起訖時間），供下游作為文字擷取來源」此一功能型態時的統一選型。**型態即契約身份、標準產品寫於內容**；日後換字幕來源只改本契約一處，引用之 design 不動。於 design.md ＜III 系統設計.C.(A) 技術選型＞引用並落地版本/用法。此型態專責**字幕文字取得**，與 [techItem影片播放] 之**播放控制**責任區隔——**僅取字幕文字、不下載影片內容**。
+定義建置單元需要「取得指定線上影片（YouTube 等）之字幕（逐句文字＋起訖時間），供下游作為文字擷取來源」此一功能型態時的統一選型。**型態即契約身份、標準產品寫於內容**；日後換字幕來源只改本契約一處，引用之 design 不動。於 design.md ＜III 系統設計.C.(A) 技術選型＞引用並落地版本/用法。此型態專責**字幕文字取得**，與 [cmpTechItem影片播放] 之**播放控制**責任區隔——**僅取字幕文字、不下載影片內容**。
 
 # II. 參考準備
 
@@ -24,6 +24,6 @@ description: 技術選型·元件層(techItem) Profile —— 「影片字幕擷
 
 # IV. 備註紀錄
 
-* 2026-07-13：建立。techItem「線上影片字幕擷取」型態首份；統一本機 yt-dlp（Process 呼叫）。因 solLingoIsland 增量 #139「影片擷取學習查詢（Mode A）」立案而補建；與 [techItem影片播放] 責任區隔。**候選契約，待 USR 於 Draft PR 裁決入庫（範本庫正本尚待同步）。**
+* 2026-07-13：建立。cmpTechItem「線上影片字幕擷取」型態首份；統一本機 yt-dlp（Process 呼叫）。因 solLingoIsland 增量 #139「影片擷取學習查詢（Mode A）」立案而補建；與 [cmpTechItem影片播放] 責任區隔。**候選契約，待 USR 於 Draft PR 裁決入庫（範本庫正本尚待同步）。**
 * 2026-07-14：**自動字幕改取 json3**（事件級、乾淨無滾動）而非 VTT（逐字滾動渲染破碎）——增量 #143。人工字幕維持 VTT。修正 #139 期間「自動字幕不可用」之誤判（實為 VTT 格式所致）。
 * 2026-07-21：**統一標準產品由 yt-dlp 改為 curl＋本機自製字幕檔**（epic #178 增量6′-B「時間 pivot」定案，殘留清理 #195）。字幕來源改為**字幕檔本身**（自帶時間＋說話人），取得端＝curl 取字幕檔 URL 原文／本機唯讀讀檔；廢止「yt-dlp 取 YouTube 字幕」與增量5′「Whisper 聲音對齊」（會亂序）。無時間戳之網頁式逐字稿才落 AI 直接抽取（照抄原有時間戳）。此前 2026-07-13／07-14 之 yt-dlp／json3 敘述為 pivot 前之史料。

@@ -2,6 +2,17 @@
 
 版本依語意化版號（SemVer）。版號於 PR merge 當下釘選。
 
+## [未發佈]
+
+### 變更
+- **`docs/design.md` 遷移至 formatVersion 4.1**（#271，純文件、**不動版號**）：本檔停在 3.2，而形式規格已升 4.1（升版全改、docLint 只認 `"4.1"`），致 `docLint` **恆為 FAIL（49 項既存違規）**、每張增量工單都得重述「既存、非本增量造成」，形式 gate 實質失效。本次一次遷完、**docLint 0 違規**。骨架由三章制（I 需求分析／II 方案設計／III 系統設計 × 四件套）改為全庫四章制（I 緣起目的／II 分析設計〔A 需求分析·B 方案設計·C 系統設計（sysLingoIsland系統）〕／III 規格指標／IV 備註記錄），各高度內部改甲案五層 (A) 運作想定〔架構圖／單位組織／作業程序／軟硬實體〕＋(B) 實作規劃〔技術選型／關鍵組態／人機介面／部署作法〕。
+- **追溯鏈重編號**：`orgsopcat` 退休改 `domain#0/#1`；orgSop 改兩段（`#0.1`–`#0.4`／`#1.1`）、teamSop 三段（20 條）、prsnSop **五段作業項制**（40 條＝20 執行＋20 督核）。4.1 要求每個作業項之目恰為 {1 執行, 2 督核}，本案為單人方案，故執行與督核同為 [prsn玩家] 本人先後承擔（先操作、後自檢），督核持獨立之 `ackWi…` 自檢工作指導；3.2 版所寫「組長督核不適用」之偏離宣告就此收回。
+- **新增人機面三高度**：`[solHmi桌面常駐應用]`（並載明「非網站」之技術強制原因）／`[sysHmi統一主視窗]`·`[sysHmi選區遮罩]`·`[sysHmiOS標準設定]`／12 個 `[modHmi…]` 具名頁；三張作業程序表加「關聯 hmi」末欄，逐頁表加「本頁 wi 清單」欄（自 prsnSop↔wi 機械反查）。
+- **技術選型四層追平**：`techApp`／`techStack`／`techItem` 全面改為 `sysTechType`／`modTechStack`／`cmpTechItem`（43 處），補宣告 `[solTechStyle淺粉童趣桌面風格]`（內容取自既有「統一美術」段、非新創）；候選契約 `techStackDotnetWin` 由封閉枚舉之 `modTechStack ＝ WinApp` 取代，`[techApp桌面查詢工具]` 追平中央更名後之 `[sysTechType桌面App]`。`docs/shared-contracts/` 分類資料夾同步更名並自中央庫重新複製。
+
+### 移除
+- **design.md 內之課目族驗收表**（USR 2026-07-29 拍板）：`docProgTest#01–#09`、`e2eTest#01–#06`、`intTest#01–#71`（71 列驗收矩陣）整批移除——依 4.1 canon 之驗收 doctrine「課目族＝手冊×spec×契約之冗餘 join，不再另立」，驗收改為「README 全走 × 契約 invariant × cfgTest」。**測試腳本本體未動**（`test/scripts/*.ps1`、單元測試照跑），僅移除 design 內之課目表；殘留指涉改指新驗收依據。其餘規格內容、架構圖、契約 invariant、關鍵組態、人機介面敘述、示意圖連結一律逐字保留。
+
 ## [4.7.0] - 2026-07-29
 
 ### 新增
