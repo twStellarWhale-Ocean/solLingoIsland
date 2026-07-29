@@ -565,6 +565,12 @@ ADM -.->|"setWi自訂Usr啟動結束常駐"| SYS
 * **外部端點**：OpenAI vision API 與音訊輸入模型（HTTPS，發音評分沿用同金鑰／端點）；GitHub Releases（HTTPS，更新檢查與下載）。
 * **電子書解析（增量1／增量2）**：`VersOne.Epub` NuGet（[cmpTechItem電子書解析]；增量1 以 `EpubReader.OpenBookAsync` 惰性載入書櫃清單、`CoverImage`／`ReadingOrder`／`Navigation`／`Schema.Package.Metadata.Identifiers`／`EpubReaderOptions` 容錯；**增量2 以 `EpubReader.ReadBookAsync` 取整本章節內容供內容頁段落渲染**〔`ExtractParagraphs` 剝 XHTML 取內文純文字，段落 `<p>` 與清單項 `<li>` 依文件位置合流〕；netstandard2.0 零相依、.NET 9 相容、純受管、無外部行程/服務）。
 * **電子書逐段朗讀（增量2）**：`System.Speech.Synthesis`（SAPI，[cmpTechItem語音合成]、離線免金鑰）——`SpeechService`／`ISpeechService` 增**朗讀完成回呼**（`SpeakCompleted`）以驅動逐段自動前進，沿用既有語音選擇與 `SpeechRateSettings` 語速；無語音包明確降級不當機。
+* **中英雙語朗讀（#252）**：語言之決定權由「呼叫端硬編一個 culture」下放至 `SpeechService` **依文本內容**逐段判定——語言是文本的屬性、非呼叫點的屬性（原 12 處呼叫端有 10 處硬編 `en-US`，遇中文段落即由英文語音勉強拼讀或無聲，`spec#8`「唸完自動前進形成連續導讀」在中英混排書上實質中斷）。
+  * **切段規則（純函式 `SpeechSegmenter.Split`，比照 `ParagraphStepper`／`ChapterHopDecider`／`PauseDecider` 之「判定本體抽純函式」家規）**：逐字元判 script——CJK 統一表意文字（含擴充區）與 CJK 標點歸 `cjkCulture`（`zh-TW`）、其餘歸 `defaultCulture`（呼叫端傳入，現況皆 `en-US`）；**連續同類合併**；**ASCII 標點與空白跟隨前一段**（否則 `Anna: 你好, Ben.` 會碎成七八片、每片換聲導致頓挫）。日韓等其他 script 本階段不分（列後續增量）。
+  * **合成方式（invariant）**：切段結果以**單一 `PromptBuilder`** 逐段 `StartVoice(culture)`／`AppendText`／`EndVoice`，**一次 `SpeakAsync`**——**不得**改為逐段多次 `SpeakAsync`，否則 `SpeakCompleted` 會每段各觸發一次、[EbookPage] 之「唸完自動前進」將在段落中途誤進。**一次 `Speak` 恆對應一次完成事件**，`Cancelled` 語意不變。
+  * **零回歸 invariant**：純英文（或純中文）文本之切段結果為**單一段**，產生之 `PromptBuilder` 與改版前等價——既有 10 處硬編 `en-US` 之呼叫端一行不改、行為不變。
+  * **降級與告知**：以 `InstalledCultures()` 偵測系統已裝語音之 culture；某段之 culture 無對應語音時該段**不 `StartVoice`、以預設語音念**（不略過——略過會讓使用者誤以為程式壞了），並**一次性** toast 告知並指引「設定 → 語言 → 語音」加裝。最外層 `catch` 之整段退路保留為最後防線。
+  * **驗收**：朗讀屬聲音、機判照不到「聽起來對不對」，故以兩層機器證據把關——(a) 切段器全分支單元測試；(b) `BuildPrompt` 之 **`ToXml()` SSML 斷言**（直接檢查 voice 切換標記與各段文字，即「換聲確實發生」之機器證據）。實機聽感由 USR 於 PR 確認。與**朗讀範圍**（`#251`）正交：該處只決定念哪些段、本條只決定用什麼語音念。
 * **本機電子書藏書（本增量）**：`System.Text.Json` 之 `%APPDATA%\LingoIsland\ebooks.json`（書櫃清單＋排序態）＋每本書資料夾 `%APPDATA%\LingoIsland\ebook\{yyyyMMdd 標題}\`（`info.json`＋原始 `.epub` 複本＋封面圖）；讀寫失敗退空/降級、不致命；納入 `BackupService` 整包備份。
 
 **組態符合性測試（cfgTest；對象限 `[etyCfg…]` 軟硬體／組態實體）**：
