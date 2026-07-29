@@ -22,6 +22,9 @@ public partial class MainWindow : Window
     /// <summary>使用者按主視窗關閉（✕）：請求結束整個常駐程式（v1.0.1，取代原「關閉＝收合」；由 App 走統一結束流程）。</summary>
     public event Action? ExitRequested;
 
+    /// <summary>已提示過「缺此語言語音」之 culture（#252）——每種語言只擾民一次。</summary>
+    private readonly HashSet<string> _missingVoiceNotified = new(StringComparer.OrdinalIgnoreCase);
+
     private readonly ThemeManagementPage _themes;
     private readonly ScreenCapturePage _capture;
     private readonly VideoCapturePage _video;
@@ -42,6 +45,15 @@ public partial class MainWindow : Window
         _history = history;
         _options = options;
         _about = about;
+
+        // 缺語言語音之一次性告知（#252）：朗讀遇中文段而系統未裝中文語音時，該段以預設語音念（不略過），
+        // 並在此提示一次加裝路徑——去抖責任在訂閱端（服務端每段都會通知、不自行記狀態）。
+        SpeechService.MissingVoiceCulture += (_, culture) =>
+        {
+            if (!_missingVoiceNotified.Add(culture)) { return; }
+            Dispatcher.BeginInvoke(() => ToastNotifier.Show(
+                $"系統未安裝 {culture} 語音，該語言段落改以預設語音朗讀。\n可到「設定 → 語言 → 語音」加裝。"));
+        };
 
         // 條目列數即時更新（#132）：頁內切夾/切日/增刪時，若該頁為當前分頁即更新底部狀態列。
         _notes.EntryCountChanged += n => { if (Host.Content == _notes) ShowEntryCount(n); };
