@@ -615,30 +615,65 @@ public partial class VideoCapturePage : System.Windows.Controls.UserControl
         if (_shownCue >= 0 && _shownCue < _cues.Count) { RenderClickable(_cues[_shownCue]); } // 字幕帶亦即時更新
     }
 
-    private System.Windows.Controls.StackPanel VideoItemView(VideoItem it)
+    /// <summary>
+    /// 一張影片卡（#275）：YouTube 縮圖（#171）｜文字欄——由上而下＝<b>主題標籤 → 片名 → 加入時間·長度</b>。
+    /// <para>
+    /// 外層採 <see cref="System.Windows.Controls.Grid"/>（縮圖 <c>Auto</c>／文字欄 <c>*</c>）而非
+    /// <c>Horizontal StackPanel</c>：後者以「無限寬」量測子元素，文字欄拿不到寬度上界、<c>TextWrapping</c> 不生效。
+    /// 片名 <c>Wrap</c> 不截斷；主題無值時**不顯示該列**（維持本頁原有資訊量，與書卡顯「未分類」之差異係各自照現況、不擅自統一）。
+    /// </para>
+    /// </summary>
+    private System.Windows.Controls.Grid VideoItemView(VideoItem it)
     {
-        var sp = new System.Windows.Controls.StackPanel { Orientation = System.Windows.Controls.Orientation.Horizontal };
-        sp.Children.Add(MakeThumb(it.VideoId, 56, 36)); // YouTube 縮圖（#171，比照主題清單）
+        var grid = new System.Windows.Controls.Grid();
+        grid.ColumnDefinitions.Add(new System.Windows.Controls.ColumnDefinition { Width = System.Windows.GridLength.Auto });
+        grid.ColumnDefinitions.Add(new System.Windows.Controls.ColumnDefinition { Width = new System.Windows.GridLength(1, System.Windows.GridUnitType.Star) });
+
+        var thumb = MakeThumb(it.VideoId, 56, 36); // YouTube 縮圖（#171，比照主題清單）
+        System.Windows.Controls.Grid.SetColumn(thumb, 0);
+        grid.Children.Add(thumb);
+
         var col = new System.Windows.Controls.StackPanel { VerticalAlignment = System.Windows.VerticalAlignment.Center };
-        col.Children.Add(new System.Windows.Controls.TextBlock
+        if (!string.IsNullOrWhiteSpace(it.ThemeName))
+        {
+            var theme = new System.Windows.Controls.TextBlock
+            {
+                Text = it.ThemeName,
+                FontSize = 10.5,
+                TextTrimming = System.Windows.TextTrimming.CharacterEllipsis,
+                Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0x9A, 0x6A, 0x82)),
+            };
+            System.Windows.Automation.AutomationProperties.SetAutomationId(theme, "VideoCardTheme");
+            col.Children.Add(theme);
+        }
+
+        var title = new System.Windows.Controls.TextBlock
         {
             Text = it.Title,
             FontSize = 12.5,
-            TextTrimming = System.Windows.TextTrimming.CharacterEllipsis,
+            TextWrapping = System.Windows.TextWrapping.Wrap,
             Foreground = System.Windows.Media.Brushes.DarkSlateGray,
-        });
-        // #207 審查修：列 meta 補顯已知長度（時間 · 長度 · 主題）——「長度 短→長」排序時使用者看得到驅動排序之值、無長度者一望即知會排最後
+        };
+        System.Windows.Automation.AutomationProperties.SetAutomationId(title, "VideoCardTitle");
+        col.Children.Add(title);
+
+        // #207 審查修：列 meta 補顯已知長度（時間 · 長度）——「長度 短→長」排序時使用者看得到驅動排序之值、無長度者一望即知會排最後
+        // #275：主題已上移為獨立首列，此處不再併入，避免同一資訊兩處呈現
         var meta = FormatTime(it.AddedAt)
-                 + (it.DurationSec is > 0 ? "  ·  " + FormatPos(it.DurationSec.Value) : "")
-                 + (string.IsNullOrWhiteSpace(it.ThemeName) ? "" : "  ·  " + it.ThemeName);
+                 + (it.DurationSec is > 0 ? "  ·  " + FormatPos(it.DurationSec.Value) : "");
         col.Children.Add(new System.Windows.Controls.TextBlock
         {
             Text = meta,
             FontSize = 10.5,
+            // #275：文字欄改由 Grid 分配寬度後，過長的 meta 會被硬裁且無提示（欄窄時「· 23:15」只剩「· 23:1」）——
+            // 補省略號截斷，比照書卡既有作法；標題才需完整呈現，meta 屬次要資訊、截斷可接受但須有提示。
+            TextTrimming = System.Windows.TextTrimming.CharacterEllipsis,
             Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0x9A, 0x6A, 0x82)),
         });
-        sp.Children.Add(col);
-        return sp;
+
+        System.Windows.Controls.Grid.SetColumn(col, 1);
+        grid.Children.Add(col);
+        return grid;
     }
 
     /// <summary>YouTube 縮圖 Image（#171）：以 <c>img.youtube.com/vi/{id}/default.jpg</c> 遠端載入；離線/失敗留空、不致命。</summary>
