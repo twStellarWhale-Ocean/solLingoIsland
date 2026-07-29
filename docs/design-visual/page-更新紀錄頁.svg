@@ -1,0 +1,66 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="480" viewBox="0 0 640 480" font-family="Segoe UI, Microsoft JhengHei, PingFang TC, system-ui, sans-serif">
+  <!-- [modHmi更新紀錄頁]：ChangeLogWindow（Title「更新紀錄」、560×620、CenterOwner、CanResizeWithGrip）。內容＝建置時嵌入為資源之 CHANGELOG.md、執行期讀出顯示。設計期參考稿、以文字為準。 -->
+  <rect width="640" height="480" fill="#FFF0F5"/>
+
+  <!-- owner＝統一主視窗『關於』分頁（模態期間不可操作，以淡化示意） -->
+  <g opacity="0.35">
+    <rect x="0" y="0" width="640" height="26" fill="#F4C2D0"/>
+    <text x="10" y="18" font-size="12" font-weight="600" fill="#5C3346">LingoIsland — 關於</text>
+    <rect x="0" y="26" width="640" height="52" fill="#FBE4EC"/>
+    <text x="20" y="58" font-size="12" fill="#8A5A6D">主題　擷取　影片　電子書　筆記　歷史　選項　關於</text>
+    <rect x="20" y="90" width="600" height="120" rx="8" fill="#FFFFFF" stroke="#F4C2D0"/>
+    <text x="34" y="112" font-size="12" fill="#8A5A6D">LingoIsland v4.7.0　©2026 Carlton Chen　carlton0521@gmail.com</text>
+    <rect x="34" y="126" width="86" height="24" rx="5" fill="none" stroke="#F4C2D0"/>
+    <text x="77" y="142" text-anchor="middle" font-size="11" fill="#8A5A6D">檢查更新</text>
+    <rect x="128" y="126" width="110" height="24" rx="5" fill="none" stroke="#B0578D"/>
+    <text x="183" y="142" text-anchor="middle" font-size="11" fill="#B0578D">更新紀錄（Change Log）</text>
+    <text x="34" y="176" font-size="10.5" fill="#A9838F">#216：更新區與「更新紀錄」鈕併為同一列；更新區於 dev 裸跑 Collapsed 不佔位、鈕自然靠列首。</text>
+    <rect x="0" y="432" width="640" height="26" fill="#FBE4EC"/>
+  </g>
+  <rect x="0" y="0" width="640" height="480" fill="#000000" opacity="0.10"/>
+
+  <!-- 模態對話視窗（CenterOwner；560×620 依 640×480 畫布等比示意） -->
+  <rect x="130" y="26" width="380" height="428" rx="6" fill="#FFF0F5" stroke="#B0578D" stroke-width="1.5"/>
+  <rect x="130" y="26" width="380" height="26" rx="6" fill="#F4C2D0"/>
+  <rect x="130" y="42" width="380" height="10" fill="#F4C2D0"/>
+  <text x="142" y="44" font-size="12" font-weight="600" fill="#5C3346">更新紀錄</text>
+  <text x="490" y="44" font-size="12" fill="#5C3346">&#10005;</text>
+
+  <text x="146" y="76" font-size="13" font-weight="700" fill="#B0578D">更新紀錄</text>
+
+  <!-- 唯讀可捲文字區 -->
+  <rect x="146" y="86" width="348" height="312" rx="5" fill="#FFFFFF" stroke="#E3CBD5"/>
+  <g font-size="10.5" fill="#3A2C33">
+    <text x="156" y="104" font-weight="700" fill="#B0578D">## v4.7.0</text>
+    <text x="156" y="120">- 電子書內容頁章末快速連按兩下即換章（Space／↓）</text>
+    <text x="156" y="134">- 章首 ↑ 回上一章；換章後立即重置雙擊狀態</text>
+    <text x="156" y="154" font-weight="700" fill="#B0578D">## v4.6.1</text>
+    <text x="156" y="170">- 內容頁場景圖分隔線拖曳調錯目標列已修</text>
+    <text x="156" y="184">- 閱讀區不再隨分隔線伸縮出現空白帶</text>
+    <text x="156" y="204" font-weight="700" fill="#B0578D">## v4.6.0</text>
+    <text x="156" y="220">- 閱讀器內編輯段落＋可匯出電子書書本包</text>
+    <text x="156" y="234">- 章節解析支援段落與清單項混排</text>
+    <text x="156" y="254" font-weight="700" fill="#B0578D">## v4.1.0</text>
+    <text x="156" y="270">- 電子書增量 3：章節內嵌圖顯示</text>
+    <text x="156" y="290" font-weight="700" fill="#B0578D">## v4.0.0</text>
+    <text x="156" y="306">- 電子書內容閱讀・逐段導讀（里程碑 major）</text>
+    <text x="156" y="320">- 自「影片學習」定位升格為「多來源學習」</text>
+    <text x="156" y="340" font-weight="700" fill="#B0578D">## v1.0.1</text>
+    <text x="156" y="356">- 查字典改回獨立視窗（避免打斷發音練習）</text>
+    <text x="156" y="370">- 主視窗 ✕＝結束程式；字典視窗 ✕＝僅收字典</text>
+    <text x="156" y="388" fill="#A9838F">…（內容＝嵌入為資源之 CHANGELOG.md，執行期讀出）</text>
+  </g>
+  <rect x="486" y="94" width="4" height="80" rx="2" fill="#F4C2D0"/>
+
+  <!-- 關閉鈕＋縮放握把 -->
+  <rect x="414" y="410" width="80" height="26" rx="5" fill="none" stroke="#F4C2D0"/>
+  <text x="454" y="428" text-anchor="middle" font-size="12" fill="#8A5A6D">關閉</text>
+  <g stroke="#B0578D" stroke-width="1.2" opacity="0.7">
+    <line x1="496" y1="446" x2="504" y2="438"/>
+    <line x1="500" y1="446" x2="504" y2="442"/>
+  </g>
+  <text x="146" y="422" font-size="10" fill="#A9838F">唯讀不可編輯</text>
+  <text x="146" y="436" font-size="10" fill="#A9838F">可調整大小（右下握把）</text>
+
+  <text x="10" y="470" font-size="10.5" fill="#8A5A6D">invariant：內容單一來源＝repo 之 CHANGELOG.md（不手抄、不漂移）；讀取失敗明訊不當機；關閉不影響主程式。</text>
+</svg>
