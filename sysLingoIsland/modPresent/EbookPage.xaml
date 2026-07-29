@@ -143,17 +143,16 @@
               <ColumnDefinition Width="248" MinWidth="160"/>
             </Grid.ColumnDefinitions>
 
-            <!-- 中：閱讀區＝場景圖（隨閱讀位置換、增量3 spec#11）為主＋其下逐段文字（當前段放大高亮、逐字可點）＋控制列 -->
+            <!-- 中：閱讀區＝場景圖（隨閱讀位置換、增量3）為主＋其下逐段文字（當前段放大高亮、逐字可點）＋控制列 -->
             <Grid Grid.Column="0">
               <Grid.RowDefinitions>
                 <RowDefinition x:Name="ReaderImageRow" Height="0"/>          <!-- 場景圖（增量3）；有圖 1.4*、無圖 0 -->
                 <RowDefinition x:Name="ReaderImageSplitterRow" Height="0"/>  <!-- 可拖拉分隔線；有圖 Auto、無圖 0 -->
-                <RowDefinition Height="Auto"/>                               <!-- 說話人顯示篩選（#235 移自右欄，貼近作用對象） -->
-                <RowDefinition Height="*" MinHeight="96"/>
-                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*" MinHeight="140"/>                  <!-- 閱讀內容塊＝顯示篩選列＋閱讀區（#265：須為單一容器，見下） -->
+                <RowDefinition Height="Auto"/>                               <!-- 控制列 -->
               </Grid.RowDefinitions>
 
-              <!-- 場景圖（增量3，spec#11）：前景完整顯示整張（Uniform、不裁切）＋背景模糊填滿留白（UniformToFill＋Blur）；
+              <!-- 場景圖（增量3）：前景完整顯示整張（Uniform、不裁切）＋背景模糊填滿留白（UniformToFill＋Blur）；
                    圖塊大小由版面/拖拉決定、跨章固定（見 SetupSceneImageBlock），不隨圖或有無圖跳動；純文字書整塊收起 -->
               <Border x:Name="ReaderSceneImageBox" Grid.Row="0" Background="#22000000" BorderBrush="#F4C2D0" BorderThickness="1"
                       CornerRadius="6" ClipToBounds="True" Visibility="Collapsed">
@@ -172,27 +171,38 @@
                             VerticalAlignment="Center" Background="#F4C2D0" ResizeBehavior="PreviousAndNext"
                             ResizeDirection="Rows" Visibility="Collapsed"/>
 
-              <!-- 說話人顯示篩選（#235：移到場景圖正下方、貼近作用對象＝下方閱讀區；勾選來源＝右欄說話人面板） -->
-              <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,6,0,6">
-                <TextBlock Text="顯示：" VerticalAlignment="Center" Foreground="{StaticResource PinkText}" Margin="0,0,4,0"/>
-                <ComboBox x:Name="ReaderSpeakerFilter" MinWidth="150" Height="26" VerticalContentAlignment="Center"
-                          IsEnabled="False" ToolTip="如何呈現右側說話人面板勾選的說話人：全部顯示／只顯示他們的段落（章節標題與當前段仍顯示）／只加粗他們／只為他們上色（其餘恢復預設色）。">
-                  <ComboBoxItem>全部顯示</ComboBoxItem>
-                  <ComboBoxItem>只顯示勾選者</ComboBoxItem>
-                  <ComboBoxItem>只加粗勾選者</ComboBoxItem>
-                  <ComboBoxItem>只著色勾選者</ComboBoxItem>
-                </ComboBox>
-              </StackPanel>
+              <!-- 閱讀內容塊（#265）＝顯示篩選列＋閱讀區，**必須同在一個容器內佔外層單一列**：
+                   `ReaderImageSplitter` 之 ResizeBehavior=PreviousAndNext 只認緊鄰前後兩列，若把篩選列直接放外層
+                   （#235 原作法）則分隔線的 Next 目標會變成該 Auto 列、被撐成空白帶而閱讀區完全不動。
+                   日後若要在閱讀區上方再加任何列，一律加在本內層 Grid 內、不得加回外層。 -->
+              <Grid Grid.Row="2">
+                <Grid.RowDefinitions>
+                  <RowDefinition Height="Auto"/>              <!-- 說話人顯示篩選 -->
+                  <RowDefinition Height="*" MinHeight="96"/>  <!-- 閱讀區 -->
+                </Grid.RowDefinitions>
 
-              <Border Grid.Row="3" Background="#66FFFFFF" BorderBrush="#F4C2D0" BorderThickness="1" CornerRadius="6">
-                <ScrollViewer x:Name="ReadingScroller" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
-                              Padding="10,8">
-                  <StackPanel x:Name="ReadingPanel"/>
-                </ScrollViewer>
-              </Border>
+                <!-- 說話人顯示篩選（#235：移到場景圖正下方、貼近作用對象＝下方閱讀區；勾選來源＝右欄說話人面板） -->
+                <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,6,0,6">
+                  <TextBlock Text="顯示：" VerticalAlignment="Center" Foreground="{StaticResource PinkText}" Margin="0,0,4,0"/>
+                  <ComboBox x:Name="ReaderSpeakerFilter" MinWidth="150" Height="26" VerticalContentAlignment="Center"
+                            IsEnabled="False" ToolTip="如何呈現右側說話人面板勾選的說話人：全部顯示／只顯示他們的段落（章節標題與當前段仍顯示）／只加粗他們／只為他們上色（其餘恢復預設色）。">
+                    <ComboBoxItem>全部顯示</ComboBoxItem>
+                    <ComboBoxItem>只顯示勾選者</ComboBoxItem>
+                    <ComboBoxItem>只加粗勾選者</ComboBoxItem>
+                    <ComboBoxItem>只著色勾選者</ComboBoxItem>
+                  </ComboBox>
+                </StackPanel>
+
+                <Border Grid.Row="1" Background="#66FFFFFF" BorderBrush="#F4C2D0" BorderThickness="1" CornerRadius="6">
+                  <ScrollViewer x:Name="ReadingScroller" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
+                                Padding="10,8">
+                    <StackPanel x:Name="ReadingPanel"/>
+                  </ScrollViewer>
+                </Border>
+              </Grid>
 
               <!-- 控制列：主題／語速／上一段／繼續／下一段／朗讀／加入筆記／暫停 -->
-              <WrapPanel Grid.Row="4" Orientation="Horizontal" Margin="0,8,0,0">
+              <WrapPanel Grid.Row="3" Orientation="Horizontal" Margin="0,8,0,0">
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,10,4">
                   <TextBlock Text="主題：" VerticalAlignment="Center" Foreground="{StaticResource PinkText}" Margin="0,0,4,0"/>
                   <ComboBox x:Name="ReaderThemePicker" MinWidth="118" Height="26" VerticalContentAlignment="Center"
