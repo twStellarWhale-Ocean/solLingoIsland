@@ -57,130 +57,8 @@ Write-Host "# II.參考準備 ================================" -ForegroundColor
   #region B.型別準備（P/Invoke／UIA） --------------------------------
   Write-Host "## B.型別準備（P/Invoke／UIA） --------------------------------" -ForegroundColor Cyan
 
-  Add-Type -AssemblyName UIAutomationClient, UIAutomationTypes, System.Drawing, System.Windows.Forms
-  Add-Type -TypeDefinition @"
-using System;
-using System.Runtime.InteropServices;
-
-public static class Win32Ui
-{
-    [DllImport("user32.dll")] public static extern bool PrintWindow(IntPtr hWnd, IntPtr hdcBlt, uint nFlags);
-    [DllImport("user32.dll")] public static extern bool GetWindowRect(IntPtr hWnd, out RECT lpRect);
-    [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr hWnd);
-    [DllImport("user32.dll")] public static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
-    [DllImport("user32.dll")] public static extern IntPtr GetForegroundWindow();
-    [DllImport("user32.dll")] public static extern bool SetCursorPos(int X, int Y);
-    [DllImport("user32.dll")] public static extern void mouse_event(uint dwFlags, int dx, int dy, uint dwData, IntPtr dwExtraInfo);
-    [DllImport("user32.dll")] public static extern void SwitchToThisWindow(IntPtr hWnd, bool fAltTab);
-    [DllImport("user32.dll")] public static extern void keybd_event(byte bVk, byte bScan, uint dwFlags, IntPtr dwExtraInfo);
-    [DllImport("user32.dll")] public static extern bool SetProcessDpiAwarenessContext(IntPtr value);
-
-    // DPI 一致化（必須早於任何座標取用）：本行程若為 DPI-unaware，GetWindowRect／SetCursorPos 會取得
-    // 虛擬化（縮放後）座標，而 UIA BoundingRectangle 恆為實體像素——兩者對不上會使點擊落空、截圖失真。
-    public static bool MakeDpiAware()
-    {
-        return SetProcessDpiAwarenessContext(new IntPtr(-4)); // PER_MONITOR_AWARE_V2
-    }
-
-    // 前景鎖繞道：背景行程呼叫 SetForegroundWindow 常被 Windows 前景鎖拒絕——
-    // 先送一次 ALT 鍵（解除前景鎖之慣用法）再 SwitchToThisWindow＋SetForegroundWindow。
-    public static void ForceForeground(IntPtr hWnd)
-    {
-        ShowWindow(hWnd, 9); // SW_RESTORE
-        keybd_event(0x12, 0, 0, IntPtr.Zero);        // ALT down
-        keybd_event(0x12, 0, 0x0002, IntPtr.Zero);   // ALT up
-        // AttachThreadInput：把本行程輸入佇列接到當前前景視窗之執行緒，繞過前景鎖後再切換
-        uint fgTid = GetWindowThreadProcessId(GetForegroundWindow(), IntPtr.Zero);
-        uint myTid = GetCurrentThreadId();
-        bool attached = (fgTid != myTid) && AttachThreadInput(myTid, fgTid, true);
-        BringWindowToTop(hWnd);
-        SwitchToThisWindow(hWnd, true);
-        SetForegroundWindow(hWnd);
-        if (attached) { AttachThreadInput(myTid, fgTid, false); }
-    }
-
-    [DllImport("user32.dll")] public static extern uint GetWindowThreadProcessId(IntPtr hWnd, IntPtr lpdwProcessId);
-    [DllImport("user32.dll", EntryPoint = "GetWindowThreadProcessId")] public static extern uint GetWindowPid(IntPtr hWnd, out uint pid);
-
-    public static uint PidOf(IntPtr hWnd) { uint pid; GetWindowPid(hWnd, out pid); return pid; }
-
-    [DllImport("user32.dll")] public static extern IntPtr WindowFromPoint(POINT p);
-    [StructLayout(LayoutKind.Sequential)] public struct POINT { public int X, Y; }
-
-    // 命中斷言（取代「必須是前景視窗」）：直接問 OS「螢幕上這個點是誰的視窗」——
-    // 點若不屬受測行程，代表被他窗（Topmost 覆蓋卡等）擋住，點下去即假通過。
-    public static uint PidAtPoint(int x, int y)
-    {
-        POINT p; p.X = x; p.Y = y;
-        return PidOf(WindowFromPoint(p));
-    }
-    [DllImport("kernel32.dll")] public static extern uint GetCurrentThreadId();
-    [DllImport("user32.dll")] public static extern bool AttachThreadInput(uint idAttach, uint idAttachTo, bool fAttach);
-    [DllImport("user32.dll")] public static extern bool BringWindowToTop(IntPtr hWnd);
-    [DllImport("user32.dll")] public static extern int GetWindowTextW(IntPtr hWnd, System.Text.StringBuilder s, int n);
-
-    public static string WindowTitle(IntPtr hWnd)
-    {
-        var sb = new System.Text.StringBuilder(260);
-        GetWindowTextW(hWnd, sb, 260);
-        return sb.ToString();
-    }
-
-    [StructLayout(LayoutKind.Sequential)]
-    public struct RECT { public int Left, Top, Right, Bottom; }
-
-    public const uint LEFTDOWN = 0x0002, LEFTUP = 0x0004;
-
-    public static void DragVertical(int x, int yFrom, int yTo)
-    {
-        SetCursorPos(x, yFrom);
-        System.Threading.Thread.Sleep(120);
-        mouse_event(LEFTDOWN, 0, 0, 0, IntPtr.Zero);
-        System.Threading.Thread.Sleep(120);
-        int step = yTo > yFrom ? 8 : -8;
-        for (int y = yFrom; (step > 0 ? y < yTo : y > yTo); y += step)
-        {
-            SetCursorPos(x, y);
-            System.Threading.Thread.Sleep(12);
-        }
-        SetCursorPos(x, yTo);
-        System.Threading.Thread.Sleep(150);
-        mouse_event(LEFTUP, 0, 0, 0, IntPtr.Zero);
-        System.Threading.Thread.Sleep(250);
-    }
-
-    public static void DoubleClick(int x, int y)
-    {
-        SetCursorPos(x, y);
-        System.Threading.Thread.Sleep(120);
-        mouse_event(LEFTDOWN, 0, 0, 0, IntPtr.Zero); mouse_event(LEFTUP, 0, 0, 0, IntPtr.Zero);
-        System.Threading.Thread.Sleep(60);
-        mouse_event(LEFTDOWN, 0, 0, 0, IntPtr.Zero); mouse_event(LEFTUP, 0, 0, 0, IntPtr.Zero);
-        System.Threading.Thread.Sleep(400);
-    }
-}
-"@
-
-  $dpiOk = [Win32Ui]::MakeDpiAware()
-  Write-Host "* DPI 一致化（PER_MONITOR_AWARE_V2）＝$dpiOk"
-
-  # 截圖：PrintWindow 直取視窗表面（不受 Z 序影響），GDI+ 操作留在 PowerShell 端免 C# 參照相依
-  function Save-WindowShot {
-    param([IntPtr]$Hwnd, [string]$Path)
-    $r = New-Object Win32Ui+RECT
-    [Win32Ui]::GetWindowRect($Hwnd, [ref]$r) | Out-Null
-    $w = $r.Right - $r.Left; $h = $r.Bottom - $r.Top
-    $full = New-Object System.Drawing.Bitmap($w, $h)
-    $g = [System.Drawing.Graphics]::FromImage($full)
-    $hdc = $g.GetHdc()
-    [Win32Ui]::PrintWindow($Hwnd, $hdc, 0x2) | Out-Null   # PW_RENDERFULLCONTENT
-    $g.ReleaseHdc($hdc); $g.Dispose()
-    # DWM 隱形邊框內縮（左右各 7px、上 1px、下 7px）：畫布嚴格＝視窗裁切區、不留邊緣 padding
-    $crop = New-Object System.Drawing.Rectangle(7, 1, [Math]::Max(1, $w - 14), [Math]::Max(1, $h - 8))
-    $out = $full.Clone($crop, $full.PixelFormat)
-    $out.Save($Path, [System.Drawing.Imaging.ImageFormat]::Png)
-    $out.Dispose(); $full.Dispose()
-  }
+  . "$PSScriptRoot\uiaCommon.ps1"
+  Write-Host "* DPI 一致化（PER_MONITOR_AWARE_V2）＝$([Win32Ui]::MakeDpiAware())"
   #endregion
 #endregion
 
@@ -254,44 +132,21 @@ try {
     if ($proc.MainWindowHandle -ne [IntPtr]::Zero) { $hwnd = $proc.MainWindowHandle; break }
   }
   if ($hwnd -eq [IntPtr]::Zero) { throw "主視窗未出現（逾時 30 秒）" }
-  for ($i = 0; $i -lt 12; $i++) {
-    [Win32Ui]::ForceForeground($hwnd)
-    Start-Sleep -Milliseconds 400
-    if ([Win32Ui]::GetForegroundWindow() -eq $hwnd) { break }
-    # 最小化→還原：SetForegroundWindow 被前景鎖拒絕時（實撞：GameInputSvc 之隱形
-    # GameInputServiceWindow 持有前景），此法可讓 Windows 主動把視窗帶到前景。
-    if ($i -ge 2) {
-      [Win32Ui]::ShowWindow($hwnd, 6) | Out-Null   # SW_MINIMIZE
-      Start-Sleep -Milliseconds 300
-      [Win32Ui]::ShowWindow($hwnd, 9) | Out-Null   # SW_RESTORE
-      Start-Sleep -Milliseconds 500
-      if ([Win32Ui]::GetForegroundWindow() -eq $hwnd) { break }
-    }
-  }
-  $fg = [Win32Ui]::GetForegroundWindow()
-  if ($fg -eq $hwnd) {
-    Write-Host "* 主視窗已在前景"
-  } else {
-    Write-Host ("* [提示] 前景為 hwnd=$fg 標題＝「" + [Win32Ui]::WindowTitle($fg) + "」；改以「點擊命中斷言」保證不被覆蓋（見下）")
-  }
-  Write-Host "* 主視窗 hwnd=$hwnd 已在前景"
+  $fg = Set-WindowForeground -Hwnd $hwnd
+  if ($fg) { Write-Host "* 主視窗 hwnd=$hwnd 已在前景" }
+  else { Write-Host ("* [提示] 前景為 hwnd=" + [Win32Ui]::GetForegroundWindow() + "；改以「點擊命中斷言」保證不被覆蓋") }
+
   $root = [System.Windows.Automation.AutomationElement]::FromHandle($hwnd)
   #endregion
 
   #region C.導航：電子書分頁 → 雙擊書卡開書 --------------------------------
   Write-Host "## C.導航：電子書分頁 → 開書 --------------------------------" -ForegroundColor Cyan
-  $byId = { param($id)
-    $cond = New-Object System.Windows.Automation.PropertyCondition(
-      [System.Windows.Automation.AutomationElement]::AutomationIdProperty, $id)
-    $root.FindFirst([System.Windows.Automation.TreeScope]::Descendants, $cond)
-  }
-
-  $tabEbook = & $byId "TabEbook"
+  $tabEbook = Find-ByAutomationId -Root $root -Id "TabEbook"
   if ($null -eq $tabEbook) { throw "找不到「電子書」分頁鈕（AutomationId=TabEbook）" }
   $tabEbook.GetCurrentPattern([System.Windows.Automation.SelectionItemPattern]::Pattern).Select()
   Start-Sleep -Milliseconds 800
 
-  $bookList = & $byId "BookList"
+  $bookList = Find-ByAutomationId -Root $root -Id "BookList"
   if ($null -eq $bookList) { throw "找不到書櫃清單（AutomationId=BookList）" }
   $items = $bookList.FindAll([System.Windows.Automation.TreeScope]::Children,
              [System.Windows.Automation.Condition]::TrueCondition)
@@ -325,7 +180,7 @@ try {
     [Win32Ui]::DoubleClick($cx, $cy)
     for ($i = 0; $i -lt 16; $i++) {
       Start-Sleep -Milliseconds 500
-      $scroller = & $byId "ReadingScroller"
+      $scroller = Find-ByAutomationId -Root $root -Id "ReadingScroller"
       if ($null -ne $scroller) { break }
     }
   }
@@ -350,11 +205,11 @@ try {
   Write-Host "## D.量測（拖曳前）＋截圖 --------------------------------" -ForegroundColor Cyan
   $splitter = $null
   for ($i = 0; $i -lt 20; $i++) {
-    $splitter = & $byId "ReaderImageSplitter"
+    $splitter = Find-ByAutomationId -Root $root -Id "ReaderImageSplitter"
     if ($null -ne $splitter) { break }
     Start-Sleep -Milliseconds 500
   }
-  $filter = & $byId "ReaderSpeakerFilter"
+  $filter = Find-ByAutomationId -Root $root -Id "ReaderSpeakerFilter"
   if ($null -eq $splitter) {
     $ids = @()
     $all = $root.FindAll([System.Windows.Automation.TreeScope]::Descendants,
@@ -427,7 +282,7 @@ try {
 
   #region G2.拖拉後高度跨章保留（intTest#70 之不回歸項） --------------------------------
   Write-Host "## G2.拖拉後高度跨章保留 --------------------------------" -ForegroundColor Cyan
-  $tree = & $byId "ChapterTree"
+  $tree = Find-ByAutomationId -Root $root -Id "ChapterTree"
   if ($null -eq $tree) { throw "找不到章節清單（AutomationId=ChapterTree）" }
   $treeItemCond = New-Object System.Windows.Automation.PropertyCondition(
     [System.Windows.Automation.AutomationElement]::ControlTypeProperty,
@@ -498,8 +353,8 @@ try {
     [Win32Ui]::DoubleClick($cx2, $cy2)
     Start-Sleep -Milliseconds 2500
     # Collapsed 元素離開 UIA 樹：分隔線「不在樹中」即為整塊收起之直接證據
-    $sp2 = & $byId "ReaderImageSplitter"
-    $fl2 = & $byId "ReaderSpeakerFilter"
+    $sp2 = Find-ByAutomationId -Root $root -Id "ReaderImageSplitter"
+    $fl2 = Find-ByAutomationId -Root $root -Id "ReaderSpeakerFilter"
     if ($null -ne $sp2) {
       $fails += "純文字書仍出現場景圖分隔線（應與圖塊一併收起）"
       Write-Host "* 純文字書斷言：FAIL（分隔線仍在 UIA 樹中）" -ForegroundColor Red
