@@ -1,7 +1,7 @@
 ---
-name: techItem桌面通知
+name: cmpTechItem桌面通知
 date: 2026-07-06
-description: 技術選型·元件層(techItem) Profile —— 「桌面系統通知（native desktop toast／Action Center）」功能型態，統一標準產品 Windows 原生通知（WinRT Windows.UI.Notifications，經 AUMID 註冊之未封裝桌面 App）。於 design.md ＜III.C.(A) 技術選型＞落地版本/用法；與 techStack 多對多。與應用內自畫浮層（ToastNotifier）互補、責任區隔。
+description: 技術選型·元件層(cmpTechItem) Profile —— 「桌面系統通知（native desktop toast／Action Center）」功能型態，統一標準產品 Windows 原生通知（WinRT Windows.UI.Notifications，經 AUMID 註冊之未封裝桌面 App）。於 design.md ＜II.C.(B).1 技術選型＞落地版本/用法；與 modTechStack 多對多。與應用內自畫浮層（ToastNotifier）互補、責任區隔。
 ---
 
 # I. 主旨目的
@@ -25,4 +25,4 @@ description: 技術選型·元件層(techItem) Profile —— 「桌面系統通
 
 # IV. 備註紀錄
 
-* 2026-07-06：建立。techItem「桌面系統通知（native desktop toast）」型態首份；統一 Windows 原生通知（`Windows.UI.Notifications`、AUMID 註冊）。因 solLingoIsland 增量 #101「發音練習回饋改系統通知」立案而補建；與應用內自畫浮層（ToastNotifier）責任區隔——浮層供「須覆於全螢幕遊戲、不受勿擾影響」之即時回饋，原生通知供「可回看、進通知中心」之回饋。
+* 2026-07-06：建立。cmpTechItem「桌面系統通知（native desktop toast）」型態首份；統一 Windows 原生通知（`Windows.UI.Notifications`、AUMID 註冊）。因 solScreenEnglishTrans1 增量 #101「發音練習回饋改系統通知」立案而補建；與應用內自畫浮層（ToastNotifier）責任區隔——浮層供「須覆於全螢幕遊戲、不受勿擾影響」之即時回饋，原生通知供「可回看、進通知中心」之回饋。

@@ -1,7 +1,7 @@
 ---
-name: techItem語音合成
+name: cmpTechItem語音合成
 date: 2026-07-03
-description: 技術選型·元件層(techItem) Profile —— 「語音合成（TTS）」功能型態，統一標準產品 Windows 內建語音合成（System.Speech／Windows.Media.SpeechSynthesis）。於 design.md ＜III.C.(A) 技術選型＞落地版本/用法；與 techStack 多對多。
+description: 技術選型·元件層(cmpTechItem) Profile —— 「語音合成（TTS）」功能型態，統一標準產品 Windows 內建語音合成（System.Speech／Windows.Media.SpeechSynthesis）。於 design.md ＜II.C.(B).1 技術選型＞落地版本/用法；與 modTechStack 多對多。
 ---
 
 # I. 主旨目的
@@ -22,4 +22,4 @@ description: 技術選型·元件層(techItem) Profile —— 「語音合成（
 
 # IV. 備註紀錄
 
-* 2026-07-03：建立。techItem「語音合成（TTS）」型態首份；統一 Windows 內建語音合成。因 solLingoIsland 立案而補建。
+* 2026-07-03：建立。cmpTechItem「語音合成（TTS）」型態首份；統一 Windows 內建語音合成。因 solScreenEnglishTrans1 立案而補建。
