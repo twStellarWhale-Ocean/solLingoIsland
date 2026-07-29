@@ -66,7 +66,7 @@ Write-Host "# II.參考準備 ================================" -ForegroundColor
 Write-Host "# III.內容程序 ================================" -ForegroundColor Blue
 
 $restored = $false
-$proc = $null
+$app = $null
 try {
 
   #region A.APPDATA 起手備份（測試會改動使用者真實資料） --------------------------------
@@ -124,14 +124,11 @@ try {
 
   #region B.啟動 App 並前景確保 --------------------------------
   Write-Host "## B.啟動 App 並前景確保 --------------------------------" -ForegroundColor Cyan
-  $proc = Start-Process -FilePath $ExePath -PassThru
-  $hwnd = [IntPtr]::Zero
-  for ($i = 0; $i -lt 60; $i++) {
-    Start-Sleep -Milliseconds 500
-    $proc.Refresh()
-    if ($proc.MainWindowHandle -ne [IntPtr]::Zero) { $hwnd = $proc.MainWindowHandle; break }
-  }
-  if ($hwnd -eq [IntPtr]::Zero) { throw "主視窗未出現（逾時 30 秒）" }
+  # 取窗工法見 uiaCommon.ps1 之 Start-AppAndGetWindow（Issue #270）：以「具主視窗之 LingoIsland 行程」
+  # 為錨、非 Start-Process 回傳之行程，故對 dev build 與 Velopack 打包成品皆適用。
+  $app  = Start-AppAndGetWindow -ExePath $ExePath -TimeoutSec 30
+  $hwnd = $app.Hwnd
+  Write-Host ("* 受測行程 pid={0}（自主視窗反查）" -f $app.ProcessId)
   $fg = Set-WindowForeground -Hwnd $hwnd
   if ($fg) { Write-Host "* 主視窗 hwnd=$hwnd 已在前景" }
   else { Write-Host ("* [提示] 前景為 hwnd=" + [Win32Ui]::GetForegroundWindow() + "；改以「點擊命中斷言」保證不被覆蓋") }
@@ -176,7 +173,7 @@ try {
     $cx = [int]($r.X + $r.Width / 2); $cy = [int]($r.Y + $r.Height / 2)
     Write-Host ("* 第 {0} 輪：雙擊書卡（含「{1}」）於 ({2},{3})" -f $try, $BookKeyword, $cx, $cy)
     $pidAt = [Win32Ui]::PidAtPoint($cx, $cy)
-    if ($pidAt -ne [uint32]$proc.Id) { throw "點擊命中斷言失敗：($cx,$cy) 屬 pid=$pidAt、非受測行程 pid=$($proc.Id)——該點被他窗覆蓋，點下去即假通過" }
+    if ($pidAt -ne [uint32]$app.ProcessId) { throw "點擊命中斷言失敗：($cx,$cy) 屬 pid=$pidAt、非受測行程 pid=$($app.ProcessId)——該點被他窗覆蓋，點下去即假通過" }
     [Win32Ui]::DoubleClick($cx, $cy)
     for ($i = 0; $i -lt 16; $i++) {
       Start-Sleep -Milliseconds 500
@@ -189,13 +186,7 @@ try {
 
   # 最大化（須在 App 套用 ui-state.json 之保存視窗尺寸「之後」才不會被覆寫）：
   # 小視窗下中欄可分配高度不足（閱讀區已在 MinHeight、圖塊被壓扁），拖曳無空間可分配、測不出消長。
-  $wr = New-Object Win32Ui+RECT
-  for ($i = 0; $i -lt 6; $i++) {
-    [Win32Ui]::ShowWindow($hwnd, 3) | Out-Null   # SW_MAXIMIZE
-    Start-Sleep -Milliseconds 900
-    [Win32Ui]::GetWindowRect($hwnd, [ref]$wr) | Out-Null
-    if (($wr.Bottom - $wr.Top) -gt 900) { break }
-  }
+  $wr = Set-WindowMaximized -Hwnd $hwnd
   Write-Host ("* 視窗尺寸＝{0}x{1}" -f ($wr.Right - $wr.Left), ($wr.Bottom - $wr.Top))
   if (($wr.Bottom - $wr.Top) -le 900) { throw "視窗未能放大至可供拖曳之高度（目前高 $($wr.Bottom - $wr.Top) px）" }
   Start-Sleep -Milliseconds 600
@@ -219,11 +210,17 @@ try {
   }
   if ($null -eq $filter) { throw "找不到顯示篩選下拉（AutomationId=ReaderSpeakerFilter）" }
 
-  $sp0 = $splitter.Current.BoundingRectangle
-  $sc0 = $scroller.Current.BoundingRectangle
-  $fl0 = $filter.Current.BoundingRectangle
-  $gap0 = [math]::Round($fl0.Y - ($sp0.Y + $sp0.Height), 1)
-  Write-Host ("* 分隔線 Y={0:N1}｜閱讀區 高={1:N1}｜篩選列 高={2:N1}｜分隔線→篩選列間距={3:N1}" -f $sp0.Y, $sc0.Height, $fl0.Height, $gap0)
+  # 量測基準抽為可重取（Issue #270）：視窗若於測試中被 App 還原成 ui-state 之小尺寸，中欄會整個重排，
+  # 沿用重排前的基準比對即得出「圖塊縮小、閱讀區也縮小」之不可能結果。E 段每輪拖曳前重驗、有變即重取。
+  $takeBaseline = {
+    $script:sp0  = $splitter.Current.BoundingRectangle
+    $script:sc0  = $scroller.Current.BoundingRectangle
+    $script:fl0  = $filter.Current.BoundingRectangle
+    $script:gap0 = [math]::Round($script:fl0.Y - ($script:sp0.Y + $script:sp0.Height), 1)
+    Write-Host ("* 分隔線 Y={0:N1}｜閱讀區 高={1:N1}｜篩選列 高={2:N1}｜分隔線→篩選列間距={3:N1}" -f
+                $script:sp0.Y, $script:sc0.Height, $script:fl0.Height, $script:gap0)
+  }
+  & $takeBaseline
 
   # 拖曳前之對照圖僅供比對、不入手冊（手冊只放最終態）：落暫存目錄、不進版控
   $before = Join-Path $env:TEMP ("ebook-splitter-$Tag-1-before-drag.png")
@@ -233,17 +230,48 @@ try {
 
   #region E.拖曳分隔線（往上 $DragUpPx px） --------------------------------
   Write-Host "## E.拖曳分隔線 --------------------------------" -ForegroundColor Cyan
-  $cx = [int]($sp0.X + $sp0.Width / 2)
-  $cy = [int]($sp0.Y + $sp0.Height / 2)
-  $pidAt = [Win32Ui]::PidAtPoint($cx, $cy)
-  if ($pidAt -ne [uint32]$proc.Id) { throw "拖曳命中斷言失敗：分隔線座標 ($cx,$cy) 屬 pid=$pidAt、非受測行程 pid=$($proc.Id)——被他窗覆蓋" }
-  [Win32Ui]::DragVertical($cx, $cy, $cy - $DragUpPx)
-  Start-Sleep -Milliseconds 500
-  Write-Host "* 已自 ($cx,$cy) 往上拖 $DragUpPx px"
+  # 實體滑鼠拖曳偶有落空——同一份碼、同一台機器、同樣 -DragUpPx 160，實測一次得 0 位移、另一次得 161 px
+  # 正常消長（Issue #270；USR 同期回報實機手動拖曳功能正常，佐證病灶在測試工法而非產品）。落空時 G 段
+  # 會呈現為「場景圖塊未確實縮小」，與 #265 之真缺陷病徵同形、無從分辨。故比照 C 段開書之既有處置
+  # （「實體點擊（SendInput）偶有落空」→ 最多重試 3 輪），此處**以相同幅度重試**、每輪重新取 rect 並確保前景。
+  # 重試不減判定強度：幅度不變，消長是否對稱、篩選列是否被牽動等語意判定仍全數留給 G 段——目標錯置時
+  # 每一輪閱讀區都不會跟著變高，三輪耗盡後照樣落在 G 段 FAIL。
+  $movedUp = 0
+  for ($try = 1; $try -le 3 -and $movedUp -lt $minDeltaPx; $try++) {
+    [Win32Ui]::ForceForeground($hwnd); Start-Sleep -Milliseconds 300
+    # 視窗尺寸守衛：App 可能於此期間套用 ui-state 之保存尺寸把視窗還原變小（見 uiaCommon 之 Set-WindowMaximized）。
+    $wrNow = New-Object Win32Ui+RECT
+    [Win32Ui]::GetWindowRect($hwnd, [ref]$wrNow) | Out-Null
+    if (($wrNow.Right - $wrNow.Left) -ne ($wr.Right - $wr.Left) -or ($wrNow.Bottom - $wrNow.Top) -ne ($wr.Bottom - $wr.Top)) {
+      Write-Host ("* [警示] 視窗尺寸於測試中改變（{0}x{1} → {2}x{3}）——重新最大化並重取量測基準" -f
+                  ($wr.Right - $wr.Left), ($wr.Bottom - $wr.Top), ($wrNow.Right - $wrNow.Left), ($wrNow.Bottom - $wrNow.Top)) -ForegroundColor Yellow
+      $wr = Set-WindowMaximized -Hwnd $hwnd
+      if (($wr.Bottom - $wr.Top) -le 900) { throw "視窗未能重新放大至可供拖曳之高度（目前高 $($wr.Bottom - $wr.Top) px）" }
+      Start-Sleep -Milliseconds 600
+      & $takeBaseline
+    }
+    $spNow = $splitter.Current.BoundingRectangle
+    $cx = [int]($spNow.X + $spNow.Width / 2)
+    $cy = [int]($spNow.Y + $spNow.Height / 2)
+    $pidAt = [Win32Ui]::PidAtPoint($cx, $cy)
+    if ($pidAt -ne [uint32]$app.ProcessId) { throw "拖曳命中斷言失敗：分隔線座標 ($cx,$cy) 屬 pid=$pidAt、非受測行程 pid=$($app.ProcessId)——被他窗覆蓋" }
+    [Win32Ui]::DragVertical($cx, $cy, $cy - $DragUpPx)
+    Start-Sleep -Milliseconds 500
+    $movedUp = [math]::Round($sp0.Y - $splitter.Current.BoundingRectangle.Y, 1)
+    Write-Host ("* 第 {0} 輪：自 ({1},{2}) 往上拖 {3} px；分隔線自起點累計上移 {4} px" -f $try, $cx, $cy, $DragUpPx, $movedUp)
+  }
   #endregion
 
   #region F.量測（拖曳後）＋截圖 --------------------------------
   Write-Host "## F.量測（拖曳後）＋截圖 --------------------------------" -ForegroundColor Cyan
+  # 量測前再驗一次視窗尺寸：拖曳後至此若被還原變小，中欄已重排，與拖曳前基準比對即失真——
+  # 明確中止勝於產出假 FAIL（其病徵與 #265 之真缺陷同形、無從分辨）。
+  $wrChk = New-Object Win32Ui+RECT
+  [Win32Ui]::GetWindowRect($hwnd, [ref]$wrChk) | Out-Null
+  if (($wrChk.Right - $wrChk.Left) -ne ($wr.Right - $wr.Left) -or ($wrChk.Bottom - $wrChk.Top) -ne ($wr.Bottom - $wr.Top)) {
+    throw ("視窗尺寸於拖曳後、量測前改變（{0}x{1} → {2}x{3}）——中欄已重排，本輪量測失真，請重跑" -f
+           ($wr.Right - $wr.Left), ($wr.Bottom - $wr.Top), ($wrChk.Right - $wrChk.Left), ($wrChk.Bottom - $wrChk.Top))
+  }
   $sp1 = $splitter.Current.BoundingRectangle
   $sc1 = $scroller.Current.BoundingRectangle
   $fl1 = $filter.Current.BoundingRectangle
@@ -314,7 +342,7 @@ try {
   $spD0 = $splitter.Current.BoundingRectangle
   $scD0 = $scroller.Current.BoundingRectangle
   $cxD = [int]($spD0.X + $spD0.Width / 2); $cyD = [int]($spD0.Y + $spD0.Height / 2)
-  if ([Win32Ui]::PidAtPoint($cxD, $cyD) -ne [uint32]$proc.Id) { throw "反向拖曳命中斷言失敗：($cxD,$cyD) 被他窗覆蓋" }
+  if ([Win32Ui]::PidAtPoint($cxD, $cyD) -ne [uint32]$app.ProcessId) { throw "反向拖曳命中斷言失敗：($cxD,$cyD) 被他窗覆蓋" }
   [Win32Ui]::DragVertical($cxD, $cyD, $cyD + ($DragUpPx * 4))   # 刻意拖過頭，驗下限攔得住
   Start-Sleep -Milliseconds 500
   $spD1 = $splitter.Current.BoundingRectangle
@@ -349,7 +377,7 @@ try {
     if ($null -eq $t2) { throw ("書櫃中找不到含「$TextOnlyBookKeyword」之書；現有：" + (($seen2 | Select-Object -Unique) -join " / ")) }
     $r2 = $t2.Current.BoundingRectangle
     $cx2 = [int]($r2.X + $r2.Width / 2); $cy2 = [int]($r2.Y + $r2.Height / 2)
-    if ([Win32Ui]::PidAtPoint($cx2, $cy2) -ne [uint32]$proc.Id) { throw "點擊命中斷言失敗：($cx2,$cy2) 被他窗覆蓋" }
+    if ([Win32Ui]::PidAtPoint($cx2, $cy2) -ne [uint32]$app.ProcessId) { throw "點擊命中斷言失敗：($cx2,$cy2) 被他窗覆蓋" }
     [Win32Ui]::DoubleClick($cx2, $cy2)
     Start-Sleep -Milliseconds 2500
     # Collapsed 元素離開 UIA 樹：分隔線「不在樹中」即為整塊收起之直接證據
@@ -367,7 +395,7 @@ try {
 } finally {
   #region IV.備註記錄（收尾：關閉 App、還原 APPDATA） ================================
   Write-Host "# IV.收尾 ================================" -ForegroundColor Blue
-  if ($null -ne $proc -and -not $proc.HasExited) { $proc.Kill(); $proc.WaitForExit(5000) }
+  # 收尾一律以行程名掃殺（涵蓋外殼另起之 app 行程）；不再另留 $proc.Kill()，該行原與本行重複。
   Get-Process -Name "LingoIsland" -ErrorAction SilentlyContinue | ForEach-Object { $_.Kill(); $_.WaitForExit(5000) }
   Start-Sleep -Milliseconds 500
   if (Test-Path $backupDir) {

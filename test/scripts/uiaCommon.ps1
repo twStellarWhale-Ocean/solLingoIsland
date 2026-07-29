@@ -138,6 +138,50 @@ function Find-ByAutomationId {
   $Root.FindFirst([System.Windows.Automation.TreeScope]::Descendants, $cond)
 }
 
+# 啟動 App 並取得受測主視窗（Issue #270）。
+# 不得以 Start-Process -PassThru 回傳之行程為錨：Velopack 打包成品之 LingoIsland.exe 是外殼，
+# 解析安裝路徑後另起真正的 app 行程、自身即退出（HasExited=True、MainWindowHandle 恆 0），
+# 以其為錨恆逾時失敗。改輪詢「行程名相符且已有主視窗」者，再自該視窗反查 pid 供命中斷言；
+# dev build 亦相容（該情境輪詢到的就是自己啟的那顆）。
+# 前置：呼叫端須先殺光同名既有行程（見各腳本 %APPDATA% 備份段），否則可能取到不相干的實例。
+function Start-AppAndGetWindow {
+  param(
+    [Parameter(Mandatory)][string]$ExePath,
+    [string]$ProcessName = "LingoIsland",
+    [int]$TimeoutSec = 30
+  )
+  Start-Process -FilePath $ExePath | Out-Null
+  $deadline = (Get-Date).AddSeconds($TimeoutSec)
+  while ((Get-Date) -lt $deadline) {
+    Start-Sleep -Milliseconds 500
+    $p = Get-Process -Name $ProcessName -ErrorAction SilentlyContinue |
+           Where-Object { $_.MainWindowHandle -ne [IntPtr]::Zero } |
+           Select-Object -First 1
+    if ($null -ne $p) {
+      $hwnd = $p.MainWindowHandle
+      return [pscustomobject]@{ Hwnd = $hwnd; ProcessId = [Win32Ui]::PidOf($hwnd) }
+    }
+  }
+  throw "主視窗未出現（逾時 $TimeoutSec 秒）：找不到行程名「$ProcessName」且具主視窗者。ExePath=$ExePath"
+}
+
+# 最大化視窗並回傳其 rect（Issue #270）。
+# App 會於載入／切換版面時套用 ui-state.json 保存之視窗尺寸，可能在測試「進行中」把已最大化的視窗
+# 還原成小尺寸——實撞：還原成 600x460 後，閱讀器中欄之控制列由 2 列換行成 5 列、吃掉閱讀區高度，
+# 於是量出「場景圖塊縮小、閱讀區卻同步縮小」這種不可能的結果（假 FAIL，病徵與 #265 之真缺陷同形）。
+# 故量測基準與拖曳等關鍵步驟前都應呼叫本函數確認，尺寸有變即重取基準。
+function Set-WindowMaximized {
+  param([IntPtr]$Hwnd, [int]$MinHeight = 900, [int]$Tries = 6)
+  $r = New-Object Win32Ui+RECT
+  for ($i = 0; $i -lt $Tries; $i++) {
+    [Win32Ui]::ShowWindow($Hwnd, 3) | Out-Null   # SW_MAXIMIZE
+    Start-Sleep -Milliseconds 900
+    [Win32Ui]::GetWindowRect($Hwnd, [ref]$r) | Out-Null
+    if (($r.Bottom - $r.Top) -gt $MinHeight) { break }
+  }
+  return $r
+}
+
 # 帶到前景：SetForegroundWindow 被前景鎖拒絕時以「最小化→還原」繞道；仍失敗不擲例外，
 # 由呼叫端改以 PidAtPoint 命中斷言把關（見 Win32Ui.PidAtPoint）。
 function Set-WindowForeground {
