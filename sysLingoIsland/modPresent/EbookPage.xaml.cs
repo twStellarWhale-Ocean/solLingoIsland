@@ -721,6 +721,7 @@ public partial class EbookPage : UserControl
     private int _chapterIndex = -1;                                // 當前章（spine index；LastReadChapter）
     private int _cursor = -1;                                      // 當前段游標（章內段 index；LastReadParagraph）
     private bool _loadingBook;                                     // 開書中（防重入）
+    private readonly ChapterHopState _chapterHop = new();          // 章界雙擊換章之按鍵記錄（#267；判定歸 ChapterHopDecider 純函式）
     private readonly List<Border> _paraViews = new();             // 中閱讀區各段之容器（供游標移動時就地重繪高亮，免全章重建）
 
     private readonly ObservableCollection<SpeakerCheck> _speakerChecks = new(); // 說話人勾選面板（全書；篩選/顯示/暫停共用）
@@ -1195,11 +1196,17 @@ public partial class EbookPage : UserControl
         if (!string.IsNullOrWhiteSpace(text)) { svc.Speak(text, "en-US", stopPrevious: true); }
     }
 
-    /// <summary>內容頁快速鍵（#6、#240）：←/↑＝上一段、→/↓＝下一段、PageUp/PageDown＝上/下一章、Space＝播放/繼續。輸入框／下拉聚焦時不劫持（↑↓ 亦劫持故閱讀區改由滑鼠/捲軸捲動）。</summary>
+    /// <summary>內容頁快速鍵（#6、#240、#247、#267）：←/↑＝上一段、→/↓＝下一段、PageUp/PageDown＝上/下一章、Space＝播放/繼續；
+    /// <b>章界雙擊換章（#267）</b>——章末連按兩下 ↓／Space 進下一章、章首連按兩下 ↑ 回上一章（判定見 <see cref="ChapterHopDecider"/>）。
+    /// 輸入框／下拉聚焦時不劫持（↑↓ 亦劫持故閱讀區改由滑鼠/捲軸捲動）。</summary>
     private void OnReaderHotkey(object sender, System.Windows.Input.KeyEventArgs e)
     {
         if (EbookContentPane.Visibility != Visibility.Visible || _chapters.Count == 0) { return; }
         if (System.Windows.Input.Keyboard.FocusedElement is System.Windows.Controls.TextBox or System.Windows.Controls.ComboBox) { return; }
+
+        // 章界雙擊先判：成立才升級為換章，不成立即落回下方既有單擊語意（單擊零延遲、行為不變）
+        if (TryChapterHop(e.Key)) { e.Handled = true; return; }
+
         switch (e.Key)
         {
             case Key.Left: case Key.Up: StepPrev(); e.Handled = true; break;       // ←/↑ 上一段
@@ -1208,6 +1215,29 @@ public partial class EbookPage : UserControl
             case Key.PageDown: GoToChapter(NextNonEmptyChapter(_chapterIndex + 1), 0, keepReading: false); e.Handled = true; break; // 下一章（無則 no-op）
             case Key.Space: TogglePlay(); e.Handled = true; break;
         }
+    }
+
+    /// <summary>章界雙擊換章（#267）：記入本次按鍵、判定是否換章；換章後重置狀態防第三下連跳兩章。回傳是否已換章。</summary>
+    private bool TryChapterHop(Key key)
+    {
+        var hopKey = key switch
+        {
+            Key.Space => ChapterHopDecider.HopKey.Space,
+            Key.Down => ChapterHopDecider.HopKey.Down,
+            Key.Up => ChapterHopDecider.HopKey.Up,
+            _ => ChapterHopDecider.HopKey.Other,
+        };
+        // 非參與鍵亦須記入（如按了 →），使「換鍵即中斷」成立
+        var hop = _chapterHop.Press(hopKey, System.Environment.TickCount64, _cursor, CurCues.Count);
+        if (hop == ChapterHopDecider.Hop.None) { return false; }
+
+        var target = hop == ChapterHopDecider.Hop.NextChapter
+            ? NextNonEmptyChapter(_chapterIndex + 1)
+            : PrevNonEmptyChapter(_chapterIndex - 1);
+        _chapterHop.Reset();                                   // 換章（或無章可跳）後一律重置
+        if (target < 0) { return false; }                      // 無下一章／上一章＝no-op，落回單擊語意
+        GoToChapter(target, 0, keepReading: false);
+        return true;
     }
 
     /// <summary>手動導航到同章某段（上/下一段/繼續共用）：先同步停朗讀（作廢待觸發之自動前進），移游標；原在朗讀則於下一輪 Dispatcher 重啟朗讀（generation guard：待觸發完成事件已被 disarm 排空）。</summary>
@@ -1223,6 +1253,7 @@ public partial class EbookPage : UserControl
     {
         StopTts();
         if (ch < 0 || ch >= _chapters.Count) { return; }
+        _chapterHop.Reset();   // 換章即清雙擊記錄（#267）：涵蓋所有換章路徑（雙擊／PageUp·PageDown／點章節樹），防第三下連跳兩章
         LoadChapter(ch);
         SetCursor(para < 0 ? 0 : para);
         if (keepReading) { Dispatcher.BeginInvoke(new Action(RestartReadingAtCursor), System.Windows.Threading.DispatcherPriority.Background); }
