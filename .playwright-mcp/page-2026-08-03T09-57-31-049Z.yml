@@ -1,0 +1,2396 @@
+- generic [ref=e2]:
+  - generic:
+    - generic:
+      - tooltip "This user is a member of the twStellerWhale-Ocean2 organization."
+  - generic [ref=e3]:
+    - link "Skip to content" [ref=e4] [cursor=pointer]:
+      - /url: "#start-of-content"
+    - banner [ref=e6]:
+      - heading "Navigation Menu" [level=2] [ref=e7]
+      - generic [ref=e8]:
+        - link "Homepage" [ref=e10] [cursor=pointer]:
+          - /url: /
+        - generic [ref=e13]:
+          - navigation "Global" [ref=e16]:
+            - list [ref=e17]:
+              - listitem [ref=e18]:
+                - button "Platform" [ref=e20] [cursor=pointer]
+              - listitem [ref=e23]:
+                - button "Solutions" [ref=e25] [cursor=pointer]
+              - listitem [ref=e28]:
+                - button "Resources" [ref=e30] [cursor=pointer]
+              - listitem [ref=e33]:
+                - button "Open Source" [ref=e35] [cursor=pointer]
+              - listitem [ref=e38]:
+                - button "Enterprise" [ref=e40] [cursor=pointer]
+              - listitem [ref=e43]:
+                - link "Pricing" [ref=e44] [cursor=pointer]:
+                  - /url: https://github.com/pricing
+          - generic [ref=e46]:
+            - button "Search or jump to…" [ref=e49] [cursor=pointer]
+            - link "Sign in" [ref=e54] [cursor=pointer]:
+              - /url: /login?return_to=https%3A%2F%2Fgithub.com%2FtwStellerWhale-Ocean2%2FsolLingoIsland%2Fissues%2F284
+            - link "Sign up" [ref=e55] [cursor=pointer]:
+              - /url: /signup?ref_cta=Sign+up&ref_loc=header+logged+out&ref_page=%2F%3Cuser-name%3E%2F%3Crepo-name%3E%2Fvoltron%2Fissues_fragments%2Fissue_layout&source=header-repo&source_repo=twStellerWhale-Ocean2%2FsolLingoIsland
+            - button "Appearance settings" [ref=e58] [cursor=pointer]
+  - main [ref=e62]:
+    - generic [ref=e63]:
+      - generic [ref=e64]:
+        - generic [ref=e66]:
+          - link "twStellerWhale-Ocean2" [ref=e70] [cursor=pointer]:
+            - /url: /twStellerWhale-Ocean2
+          - generic [ref=e71]: /
+          - strong [ref=e72]:
+            - link "solLingoIsland" [ref=e73] [cursor=pointer]:
+              - /url: /twStellerWhale-Ocean2/solLingoIsland
+          - generic [ref=e74]: Public
+        - generic [ref=e75]:
+          - list:
+            - listitem [ref=e76]:
+              - link "You must be signed in to change notification settings" [ref=e77] [cursor=pointer]:
+                - /url: /login?return_to=%2FtwStellerWhale-Ocean2%2FsolLingoIsland
+                - text: Notifications
+            - listitem [ref=e80]:
+              - link "Fork 0" [ref=e81] [cursor=pointer]:
+                - /url: /login?return_to=%2FtwStellerWhale-Ocean2%2FsolLingoIsland
+                - text: Fork
+                - generic "0" [ref=e84]
+            - listitem [ref=e85]:
+              - link "You must be signed in to star a repository" [ref=e87] [cursor=pointer]:
+                - /url: /login?return_to=%2FtwStellerWhale-Ocean2%2FsolLingoIsland
+                - text: Star
+                - generic "0 users starred this repository" [ref=e90]: "0"
+      - navigation "Repository" [ref=e91]:
+        - list [ref=e92]:
+          - listitem [ref=e93]:
+            - link "Code" [ref=e94] [cursor=pointer]:
+              - /url: /twStellerWhale-Ocean2/solLingoIsland
+          - listitem [ref=e98]:
+            - link "Issues 5" [ref=e99] [cursor=pointer]:
+              - /url: /twStellerWhale-Ocean2/solLingoIsland/issues
+              - generic [ref=e103]: Issues
+              - generic "5" [ref=e104]
+          - listitem [ref=e105]:
+            - link "Pull requests" [ref=e106] [cursor=pointer]:
+              - /url: /twStellerWhale-Ocean2/solLingoIsland/pulls
+          - listitem [ref=e110]:
+            - link "Actions" [ref=e111] [cursor=pointer]:
+              - /url: /twStellerWhale-Ocean2/solLingoIsland/actions
+          - listitem [ref=e115]:
+            - link "Projects" [ref=e116] [cursor=pointer]:
+              - /url: /twStellerWhale-Ocean2/solLingoIsland/projects
+          - listitem [ref=e120]:
+            - link "Security and quality" [ref=e121] [cursor=pointer]:
+              - /url: /twStellerWhale-Ocean2/solLingoIsland/security
+          - listitem [ref=e125]:
+            - link "Insights" [ref=e126] [cursor=pointer]:
+              - /url: /twStellerWhale-Ocean2/solLingoIsland/pulse
+    - generic [ref=e137]:
+      - region "Header" [ref=e139]:
+        - generic [ref=e140]:
+          - 'heading "sprint: 2026-08 — 主題頁未儲存提醒、配色即時套用、朗讀游標 #284" [level=1] [ref=e142]':
+            - text: "sprint: 2026-08 — 主題頁未儲存提醒、配色即時套用、朗讀游標"
+            - generic [ref=e143]: "#284"
+          - generic [ref=e146]:
+            - link "New issue" [ref=e148] [cursor=pointer]:
+              - /url: /login?return_to=https://github.com/twStellerWhale-Ocean2/solLingoIsland/issues/284
+            - button "Copy link" [ref=e151] [cursor=pointer]
+      - generic [ref=e158]:
+        - generic [ref=e160]:
+          - img "Issue" [ref=e161]
+          - text: Open
+        - generic [ref=e168]:
+          - generic [ref=e169]: 0 / 3
+          - generic [ref=e170]: 0 of 3 issues completed
+      - generic [ref=e172]:
+        - generic [ref=e173]:
+          - generic [ref=e176]:
+            - heading "Description" [level=2] [ref=e177]
+            - generic [ref=e179]:
+              - generic [ref=e181]:
+                - link "@carlton0521's profile" [ref=e183] [cursor=pointer]:
+                  - /url: https://github.com/carlton0521
+                  - img "@carlton0521" [ref=e184]
+                - generic [ref=e185]:
+                  - link "carlton0521" [ref=e187] [cursor=pointer]:
+                    - /url: https://github.com/carlton0521
+                  - generic [ref=e188]:
+                    - text: opened
+                    - link "on Aug 3, 202651m ago" [ref=e189] [cursor=pointer]:
+                      - /url: https://github.com/twStellerWhale-Ocean2/solLingoIsland/issues/284#issue-5048123774
+                - generic [ref=e190]:
+                  - button "Last edited by carlton0521" [ref=e193] [cursor=pointer]
+                  - generic [ref=e197]:
+                    - generic "This user is a member of the twStellerWhale-Ocean2 organization." [ref=e199]: Member
+                    - button "Issue body actions" [ref=e201] [cursor=pointer]
+              - generic [ref=e204]:
+                - generic [ref=e206]:
+                  - separator [ref=e207]
+                  - paragraph [ref=e208]: "name: \"sprint: 2026-08 — 主題頁未儲存提醒、配色即時套用、朗讀游標\" date: \"2026-08-03\" description: | 修掉主題頁兩個配色相關缺陷（未儲存離開無提醒、變更後其他分頁不即時套用），並讓電子書朗讀中的游標表達「忙碌但仍可操作」。三件皆為常規增量，發車後達 RELEASED、檢討後關期。 memo: | 登記紀律"
+                  - list [ref=e209]:
+                    - listitem [ref=e210]: 各階段只填自己那個階段的節點，不動別階段的節點。
+                    - listitem [ref=e211]:
+                      - text: 大綱項標記：
+                      - code [ref=e212]: "* [ ]"
+                      - text: 未做／
+                      - code [ref=e213]: "* [✅]"
+                      - text: 順利／
+                      - code [ref=e214]: "* [⁉️]"
+                      - text: 窒礙（窒礙須於
+                      - code [ref=e215]: ">>"
+                      - text: 說明原因）。
+                    - listitem [ref=e216]:
+                      - text: 節點標題末標狀態圖示（🚧／✅／
+                      - generic [ref=e217]: ⁉️
+                      - text: ／⏭️；未開始不標）。
+                    - listitem [ref=e218]:
+                      - code [ref=e219]: ">>"
+                      - text: 記「做了什麼、結果如何、證據在哪」。
+                    - listitem [ref=e220]: 各節點之大綱項由該階段 skill 自其 ＜III＞ 作業步驟展開；作業步驟細節與完成條件不在本單複寫。
+                  - separator [ref=e221]
+                  - heading "I. 緣起目的" [level=1] [ref=e222]
+                  - list [ref=e223]:
+                    - listitem [ref=e224]:
+                      - paragraph [ref=e225]: "[✅] 本期緣起"
+                      - blockquote [ref=e226]:
+                        - blockquote [ref=e227]:
+                          - paragraph [ref=e228]:
+                            - text: 上期（
+                            - 'link "sprint: 2026-07.8 — 驗收腳本相容成品、書櫃卡片標題版面、朗讀中英雙語 #276" [ref=e233] [cursor=pointer]':
+                              - /url: https://github.com/twStellerWhale-Ocean2/solLingoIsland/issues/276
+                            - text: ／2026-07.8）發車 v4.9.0 後，累積三件待辦：主題頁的兩個配色缺陷（
+                            - 'link "主題配色相關兩項。 #281" [ref=e238] [cursor=pointer]':
+                              - /url: https://github.com/twStellerWhale-Ocean2/solLingoIsland/issues/281
+                            - text: 拆為
+                            - 'link "fix(present): 主題頁未儲存離開時提醒 #285" [ref=e243] [cursor=pointer]':
+                              - /url: https://github.com/twStellerWhale-Ocean2/solLingoIsland/issues/285
+                            - text: ／
+                            - 'link "fix(present): 配色變更即時套用至其他分頁 #286" [ref=e248] [cursor=pointer]':
+                              - /url: https://github.com/twStellerWhale-Ocean2/solLingoIsland/issues/286
+                            - text: ）與電子書朗讀的游標提示（
+                            - 'link "feat(ebook): 朗讀中游標改為忙碌但可操作樣式 #283" [ref=e253] [cursor=pointer]':
+                              - /url: https://github.com/twStellerWhale-Ocean2/solLingoIsland/issues/283
+                            - text: ）。三件皆為使用者實際使用時撞到的體驗問題，規模小、無前置、可一期做完。 另有
+                            - 'link "直接改寫功能 #282" [ref=e258] [cursor=pointer]':
+                              - /url: https://github.com/twStellerWhale-Ocean2/solLingoIsland/issues/282
+                            - text: 「直接改寫功能」（AI 對話式改寫章節內容）規模較大且掛
+                            - code [ref=e259]: upcoming version
+                            - text: ，本期順延。
+                    - listitem [ref=e260]:
+                      - paragraph [ref=e261]: "[✅] 本期目的"
+                      - blockquote [ref=e262]:
+                        - blockquote [ref=e263]:
+                          - list [ref=e264]:
+                            - listitem [ref=e265]: 主題頁補上「未儲存就離開要提醒」（比照設定頁既有作法）。
+                            - listitem [ref=e266]: 主題頁改完配色後，其他分頁（電子書、可能含影片）即時套用最新設定。
+                            - listitem [ref=e267]:
+                              - text: 電子書朗讀進行中，游標改為「忙碌但仍可操作」樣式，讓使用者分得出是否輪到自己。 前兩項之能力並須回填契約
+                              - code [ref=e268]: sysTechType桌面App.md
+                              - text: （桌面通則），使其他桌面產品同受用——該回填於
+                              - code [ref=e269]: 4階段
+                              - text: 落地。 完成後發車，達
+                              - code [ref=e270]: RELEASED
+                              - text: ；檢討並關期，達
+                              - code [ref=e271]: REVIEWED
+                              - text: 。
+                  - heading "II. 參考準備" [level=1] [ref=e272]
+                  - list [ref=e273]:
+                    - listitem [ref=e274]: "[✅] 進度圖"
+                  - paragraph [ref=e275]:
+                    - text: ⬜ 未做／🚧 進行中／✅ 完成／
+                    - generic [ref=e276]: ⁉️
+                    - text: 窒礙／⏭️ 空集跳過
+                  - region "mermaid rendered output container" [ref=e277]:
+                    - generic [ref=e278]:
+                      - generic [ref=e279]:
+                        - group [ref=e280]:
+                          - button "Open dialog" [ref=e281] [cursor=pointer]
+                        - button "Copy mermaid code" [ref=e284] [cursor=pointer]
+                      - iframe [ref=e289]:
+                        - generic [ref=f1e7]:
+                          - button "Zoom in" [ref=f1e8] [cursor=pointer]
+                          - button "Zoom out" [ref=f1e12] [cursor=pointer]
+                          - button "Reset view" [ref=f1e16] [cursor=pointer]
+                          - button "Pan up" [ref=f1e19] [cursor=pointer]
+                          - button "Pan down" [ref=f1e22] [cursor=pointer]
+                          - button "Pan left" [ref=f1e25] [cursor=pointer]
+                          - button "Pan right" [ref=f1e28] [cursor=pointer]
+                    - generic [ref=e290]: Loading
+                  - list [ref=e295]:
+                    - listitem [ref=e296]:
+                      - paragraph [ref=e297]:
+                        - strong [ref=e298]: 本圖之硬規則
+                      - blockquote [ref=e299]:
+                        - blockquote [ref=e300]:
+                          - paragraph [ref=e301]: 本圖是 ＜III＞ 的投影，非另一份正本；於 ＜III＞ 登記時同一次編輯一併更新本圖狀態 不一致時一律以 ＜III＞ 為準、重新生成本圖，不得反向以本圖修改 ＜III＞
+                    - listitem [ref=e302]:
+                      - paragraph [ref=e303]: "[✅] 本期作業範圍"
+                      - blockquote [ref=e304]:
+                        - blockquote [ref=e305]:
+                          - paragraph [ref=e306]:
+                            - strong [ref=e307]: 目標 repo
+                            - text: ：
+                            - code [ref=e308]: twStellerWhale-Ocean2/solLingoIsland
+                            - text: （單一 product repo、同一 main 基底）
+                            - strong [ref=e309]: 期別
+                            - text: ：2026-08
+                            - strong [ref=e310]: 作業模式
+                            - text: ：新建
+                            - strong [ref=e311]: 進場型態
+                            - text: ：常規短衝（非 hotfix）
+                            - strong [ref=e312]: 里程碑期
+                            - text: ：否——本期三件皆常規增量，major 不因里程碑升格
+                            - strong [ref=e313]: 授權等級
+                            - text: ：
+                            - strong [ref=e314]: 全自動
+                            - text: （USR 2026-08-03 裁定）。各
+                            - code [ref=e315]: T
+                            - text: ／
+                            - code [ref=e316]: O
+                            - text: ／
+                            - code [ref=e317]: P
+                            - text: 連跑不停，
+                            - code [ref=e318]: G2
+                            - text: （merge）與
+                            - code [ref=e319]: G3
+                            - text: （發車）由 AGT 代核；
+                            - strong [ref=e320]:
+                              - code [ref=e321]: G4
+                              - text: 恆守 USR，不入授權範圍
+                            - text: 。
+                            - strong [ref=e322]: 子代理
+                            - text: ：
+                            - strong [ref=e323]: 已授權
+                            - text: （USR 2026-08-03）。
+                            - code [ref=e324]: 2incr
+                            - text: 之 design 自足性檢核與
+                            - code [ref=e325]: 3train
+                            - text: 之人工層評審得起子代理執行，
+                            - code [ref=e326]: O1
+                            - text: 所記之該項限制解除。
+                            - strong [ref=e327]: 授權界線
+                            - text: ：授權只免除
+                            - code [ref=e328]: G
+                            - text: 人工核准，
+                            - strong [ref=e329]:
+                              - text: 不免除
+                              - code [ref=e330]: P
+                              - text: 品質自檢
+                            - text: ——各段 GATE 未全綠不得 merge／不得發車。刪除未併入 main 之不明分支、force push、改寫歷史一律排除於授權外。收尾附帶動作（關閉已完成工單、刪已併入之遠端分支、更新本地 main、未修餘項轉開次批）在授權範圍內，AGT 逕行。
+                  - heading "III. 內容程序" [level=1] [ref=e331]
+                  - blockquote [ref=e332]:
+                    - paragraph [ref=e333]:
+                      - strong [ref=e334]:
+                        - text: 本單目前僅投影
+                        - code [ref=e335]: T1
+                        - text: 一節。
+                      - text: 依
+                      - code [ref=e336]: T1 詢問USER工單位置
+                      - text: 之「建單但不投影骨架」——issue 本體於
+                      - code [ref=e337]: T1
+                      - text: 開出，其餘十五個節點骨架與 ＜II＞ 進度圖於
+                      - code [ref=e338]: G1
+                      - text: 之
+                      - code [ref=e339]: 更新ISSUE進度
+                      - text: 一併投影（骨架依賴
+                      - code [ref=e340]: G1
+                      - text: 之名單與授權裁示）。此分工為 USR 2026-08-03 裁定之通用作法，條文修訂列 ＜IV＞ 檢討種子 9。
+                  - heading "A. 1階段（起手管制） → 正本 [2tech-sprintFlow] ＜III＞" [level=2] [ref=e341]
+                  - heading "T1 ✅" [level=3] [ref=e342]
+                  - list [ref=e343]:
+                    - listitem [ref=e344]:
+                      - paragraph [ref=e345]: "[✅] 顯示ISSUE全景"
+                      - blockquote [ref=e346]:
+                        - blockquote [ref=e347]:
+                          - paragraph [ref=e348]:
+                            - text: 於對話串出表：四階段 → 各四節點 → 各節點作業項逐項標狀態，表後標明停在哪一項。起手時十六節點全數未開始。 出表格式經 USR 當場糾正：改為「直列＝4 階段、橫欄＝T/O/P/G 四節點、格內列工作項目及進度」之矩陣式（原正本為
+                            - code [ref=e349]: 階段｜節點｜工項｜狀態
+                            - text: 四欄長條式）。已列檢討種子 2。
+                    - listitem [ref=e350]:
+                      - paragraph [ref=e351]: "[✅] 檢查REPO乾淨備便"
+                      - blockquote [ref=e352]:
+                        - blockquote [ref=e353]:
+                          - paragraph [ref=e354]:
+                            - text: 目標 repo 已確認＝
+                            - code [ref=e355]: twStellerWhale-Ocean2/solLingoIsland
+                            - text: （本機
+                            - code [ref=e356]: C:\Users\User\Documents\Github\solLingoIsland
+                            - text: ）。 在
+                            - code [ref=e357]: main
+                            - text: 且工作區乾淨：
+                            - strong [ref=e358]: 初檢不過
+                            - text: ——
+                            - code [ref=e359]: docs/manual-assets/shelf-card-booklist.png
+                            - text: 有未提交變更（455,734→456,724 bytes）。查證為
+                            - code [ref=e360]: test/scripts/captureShelfCardLayout.ps1
+                            - text: 重截之副產品（該圖上次有意更新為
+                            - 'link "feat(ui): 影片櫃與電子書櫃卡片標題自動換行、主題標籤移至標題前 #278" [ref=e364] [cursor=pointer]':
+                              - /url: https://github.com/twStellerWhale-Ocean2/solLingoIsland/pull/278
+                            - text: ，其後
+                            - 'link "feat(ebook): 朗讀支援中英雙語——依字元 script 切段逐段換聲 #279" [ref=e368] [cursor=pointer]':
+                              - /url: https://github.com/twStellerWhale-Ocean2/solLingoIsland/pull/279
+                            - text: 未動書櫃卡片版面），經 USR 裁示後
+                            - code [ref=e369]: git restore
+                            - text: 丟棄；
+                            - strong [ref=e370]: 未刪檔
+                            - text: ——
+                            - code [ref=e371]: README.md:316
+                            - text: 引用該圖。復檢工作區乾淨。 本地
+                            - code [ref=e372]: main
+                            - text: 已同步
+                            - code [ref=e373]: origin/main
+                            - text: ：兩側同為
+                            - code [ref=e374]: f2974e5
+                            - text: ，落後 0、超前 0。 分支盤點：
+                            - code [ref=e375]: git worktree prune
+                            - text: 後，
+                            - code [ref=e376]: .claude/worktrees/
+                            - text: 下
+                            - code [ref=e377]: confident-kowalevski-8b7cfc
+                            - text: 、
+                            - code [ref=e378]: nifty-chatterjee-79ba3d
+                            - text: 兩個已登記工作目錄皆乾淨且為 detached，未佔用任何分支。本地殘留
+                            - code [ref=e379]: claude/2tech-epic-sprint-11a709
+                            - text: （ebd33a7）與
+                            - code [ref=e380]: claude/confident-kowalevski-8b7cfc
+                            - text: （6a35080），以
+                            - code [ref=e381]: git merge-base --is-ancestor
+                            - text: 驗皆已併入
+                            - code [ref=e382]: origin/main
+                            - text: ，AGT 逕行刪除並知會。遠端以
+                            - code [ref=e383]: git ls-remote --heads origin
+                            - text: 明確列出（非由本地追蹤推測），僅餘
+                            - code [ref=e384]: main
+                            - text: 。
+                            - code [ref=e385]: delete_branch_on_merge
+                            - text: ：
+                            - code [ref=e386]: "true"
+                            - text: ，無須代開。 快速機判於
+                            - code [ref=e387]: main
+                            - text: 抽驗：
+                            - code [ref=e388]: docLint
+                            - text: （formatVersion 4.1）PASS 0 違規；
+                            - code [ref=e389]: repoLint
+                            - text: （repoStructVersion 2.0）PASS 0 違規。 在途工作：
+                            - code [ref=e390]: gh pr list --state open
+                            - text: 為空，無 open／draft PR。
+                    - listitem [ref=e391]:
+                      - paragraph [ref=e392]: "[✅] 詢問USER工單位置"
+                      - blockquote [ref=e393]:
+                        - blockquote [ref=e394]:
+                          - paragraph [ref=e395]:
+                            - text: 先查後問：
+                            - code [ref=e396]: gh issue list --label sprint --state all
+                            - text: 列出既有 sprint 工單 8 張（
+                            - 'link "sprint: 2026-07.8 — 驗收腳本相容成品、書櫃卡片標題版面、朗讀中英雙語 #276" [ref=e401] [cursor=pointer]':
+                              - /url: https://github.com/twStellerWhale-Ocean2/solLingoIsland/issues/276
+                            - text: 2026-07.8／
+                            - 'link "sprint: 2026-07.7 — 電子書內容頁場景圖分隔線快修＋章末雙擊換章 #264" [ref=e406] [cursor=pointer]':
+                              - /url: https://github.com/twStellerWhale-Ocean2/solLingoIsland/issues/264
+                            - text: .7／
+                            - 'link "sprint: 2026-07.6 — 電子書解析器對白遺漏快修（項目符號式對白全丟） #261" [ref=e411] [cursor=pointer]':
+                              - /url: https://github.com/twStellerWhale-Ocean2/solLingoIsland/issues/261
+                            - text: .6／
+                            - 'link "sprint: 2026-07.5 — 電子書編輯匯出、頁面整併與朗讀範圍收尾 #254" [ref=e416] [cursor=pointer]':
+                              - /url: https://github.com/twStellerWhale-Ocean2/solLingoIsland/issues/254
+                            - text: .5／
+                            - 'link "sprint: 2026-07.4 — 電子書閱讀器體驗完善（增量3 內嵌圖＋閱讀器版面整併＋朗讀暫停修復） #238" [ref=e421] [cursor=pointer]':
+                              - /url: https://github.com/twStellerWhale-Ocean2/solLingoIsland/issues/238
+                            - text: .4／
+                            - 'link "sprint: 2026-07.3 — 全量清倉：影片重播暫停修復、排序強化、匯入屏蔽與資料檔三件式 #220" [ref=e426] [cursor=pointer]':
+                              - /url: https://github.com/twStellerWhale-Ocean2/solLingoIsland/issues/220
+                            - text: .3／
+                            - 'link "sprint: 2026-07.2 — 影片欄排序、內容頁快速鍵檢修與設定匯出入 #209" [ref=e431] [cursor=pointer]':
+                              - /url: https://github.com/twStellerWhale-Ocean2/solLingoIsland/issues/209
+                            - text: .2／
+                            - 'link "sprint: 2026-07 — 說話人清單主題色與字數排序、更新紀錄鈕移位 #202" [ref=e436] [cursor=pointer]':
+                              - /url: https://github.com/twStellerWhale-Ocean2/solLingoIsland/issues/202
+                            - text: 2026-07），
+                            - strong [ref=e437]: 全數已關閉
+                            - text: ，無開啟中之期。 三選一結論：
+                            - strong [ref=e438]: 新增
+                            - text: 。依據——無開啟中之期；
+                            - code [ref=e439]: main
+                            - text: （
+                            - 'link "feat(ebook): 朗讀支援中英雙語——依字元 script 切段逐段換聲 #279" [ref=e443] [cursor=pointer]':
+                              - /url: https://github.com/twStellerWhale-Ocean2/solLingoIsland/pull/279
+                            - text: ）已包在 v4.9.0 內（2026-07-29 發佈），無做完未發車之積壓；無 open／draft PR，不存在「已在改碼但未立案」之回補情形。 USR 裁示期別：
+                            - strong [ref=e444]: 2026-08
+                            - text: （不與任何既有期重複，含已關閉者）。 主旨暫定
+                            - code [ref=e445]: "sprint: 2026-08"
+                            - text: ，破折號摘要待
+                            - code [ref=e446]: G1
+                            - text: 裁定名單後補。 本期定位：
+                            - strong [ref=e447]: 非里程碑期
+                            - text: （候選三張皆為常規增量），故 major 不因里程碑升格。
+                    - listitem [ref=e448]:
+                      - paragraph [ref=e449]: "[✅] 更新ISSUE進度"
+                      - blockquote [ref=e450]:
+                        - blockquote [ref=e451]:
+                          - paragraph [ref=e452]:
+                            - text: 本節點依 USR 2026-08-03 裁定之通用作法執行：
+                            - code [ref=e453]: 詢問USER工單位置
+                            - text: 之「新增」＝實際開出 issue，故
+                            - code [ref=e454]: T1
+                            - text: 有回寫標的。 已建本工單（label
+                            - code [ref=e455]: sprint
+                            - text: ），並寫入
+                            - code [ref=e456]: T1
+                            - text: 四項登記。＜II＞ 進度圖與其餘十五節點骨架依分工留待
+                            - code [ref=e457]: G1
+                            - text: 。
+                  - heading "O1 ✅" [level=3] [ref=e458]
+                  - list [ref=e459]:
+                    - listitem [ref=e460]:
+                      - paragraph [ref=e461]: "[✅] 顯示ISSUE全景"
+                      - blockquote [ref=e462]:
+                        - blockquote [ref=e463]:
+                          - paragraph [ref=e464]:
+                            - text: 於對話串出表（矩陣式，見
+                            - code [ref=e465]: T1
+                            - text: 同項之說明），標明停在
+                            - code [ref=e466]: O1
+                            - text: 。
+                    - listitem [ref=e467]:
+                      - paragraph [ref=e468]: "[✅] 盤點工單進度"
+                      - blockquote [ref=e469]:
+                        - blockquote [ref=e470]:
+                          - paragraph [ref=e471]:
+                            - strong [ref=e472]: 新建，自零起跑。
+                            - text: 三處對照——① 本工單 ＜III＞：
+                            - code [ref=e473]: T1
+                            - text: 已完成、其餘未開始；② 名單內子工單：
+                            - code [ref=e474]: O1
+                            - text: 執行前為 0 張；③ repo 產物：
+                            - code [ref=e475]: VERSION
+                            - text: 4.9.0、tag
+                            - code [ref=e476]: v4.9.0
+                            - text: 、Release v4.9.0（2026-07-29）、
+                            - code [ref=e477]: main
+                            - code [ref=e478]: f2974e5
+                            - text: ，三者一致無矛盾。 上一期
+                            - 'link "sprint: 2026-07.8 — 驗收腳本相容成品、書櫃卡片標題版面、朗讀中英雙語 #276" [ref=e483] [cursor=pointer]':
+                              - /url: https://github.com/twStellerWhale-Ocean2/solLingoIsland/issues/276
+                            - text: （2026-07.8）已於 2026-07-30 關閉並發車 v4.9.0，
+                            - strong [ref=e484]: 無跨期滾出項
+                            - text: 。
+                    - listitem [ref=e485]:
+                      - paragraph [ref=e486]: "[✅] 盤點工具備便"
+                      - blockquote [ref=e487]:
+                        - blockquote [ref=e488]:
+                          - paragraph [ref=e489]:
+                            - text: 以「能力」為檢核對象。可用：
+                            - code [ref=e490]: gh
+                            - text: CLI（Issue 讀寫、GraphQL 與 REST sub_issues，本節點已實測）／git 與 worktree 盤點／pwsh 執行
+                            - code [ref=e491]: docLint
+                            - text: ·
+                            - code [ref=e492]: repoLint
+                            - text: ／UIA 驗收腳本 5 支在
+                            - code [ref=e493]: test/scripts/
+                            - text: 。
+                            - strong [ref=e494]:
+                              - generic [ref=e495]: ⚠️
+                              - text: 子代理：工具存在，但本 session 之運行設定為「非經 USR 明示要求不得調用」。
+                            - text: 影響
+                            - code [ref=e496]: 2incr
+                            - text: 之 design 自足性檢核（[STATES.md] ＜5節＞ 硬性要求乾淨脈絡子代理判「僅憑
+                            - code [ref=e497]: design.md
+                            - text: 能否實作」）與
+                            - code [ref=e498]: 3train
+                            - text: 之人工層評審。
+                            - strong [ref=e499]:
+                              - generic [ref=e500]: ⚠️
+                              - text: OpenAI 金鑰自測：預設禁用
+                            - text: （USR 長期指示：不花額度做測試，須逐次授權）。本期名單不含 AI 功能，暫不受影響。 依規矩，環境能力屬
+                            - strong [ref=e501]: 期級屬性
+                            - text: ——上列限制
+                            - strong [ref=e502]:
+                              - text: 一次宣告、統一於
+                              - code [ref=e503]: G4
+                              - text: 一次裁決
+                            - text: ，各段照常標
+                            - code [ref=e504]: ⁉️
+                            - text: 但不逐段重複請示。授權與否於
+                            - code [ref=e505]: G1
+                            - text: 之
+                            - code [ref=e506]: 詢問執行及授權模式
+                            - text: 一併問定。
+                    - listitem [ref=e507]:
+                      - paragraph [ref=e508]: "[✅] 盤點檔案概況"
+                      - blockquote [ref=e509]:
+                        - blockquote [ref=e510]:
+                          - paragraph [ref=e511]:
+                            - text: 只看概況、不逐項標齊缺。
+                            - code [ref=e512]: VERSION
+                            - text: ＝
+                            - code [ref=e513]: 4.9.0
+                            - text: ；tag 最新＝
+                            - code [ref=e514]: v4.9.0
+                            - text: ；Release 最新＝
+                            - code [ref=e515]: v4.9.0
+                            - text: （2026-07-29T17:05Z，掛成品）；
+                            - code [ref=e516]: main
+                            - text: ＝
+                            - code [ref=e517]: f2974e5
+                            - text: （
+                            - 'link "feat(ebook): 朗讀支援中英雙語——依字元 script 切段逐段換聲 #279" [ref=e521] [cursor=pointer]':
+                              - /url: https://github.com/twStellerWhale-Ocean2/solLingoIsland/pull/279
+                            - text: 朗讀中英雙語），
+                            - strong [ref=e522]: 已包在 v4.9.0 內，無做完未發車之積壓
+                            - text: 。 分支：本地與遠端皆僅餘
+                            - code [ref=e523]: main
+                            - text: 。待辦議題：3 張 open（見下項）。 宣稱與產物無不符。
+                    - listitem [ref=e524]:
+                      - paragraph [ref=e525]: "[✅] 盤點候選子項並建子工單"
+                      - blockquote [ref=e526]:
+                        - blockquote [ref=e527]:
+                          - paragraph [ref=e528]:
+                            - strong [ref=e529]: 範圍內每件 open issue 皆在清單，無選擇性列舉、無阻塞項。
+                            - text: 盤點時 open 共 3 張（
+                            - 'link "主題配色相關兩項。 #281" [ref=e534] [cursor=pointer]':
+                              - /url: https://github.com/twStellerWhale-Ocean2/solLingoIsland/issues/281
+                            - text: ／
+                            - 'link "直接改寫功能 #282" [ref=e539] [cursor=pointer]':
+                              - /url: https://github.com/twStellerWhale-Ocean2/solLingoIsland/issues/282
+                            - text: ／
+                            - 'link "feat(ebook): 朗讀中游標改為忙碌但可操作樣式 #283" [ref=e544] [cursor=pointer]':
+                              - /url: https://github.com/twStellerWhale-Ocean2/solLingoIsland/issues/283
+                            - text: ），全庫 153 張中 150 張已關閉。
+                          - table [ref=e546]:
+                            - rowgroup [ref=e547]:
+                              - row [ref=e548]:
+                                - columnheader "#" [ref=e549]
+                                - columnheader "性質" [ref=e550]
+                                - columnheader "規模" [ref=e551]
+                                - columnheader "前置" [ref=e552]
+                                - columnheader "處置（USR 2026-08-03 裁示）" [ref=e553]
+                            - rowgroup [ref=e554]:
+                              - row [ref=e555]:
+                                - cell [ref=e556]:
+                                  - 'link "主題配色相關兩項。 #281" [ref=e561] [cursor=pointer]':
+                                    - /url: https://github.com/twStellerWhale-Ocean2/solLingoIsland/issues/281
+                                - cell "缺陷（含兩子項）" [ref=e562]
+                                - cell "中" [ref=e563]
+                                - cell "無" [ref=e564]
+                                - cell [ref=e565]:
+                                  - strong [ref=e566]: 納入，拆為兩張
+                                  - text: （
+                                  - 'link "fix(present): 主題頁未儲存離開時提醒 #285" [ref=e571] [cursor=pointer]':
+                                    - /url: https://github.com/twStellerWhale-Ocean2/solLingoIsland/issues/285
+                                  - text: 優先 1、
+                                  - 'link "fix(present): 配色變更即時套用至其他分頁 #286" [ref=e576] [cursor=pointer]':
+                                    - /url: https://github.com/twStellerWhale-Ocean2/solLingoIsland/issues/286
+                                  - text: 優先 2）
+                              - row [ref=e577]:
+                                - cell [ref=e578]:
+                                  - 'link "feat(ebook): 朗讀中游標改為忙碌但可操作樣式 #283" [ref=e583] [cursor=pointer]':
+                                    - /url: https://github.com/twStellerWhale-Ocean2/solLingoIsland/issues/283
+                                - cell "增量" [ref=e584]
+                                - cell "小" [ref=e585]
+                                - cell "無" [ref=e586]
+                                - cell [ref=e587]:
+                                  - strong [ref=e588]: 納入
+                                  - text: ，優先 3
+                              - row [ref=e589]:
+                                - cell [ref=e590]:
+                                  - 'link "直接改寫功能 #282" [ref=e595] [cursor=pointer]':
+                                    - /url: https://github.com/twStellerWhale-Ocean2/solLingoIsland/issues/282
+                                - cell "增量" [ref=e596]
+                                - cell "大" [ref=e597]
+                                - cell "AI 服務（已備）" [ref=e598]
+                                - cell [ref=e599]:
+                                  - strong [ref=e600]: 順延下期
+                          - paragraph [ref=e601]:
+                            - strong [ref=e602]:
+                              - text: 拆分理由（
+                              - 'link "主題配色相關兩項。 #281" [ref=e607] [cursor=pointer]':
+                                - /url: https://github.com/twStellerWhale-Ocean2/solLingoIsland/issues/281
+                              - text: ）
+                            - text: ：兩子項技術上不同——① 換頁攔截與 dirty 狀態追蹤；② 設定變更之通知／訂閱機制。拆開後各自能獨立走完，合「拆是為了讓每件能獨立走完」。
+                            - strong [ref=e608]:
+                              - text: 順延理由（
+                              - 'link "直接改寫功能 #282" [ref=e613] [cursor=pointer]':
+                                - /url: https://github.com/twStellerWhale-Ocean2/solLingoIsland/issues/282
+                              - text: ）
+                            - text: ：掛
+                            - code [ref=e614]: upcoming version
+                            - text: label；前置不缺（已查證
+                            - code [ref=e615]: modPresent/AiActionWindow.xaml.cs
+                            - text: 、
+                            - code [ref=e616]: modVideoCapture/AiCost.cs
+                            - text: 、
+                            - code [ref=e617]: modQuery/QueryService.cs
+                            - text: 之 AI 基礎設施齊全），純粹是
+                            - strong [ref=e618]: 規模
+                            - text: 。建議日後先開一張設計題定互動模式（對話式 vs 單次指令、改寫範圍、預覽與還原），設計過了再開實作。
+                          - paragraph [ref=e619]:
+                            - strong [ref=e620]: 已建立之增量子工單（皆掛為本工單 sub-issue，已讀回驗證）
+                            - text: ：
+                          - list [ref=e621]:
+                            - listitem [ref=e622]:
+                              - 'link "fix(present): 主題頁未儲存離開時提醒 #285" [ref=e627] [cursor=pointer]':
+                                - /url: https://github.com/twStellerWhale-Ocean2/solLingoIsland/issues/285
+                              - code [ref=e628]: "fix(present): 主題頁未儲存離開時提醒"
+                              - text: （label
+                              - code [ref=e629]: bug
+                              - text: ）
+                            - listitem [ref=e630]:
+                              - 'link "fix(present): 配色變更即時套用至其他分頁 #286" [ref=e635] [cursor=pointer]':
+                                - /url: https://github.com/twStellerWhale-Ocean2/solLingoIsland/issues/286
+                              - code [ref=e636]: "fix(present): 配色變更即時套用至其他分頁"
+                              - text: （label
+                              - code [ref=e637]: bug
+                              - text: ）
+                            - listitem [ref=e638]:
+                              - 'link "feat(ebook): 朗讀中游標改為忙碌但可操作樣式 #283" [ref=e643] [cursor=pointer]':
+                                - /url: https://github.com/twStellerWhale-Ocean2/solLingoIsland/issues/283
+                              - code [ref=e644]: "feat(ebook): 朗讀中游標改為忙碌但可操作樣式"
+                              - text: （label
+                              - code [ref=e645]: enhancement
+                              - text: ；
+                              - strong [ref=e646]:
+                                - text: 原標題「有時候電子書發音間隔時…」為 USR 原始需求，依
+                                - code [ref=e647]: O1
+                                - text: 正規化規則就地改為本標題
+                              - text: ，原文與規格澄清保留於其內文）
+                          - paragraph [ref=e648]:
+                            - strong [ref=e649]:
+                              - 'link "主題配色相關兩項。 #281" [ref=e654] [cursor=pointer]':
+                                - /url: https://github.com/twStellerWhale-Ocean2/solLingoIsland/issues/281
+                              - text: 已關閉
+                            - text: （留言載明拆分去向與理由，
+                            - strong [ref=e655]: 不刪
+                            - text: ，原始需求文字保留備查）——依 USR 2026-08-03 對「原始需求 vs 交付子工單」之區分：原始需求是進料、不是工單。
+                          - paragraph [ref=e656]:
+                            - strong [ref=e657]: 標題正規化依據
+                            - text: ：B 軸
+                            - code [ref=e658]: "type(scope): 描述"
+                            - text: 。
+                            - code [ref=e659]: present
+                            - text: →
+                            - code [ref=e660]: modPresent
+                            - text: （主題頁＝
+                            - code [ref=e661]: ThemeManagementPage
+                            - text: ）、
+                            - code [ref=e662]: ebook
+                            - text: →電子書功能面（沿本 repo 既有慣例，如
+                            - 'link "fix(ebook): 內容頁場景圖分隔線拖曳調錯目標列、閱讀區不隨之伸縮 #265" [ref=e667] [cursor=pointer]':
+                              - /url: https://github.com/twStellerWhale-Ocean2/solLingoIsland/issues/265
+                            - code [ref=e668]: "fix(ebook): 內容頁場景圖分隔線…"
+                            - text: ）。詳見 ＜IV＞ 種子 5。
+                          - paragraph [ref=e669]:
+                            - strong [ref=e670]: 本期契約回填要求（USR 指定）
+                            - text: ：
+                            - 'link "fix(present): 主題頁未儲存離開時提醒 #285" [ref=e675] [cursor=pointer]':
+                              - /url: https://github.com/twStellerWhale-Ocean2/solLingoIsland/issues/285
+                            - text: ／
+                            - 'link "fix(present): 配色變更即時套用至其他分頁 #286" [ref=e680] [cursor=pointer]':
+                              - /url: https://github.com/twStellerWhale-Ocean2/solLingoIsland/issues/286
+                            - text: 兩件之能力（未儲存離開提醒、設定變更即時套用）須寫入
+                            - code [ref=e681]: 2tech-sprintFlow/範本庫/sysTechType桌面App.md
+                            - text: 之桌面通則能力清單，非僅本 repo 修一次。
+                          - paragraph [ref=e682]:
+                            - strong [ref=e683]: label 現況與家族正本不符
+                            - text: ：家族規定子工單掛
+                            - code [ref=e684]: increment
+                            - text: ，本 repo 無此 label，實掛
+                            - code [ref=e685]: bug
+                            - text: ／
+                            - code [ref=e686]: enhancement
+                            - text: 。依「沿用既有工單而該 repo 無此慣例者不強掛」處理，已列 ＜IV＞ 種子 5。
+                    - listitem [ref=e687]:
+                      - paragraph [ref=e688]: "[✅] 更新ISSUE進度"
+                      - blockquote [ref=e689]:
+                        - blockquote [ref=e690]:
+                          - paragraph [ref=e691]:
+                            - text: 本節點回寫。
+                            - code [ref=e692]: O1
+                            - text: 之
+                            - code [ref=e693]: 盤點候選子項並建子工單
+                            - text: 依 USR 2026-08-03 對 T/O/P/G 之界定執行——
+                            - strong [ref=e694]:
+                              - text: 名單裁示於
+                              - code [ref=e695]: O1
+                              - text: 當場取得，未累積至
+                              - code [ref=e696]: G1
+                            - text: （理由：名單未定則
+                            - code [ref=e697]: P1
+                            - text: 之
+                            - code [ref=e698]: 核對子項可行性
+                            - text: 無標的可驗）。詳見 ＜IV＞ 種子 10。
+                  - heading "P1 ✅" [level=3] [ref=e699]
+                  - list [ref=e700]:
+                    - listitem [ref=e701]:
+                      - paragraph [ref=e702]: "[✅] 顯示ISSUE全景"
+                      - blockquote [ref=e703]:
+                        - blockquote [ref=e704]:
+                          - paragraph [ref=e705]:
+                            - text: 於對話串出表（矩陣式），標明停在
+                            - code [ref=e706]: P1
+                            - text: 。
+                    - listitem [ref=e707]:
+                      - paragraph [ref=e708]: "[✅] 核對T1O1各項已完成"
+                      - blockquote [ref=e709]:
+                        - blockquote [ref=e710]:
+                          - paragraph [ref=e711]:
+                            - text: 逐組確認皆有
+                            - code [ref=e712]: ">>"
+                            - text: 證據登記、無空格、無未解之窒礙：
+                          - list [ref=e713]:
+                            - listitem [ref=e714]:
+                              - code [ref=e715]: 檢查REPO乾淨備便
+                              - text: ✅（含初檢不過→處置→復檢之完整紀錄）
+                            - listitem [ref=e716]:
+                              - code [ref=e717]: 詢問USER工單位置
+                              - text: ✅（先查後問清單、三選一結論、期別）
+                            - listitem [ref=e718]:
+                              - code [ref=e719]: 盤點工單進度
+                              - text: ✅（三處對照、自零起跑、無跨期滾出）
+                            - listitem [ref=e720]:
+                              - code [ref=e721]: 盤點工具備便
+                              - text: ✅（含子代理與 OpenAI 兩項限制之宣告）
+                            - listitem [ref=e722]:
+                              - code [ref=e723]: 盤點檔案概況
+                              - text: ＋
+                              - code [ref=e724]: 盤點候選子項並建子工單
+                              - text: ✅（三張逐件處置、子工單已建已掛） 期別
+                              - code [ref=e725]: 2026-08
+                              - text: 不與任何既有期重複（含已關閉者，
+                              - code [ref=e726]: "--state all"
+                              - text: 實查）；子代理可用性已記於
+                              - code [ref=e727]: O1
+                              - text: 。
+                    - listitem [ref=e728]:
+                      - paragraph [ref=e729]: "[✅] 核對工單骨架與階段表一致"
+                      - blockquote [ref=e730]:
+                        - blockquote [ref=e731]:
+                          - paragraph [ref=e732]:
+                            - text: 正本＝[2tech-sprintFlow/README.md] 階段表：
+                            - strong [ref=e733]: 4 階段 × 各 4 節點（T／O／P／G）＝ 16 節點
+                            - text: ，節點數以階段表動態比對、未寫死。 現況為
+                            - strong [ref=e734]: 部分投影
+                            - text: ——＜III＞ 目前僅
+                            - code [ref=e735]: "## A. 1階段（起手管制）"
+                            - text: 之
+                            - code [ref=e736]: T1
+                            - text: ／
+                            - code [ref=e737]: O1
+                            - text: ／
+                            - code [ref=e738]: P1
+                            - text: 三節點；已投影者之階段標題與節點名與階段表
+                            - strong [ref=e739]: 逐字相符
+                            - text: 。
+                            - strong [ref=e740]: 此為 USR 2026-08-03 新分工之預期狀態，非缺漏
+                            - text: （
+                            - code [ref=e741]: T1
+                            - text: 建單 → 各節點完成時增補自己那格 →
+                            - code [ref=e742]: G1
+                            - text: 投影其餘 13 節點與 ＜II＞ 進度圖）。明記於此，以免事後分不出「尚未投影」與「漏投影」。
+                    - listitem [ref=e743]:
+                      - paragraph [ref=e744]: "[✅] 核對本期未重複立案"
+                      - blockquote [ref=e745]:
+                        - blockquote [ref=e746]:
+                          - paragraph [ref=e747]:
+                            - code [ref=e748]: gh issue list --label sprint --state all
+                            - text: （
+                            - strong [ref=e749]: 非只查 open
+                            - text: ）：含
+                            - code [ref=e750]: 2026-08
+                            - text: 者僅
+                            - strong [ref=e751]:
+                              - 'link "sprint: 2026-08 — 主題頁未儲存提醒、配色即時套用、朗讀游標 #284" [ref=e756] [cursor=pointer]':
+                                - /url: https://github.com/twStellerWhale-Ocean2/solLingoIsland/issues/284
+                            - text: 一張。無重複立案。
+                    - listitem [ref=e757]:
+                      - paragraph [ref=e758]: "[✅] 核對子項可行性"
+                      - blockquote [ref=e759]:
+                        - blockquote [ref=e760]:
+                          - paragraph [ref=e761]: 逐件驗「能不能走完」——完成定義是否對應得上、所需前置是否可滿足、是否有跨件依賴成環：
+                          - table [ref=e763]:
+                            - rowgroup [ref=e764]:
+                              - row [ref=e765]:
+                                - columnheader "#" [ref=e766]
+                                - columnheader "完成定義對得上？" [ref=e767]
+                                - columnheader "前置可滿足？" [ref=e768]
+                                - columnheader "依賴" [ref=e769]
+                                - columnheader "結論" [ref=e770]
+                            - rowgroup [ref=e771]:
+                              - row [ref=e772]:
+                                - cell [ref=e773]:
+                                  - 'link "fix(present): 主題頁未儲存離開時提醒 #285" [ref=e778] [cursor=pointer]':
+                                    - /url: https://github.com/twStellerWhale-Ocean2/solLingoIsland/issues/285
+                                - cell [ref=e779]:
+                                  - text: ✅ 有現成可比照之實作（
+                                  - code [ref=e780]: OptionsPage.xaml.cs:143-148
+                                  - text: ）
+                                - cell "✅ 無前置" [ref=e781]
+                                - cell "無" [ref=e782]
+                                - cell [ref=e783]:
+                                  - strong [ref=e784]: 可行
+                              - row [ref=e785]:
+                                - cell [ref=e786]:
+                                  - 'link "fix(present): 配色變更即時套用至其他分頁 #286" [ref=e791] [cursor=pointer]':
+                                    - /url: https://github.com/twStellerWhale-Ocean2/solLingoIsland/issues/286
+                                - cell [ref=e792]:
+                                  - text: ✅ 主題資料源
+                                  - code [ref=e793]: modQuery/ThemeStore.cs
+                                  - text: 已存在
+                                - cell "✅ 無前置" [ref=e794]
+                                - cell "見下" [ref=e795]
+                                - cell [ref=e796]:
+                                  - strong [ref=e797]: 可行（附排程約束）
+                              - row [ref=e798]:
+                                - cell [ref=e799]:
+                                  - 'link "feat(ebook): 朗讀中游標改為忙碌但可操作樣式 #283" [ref=e804] [cursor=pointer]':
+                                    - /url: https://github.com/twStellerWhale-Ocean2/solLingoIsland/issues/283
+                                - cell [ref=e805]:
+                                  - text: ✅ 游標語意已由 USR 澄清（忙碌但可操作）、
+                                  - code [ref=e806]: Cursors.*
+                                  - text: 已廣泛使用
+                                - cell "✅ 無前置" [ref=e807]
+                                - cell "無" [ref=e808]
+                                - cell [ref=e809]:
+                                  - strong [ref=e810]: 可行
+                          - paragraph [ref=e811]:
+                            - strong [ref=e812]: 無跨件依賴成環。
+                            - strong [ref=e813]:
+                              - generic [ref=e814]: ⚠️
+                              - text: 排程約束（非阻斷）
+                            - text: ：
+                            - 'link "fix(present): 主題頁未儲存離開時提醒 #285" [ref=e819] [cursor=pointer]':
+                              - /url: https://github.com/twStellerWhale-Ocean2/solLingoIsland/issues/285
+                            - text: 與
+                            - 'link "fix(present): 配色變更即時套用至其他分頁 #286" [ref=e824] [cursor=pointer]':
+                              - /url: https://github.com/twStellerWhale-Ocean2/solLingoIsland/issues/286
+                            - text: 皆改
+                            - code [ref=e825]: sysLingoIsland/modPresent/ThemeManagementPage.xaml.cs
+                            - text: ，同檔併行會衝突。
+                            - strong [ref=e826]:
+                              - text: 建議依序推進（
+                              - 'link "fix(present): 主題頁未儲存離開時提醒 #285" [ref=e831] [cursor=pointer]':
+                                - /url: https://github.com/twStellerWhale-Ocean2/solLingoIsland/issues/285
+                              - text: →
+                              - 'link "fix(present): 配色變更即時套用至其他分頁 #286" [ref=e836] [cursor=pointer]':
+                                - /url: https://github.com/twStellerWhale-Ocean2/solLingoIsland/issues/286
+                              - text: ）或併於同一工作分支
+                            - text: ，
+                            - code [ref=e837]: 2incr
+                            - text: 之
+                            - code [ref=e838]: 判定逐張或批次
+                            - text: 節點據此判定；依 [2tech-sprintFlow-2incr] 之批次判準「同檔命中 → 維持逐張收尾」，本組應走
+                            - strong [ref=e839]: 逐張
+                            - text: 。
+                            - strong [ref=e840]:
+                              - generic [ref=e841]: ⚠️
+                              - text: 跨 repo 事項（已定處置，非阻斷）
+                            - text: ：
+                            - 'link "fix(present): 主題頁未儲存離開時提醒 #285" [ref=e846] [cursor=pointer]':
+                              - /url: https://github.com/twStellerWhale-Ocean2/solLingoIsland/issues/285
+                            - text: ／
+                            - 'link "fix(present): 配色變更即時套用至其他分頁 #286" [ref=e851] [cursor=pointer]':
+                              - /url: https://github.com/twStellerWhale-Ocean2/solLingoIsland/issues/286
+                            - text: 之契約回填目標
+                            - code [ref=e852]: 2tech-sprintFlow/範本庫/sysTechType桌面App.md
+                            - text: 位於
+                            - strong [ref=e853]: skills 庫
+                            - text: ，不在本 repo 之
+                            - code [ref=e854]: CODE-READY
+                            - text: 判準內。處置——本期於本 repo 完成程式與測試即達
+                            - code [ref=e855]: CODE-READY
+                            - text: ；
+                            - strong [ref=e856]:
+                              - text: 契約回填列為檢討種子，於
+                              - code [ref=e857]: 4階段
+                              - text: 由
+                              - code [ref=e858]: O4
+                              - text: 調用 [9general-maintainSuite-1skill] 時落地
+                            - text: （合家族規則「檢討結論若屬選型契約知識，落點是範本庫」）。
+                          - paragraph [ref=e859]:
+                            - strong [ref=e860]:
+                              - text: 三件皆可行，無不可行之件進
+                              - code [ref=e861]: G1
+                              - text: 。
+                    - listitem [ref=e862]:
+                      - paragraph [ref=e863]: "[✅] 更新ISSUE進度"
+                      - blockquote [ref=e864]:
+                        - blockquote [ref=e865]:
+                          - paragraph [ref=e866]:
+                            - text: 本節點回寫。
+                            - code [ref=e867]: P1
+                            - text: 僅判過不過，未蒐集實質資料、未產出給 USR 裁決之表——後者屬
+                            - code [ref=e868]: G1
+                            - text: 。
+                  - heading [level=3] [ref=e869]:
+                    - text: G1（
+                    - code [ref=e870]: BATCH-READY
+                    - text: ；恆守 USR）✅
+                  - list [ref=e871]:
+                    - listitem [ref=e872]:
+                      - paragraph [ref=e873]: "[✅] 顯示ISSUE全景"
+                      - blockquote [ref=e874]:
+                        - blockquote [ref=e875]:
+                          - paragraph [ref=e876]:
+                            - text: 於對話串出表（矩陣式），標明停在
+                            - code [ref=e877]: G1
+                            - text: 。
+                    - listitem [ref=e878]:
+                      - paragraph [ref=e879]: "[✅] 呈報並請USR裁示"
+                      - blockquote [ref=e880]:
+                        - blockquote [ref=e881]:
+                          - paragraph [ref=e882]:
+                            - strong [ref=e883]: ℹ️ 小結呈報
+                            - text: （不要求 USR 逐列回應——名單已於
+                            - code [ref=e884]: O1
+                            - text: 當場裁定，見種子 10）：目標 repo、工單定位、工單進度、工具備便、
+                            - code [ref=e885]: VERSION
+                            - text: ／tag／Release 現況、本期名單三件與順延一件、
+                            - code [ref=e886]: P1
+                            - text: 可行性結論與兩項非阻斷註記（
+                            - 'link "fix(present): 主題頁未儲存離開時提醒 #285" [ref=e891] [cursor=pointer]':
+                              - /url: https://github.com/twStellerWhale-Ocean2/solLingoIsland/issues/285
+                            - text: ／
+                            - 'link "fix(present): 配色變更即時套用至其他分頁 #286" [ref=e896] [cursor=pointer]':
+                              - /url: https://github.com/twStellerWhale-Ocean2/solLingoIsland/issues/286
+                            - text: 同檔須逐張、契約回填跨 repo 歸
+                            - code [ref=e897]: 4階段
+                            - text: ）。
+                            - strong [ref=e898]: 🙋 真正待決者兩題
+                            - text: （各附建議值）：授權等級、子代理授權。USR 均已裁示，見下項。 主旨依
+                            - code [ref=e899]: O1
+                            - text: 定案之名單補上摘要：
+                            - code [ref=e900]: "sprint: 2026-08 — 主題頁未儲存提醒、配色即時套用、朗讀游標"
+                            - text: 。
+                    - listitem [ref=e901]:
+                      - paragraph [ref=e902]: "[✅] 詢問執行及授權模式"
+                      - blockquote [ref=e903]:
+                        - blockquote [ref=e904]:
+                          - paragraph [ref=e905]:
+                            - strong [ref=e906]: 作業模式
+                            - text: ：新建（
+                            - code [ref=e907]: T1
+                            - text: 已定）。
+                            - strong [ref=e908]: 進場型態
+                            - text: ：常規短衝。非 hotfix——本期無線上缺陷須立刻修復發車之情形，故
+                            - code [ref=e909]: G3
+                            - text: 不適用「hotfix 恆守 USR」之加嚴。
+                            - strong [ref=e910]: 授權等級
+                            - text: ：
+                            - strong [ref=e911]: 全自動
+                            - text: （USR 2026-08-03 裁定）。
+                            - strong [ref=e912]: 子代理
+                            - text: ：
+                            - strong [ref=e913]: 已授權
+                            - text: （USR 2026-08-03 裁定），
+                            - code [ref=e914]: O1
+                            - text: 所宣告之該項限制解除；OpenAI 金鑰自測仍為預設禁用，本期名單不含 AI 功能、不受影響。
+                            - strong [ref=e915]: 已向 USR 說明之授權界線
+                            - text: ：
+                            - code [ref=e916]: G2
+                            - text: ／
+                            - code [ref=e917]: G3
+                            - text: 得代核；
+                            - strong [ref=e918]:
+                              - code [ref=e919]: G1
+                              - text: 與
+                              - code [ref=e920]: G4
+                              - text: 恆守 USR
+                            - text: ，全自動不豁免。授權只免
+                            - code [ref=e921]: G
+                            - text: 人工核准，不免
+                            - code [ref=e922]: P
+                            - text: 品質自檢。 上列模式與授權記於本節點，
+                            - code [ref=e923]: 2incr
+                            - text: ／
+                            - code [ref=e924]: 3train
+                            - text: ／
+                            - code [ref=e925]: 4階段
+                            - text: 起手時
+                            - strong [ref=e926]: 自本工單讀取，不靠對話記憶
+                            - text: 。
+                    - listitem [ref=e927]:
+                      - paragraph [ref=e928]: "[✅] 確認狀態達成"
+                      - blockquote [ref=e929]:
+                        - blockquote [ref=e930]:
+                          - paragraph [ref=e931]:
+                            - code [ref=e932]: T1
+                            - text: ／
+                            - code [ref=e933]: O1
+                            - text: ／
+                            - code [ref=e934]: P1
+                            - text: ／
+                            - code [ref=e935]: G1
+                            - text: 四節點皆已登記，無
+                            - code [ref=e936]: "* [ ]"
+                            - text: 殘留、無未解之
+                            - code [ref=e937]: "* [⁉️]"
+                            - text: 。 ＜I＞ 已填齊；＜II＞ 進度圖已生成且與 ＜III＞ 狀態一致；＜III＞ 之 1階段 四節點全標 ✅。 回寫已讀回驗證（行數與關鍵行核對）。
+                            - strong [ref=e938]:
+                              - text: 狀態達成：
+                              - code [ref=e939]: BATCH-READY
+                              - text: 。
+                    - listitem [ref=e940]:
+                      - paragraph [ref=e941]: "[✅] 更新ISSUE進度"
+                      - blockquote [ref=e942]:
+                        - blockquote [ref=e943]:
+                          - paragraph [ref=e944]: 本節點回寫，並依 [0shared/子技能/sub-issue-projection/subSKILL.md] ＜III.A＞ 之新建投影，補齊其餘骨架：
+                          - list [ref=e945]:
+                            - listitem [ref=e946]:
+                              - text: ＜III＞ 之
+                              - code [ref=e947]: "## B. 2階段"
+                              - text: ／
+                              - code [ref=e948]: "## C. 3階段"
+                              - text: ／
+                              - code [ref=e949]: "## D. 4階段"
+                              - text: 共 12 節點已投影，各節點大綱項
+                              - strong [ref=e950]: 逐字照抄
+                              - text: 該階段 skill ＜III＞ 之
+                              - code [ref=e951]: "####"
+                              - text: 子標題（
+                              - code [ref=e952]: 2incr
+                              - text: ／
+                              - code [ref=e953]: 3train
+                              - text: ／本 skill 之 4階段），未自創、未改寫、未增刪。
+                            - listitem [ref=e954]:
+                              - text: ＜II＞ 進度圖已生成（
+                              - code [ref=e955]: flowchart TB
+                              - text: 、各階段
+                              - code [ref=e956]: subgraph
+                              - text: 加
+                              - code [ref=e957]: direction LR
+                              - text: 、連線一律連真實節點不連 subgraph id、圖置於頂層不置於
+                              - code [ref=e958]: "* [ ]"
+                              - text: 之內）。
+                            - listitem [ref=e959]:
+                              - text: ＜IV＞ 之投影來源已更新。
+                              - strong [ref=e960]:
+                                - generic [ref=e961]: ⁉️
+                                - text: 渲染驗證僅部分完成（誠實記載，勿當已驗）
+                              - text: ：subSKILL 要求「投影後須實際確認渲染成功，不得只靠語法檢查」。實測結果——GitHub
+                              - strong [ref=e962]: 已解析為 mermaid
+                              - text: （
+                              - code [ref=e963]: js-render-enrichment-target
+                              - text: 內含本圖原始碼，並已產生
+                              - code [ref=e964]: viewscreen.githubusercontent.com/markdown/mermaid
+                              - text: 之 render iframe）、
+                              - strong [ref=e965]:
+                                - text: 未出現
+                                - code [ref=e966]: Unable to render
+                              - text: 、
+                              - strong [ref=e967]:
+                                - text: 未落回原始碼
+                                - code [ref=e968]: pre
+                                - text: fallback
+                              - text: 、enrichment loader 已隱藏（GitHub 視為 enrichment 完成）。
+                              - strong [ref=e969]: 但
+                              - text: 該 iframe 為跨網域無法內視，且本 session 之瀏覽器窗格未顯示（不 compositing、無 console 輸出、iframe 高度停在預設 180px），故
+                              - strong [ref=e970]: 最終圖形是否正確畫出未能親眼確認
+                              - text: 。 兩個已知致命寫法已於構造時規避：圖置於頂層而非
+                              - code [ref=e971]: "* [ ]"
+                              - text: 之內；連線一律連真實節點、未以 subgraph id 為端點。
+                              - strong [ref=e972]: 待補
+                              - text: ：USR 於
+                              - 'link "sprint: 2026-08 — 主題頁未儲存提醒、配色即時套用、朗讀游標 #284" [ref=e977] [cursor=pointer]':
+                                - /url: https://github.com/twStellerWhale-Ocean2/solLingoIsland/issues/284
+                              - text: 頁面一眼確認，或下次瀏覽器窗格可顯示時補驗；若實際未渲染，依 subSKILL「先做同一份內容只換位置／容器的對照實驗，不要逐項改語法」處理。
+                              - strong [ref=e978]: 已知偏差（明記）
+                              - text: ：
+                              - code [ref=e979]: 2incr
+                              - text: 之
+                              - code [ref=e980]: P2
+                              - text: ／
+                              - code [ref=e981]: G2
+                              - text: 與
+                              - code [ref=e982]: 3train
+                              - text: 之
+                              - code [ref=e983]: P3
+                              - text: ／
+                              - code [ref=e984]: G3
+                              - text: 四節點
+                              - strong [ref=e985]:
+                                - text: 無
+                                - code [ref=e986]: 顯示ISSUE全景
+                                - text: ／
+                                - code [ref=e987]: 更新ISSUE進度
+                                - text: 兩共用工項
+                              - text: ，
+                              - code [ref=e988]: O2
+                              - text: ／
+                              - code [ref=e989]: O3
+                              - text: 末項亦未用共用工項名。投影紀律要求逐字照抄該 skill 子標題、不得代為補項，故本工單照現況投影。此為存量違規，已列 ＜IV＞ 種子 4。
+                  - heading "B. 2階段（incr） → 正本 [2tech-sprintFlow-2incr] ＜III＞" [level=2] [ref=e990]
+                  - heading "T2" [level=3] [ref=e991]
+                  - list [ref=e992]:
+                    - listitem [ref=e993]:
+                      - generic [ref=e995]:
+                        - generic [ref=e1001]:
+                          - checkbox "顯示ISSUE全景 checklist item" [disabled] [ref=e1002]
+                          - generic [ref=e1003]:
+                            - text: 顯示ISSUE全景
+                            - blockquote:
+                              - blockquote
+                        - generic [ref=e1010]:
+                          - checkbox "確認上游狀態達成 checklist item" [disabled] [ref=e1011]
+                          - generic [ref=e1012]:
+                            - text: 確認上游狀態達成
+                            - blockquote:
+                              - blockquote
+                        - generic [ref=e1019]:
+                          - checkbox "確認資源備妥 checklist item" [disabled] [ref=e1020]
+                          - generic [ref=e1021]:
+                            - text: 確認資源備妥
+                            - blockquote:
+                              - blockquote
+                        - generic [ref=e1028]:
+                          - checkbox "更新ISSUE進度 checklist item" [disabled] [ref=e1029]
+                          - generic [ref=e1030]:
+                            - text: 更新ISSUE進度
+                            - blockquote:
+                              - blockquote
+                      - status [ref=e1032]
+                  - heading "O2" [level=3] [ref=e1033]
+                  - list [ref=e1034]:
+                    - listitem [ref=e1035]:
+                      - generic [ref=e1037]:
+                        - generic [ref=e1043]:
+                          - checkbox "顯示ISSUE全景 checklist item" [disabled] [ref=e1044]
+                          - generic [ref=e1045]:
+                            - text: 顯示ISSUE全景
+                            - blockquote:
+                              - blockquote
+                        - generic [ref=e1052]:
+                          - checkbox "盤點現況判作業模式 checklist item" [disabled] [ref=e1053]
+                          - generic [ref=e1054]:
+                            - text: 盤點現況判作業模式
+                            - blockquote:
+                              - blockquote
+                        - generic [ref=e1061]:
+                          - checkbox "判定逐張或批次 checklist item" [disabled] [ref=e1062]
+                          - generic [ref=e1063]:
+                            - text: 判定逐張或批次
+                            - blockquote:
+                              - blockquote
+                        - generic [ref=e1070]:
+                          - checkbox "推進各件經子技能 checklist item" [disabled] [ref=e1071]
+                          - generic [ref=e1072]:
+                            - text: 推進各件經子技能
+                            - blockquote:
+                              - blockquote
+                        - generic [ref=e1079]:
+                          - checkbox "檢核design自足性 checklist item" [disabled] [ref=e1080]
+                          - generic [ref=e1081]:
+                            - text: 檢核design自足性
+                            - blockquote:
+                              - blockquote
+                        - generic [ref=e1088]:
+                          - checkbox "回填各件進度 checklist item" [disabled] [ref=e1089]
+                          - generic [ref=e1090]:
+                            - text: 回填各件進度
+                            - blockquote:
+                              - blockquote
+                      - status [ref=e1092]
+                  - heading "P2（不可跳過）" [level=3] [ref=e1093]
+                  - list [ref=e1094]:
+                    - listitem [ref=e1095]:
+                      - generic [ref=e1097]:
+                        - generic [ref=e1103]:
+                          - checkbox "核對O2各項已完成 checklist item" [disabled] [ref=e1104]
+                          - generic [ref=e1105]:
+                            - text: 核對O2各項已完成
+                            - blockquote:
+                              - blockquote
+                        - generic [ref=e1112]:
+                          - checkbox "跑各件子技能GATE checklist item" [disabled] [ref=e1113]
+                          - generic [ref=e1114]:
+                            - text: 跑各件子技能GATE
+                            - blockquote:
+                              - blockquote
+                        - generic [ref=e1121]:
+                          - checkbox "確認全綠才放行 checklist item" [disabled] [ref=e1122]
+                          - generic [ref=e1123]:
+                            - text: 確認全綠才放行
+                            - blockquote:
+                              - blockquote
+                      - status [ref=e1125]
+                  - heading [level=3] [ref=e1126]:
+                    - text: G2（
+                    - code [ref=e1127]: INCR-DONE
+                    - text: ；授權可代核）
+                  - list [ref=e1128]:
+                    - listitem [ref=e1129]:
+                      - generic [ref=e1131]:
+                        - generic [ref=e1137]:
+                          - checkbox "取得merge核准 checklist item" [disabled] [ref=e1138]
+                          - generic [ref=e1139]:
+                            - text: 取得merge核准
+                            - blockquote:
+                              - blockquote
+                        - generic [ref=e1146]:
+                          - checkbox "執行收尾附帶動作 checklist item" [disabled] [ref=e1147]
+                          - generic [ref=e1148]:
+                            - text: 執行收尾附帶動作
+                            - blockquote:
+                              - blockquote
+                        - generic [ref=e1155]:
+                          - checkbox "回寫工單 checklist item" [disabled] [ref=e1156]
+                          - generic [ref=e1157]:
+                            - text: 回寫工單
+                            - blockquote:
+                              - blockquote
+                        - generic [ref=e1164]:
+                          - checkbox "確認狀態達成 checklist item" [disabled] [ref=e1165]
+                          - generic [ref=e1166]:
+                            - text: 確認狀態達成
+                            - blockquote:
+                              - blockquote
+                      - status [ref=e1168]
+                  - heading "C. 3階段（train） → 正本 [2tech-sprintFlow-3train] ＜III＞" [level=2] [ref=e1169]
+                  - heading "T3" [level=3] [ref=e1170]
+                  - list [ref=e1171]:
+                    - listitem [ref=e1172]:
+                      - generic [ref=e1174]:
+                        - generic [ref=e1180]:
+                          - checkbox "顯示ISSUE全景 checklist item" [disabled] [ref=e1181]
+                          - generic [ref=e1182]:
+                            - text: 顯示ISSUE全景
+                            - blockquote:
+                              - blockquote
+                        - generic [ref=e1189]:
+                          - checkbox "確認上游狀態達成 checklist item" [disabled] [ref=e1190]
+                          - generic [ref=e1191]:
+                            - text: 確認上游狀態達成
+                            - blockquote:
+                              - blockquote
+                        - generic [ref=e1198]:
+                          - checkbox "確認資源備妥 checklist item" [disabled] [ref=e1199]
+                          - generic [ref=e1200]:
+                            - text: 確認資源備妥
+                            - blockquote:
+                              - blockquote
+                        - generic [ref=e1207]:
+                          - checkbox "更新ISSUE進度 checklist item" [disabled] [ref=e1208]
+                          - generic [ref=e1209]:
+                            - text: 更新ISSUE進度
+                            - blockquote:
+                              - blockquote
+                      - status [ref=e1211]
+                  - heading "O3" [level=3] [ref=e1212]
+                  - list [ref=e1213]:
+                    - listitem [ref=e1214]:
+                      - generic [ref=e1216]:
+                        - generic [ref=e1222]:
+                          - checkbox "顯示ISSUE全景 checklist item" [disabled] [ref=e1223]
+                          - generic [ref=e1224]:
+                            - text: 顯示ISSUE全景
+                            - blockquote:
+                              - blockquote
+                        - generic [ref=e1231]:
+                          - checkbox "盤點本班車範圍 checklist item" [disabled] [ref=e1232]
+                          - generic [ref=e1233]:
+                            - text: 盤點本班車範圍
+                            - blockquote:
+                              - blockquote
+                        - generic [ref=e1240]:
+                          - checkbox "寫入發車manifest checklist item" [disabled] [ref=e1241]
+                          - generic [ref=e1242]:
+                            - text: 寫入發車manifest
+                            - blockquote:
+                              - blockquote
+                        - generic [ref=e1249]:
+                          - checkbox "偵測facade漂移 checklist item" [disabled] [ref=e1250]
+                          - generic [ref=e1251]:
+                            - text: 偵測facade漂移
+                            - blockquote:
+                              - blockquote
+                        - generic [ref=e1258]:
+                          - checkbox "建出source-free成品 checklist item" [disabled] [ref=e1259]
+                          - generic [ref=e1260]:
+                            - text: 建出source-free成品
+                            - blockquote:
+                              - blockquote
+                      - status [ref=e1262]
+                  - heading "P3（不可跳過）" [level=3] [ref=e1263]
+                  - list [ref=e1264]:
+                    - listitem [ref=e1265]:
+                      - generic [ref=e1267]:
+                        - generic [ref=e1273]:
+                          - checkbox "核對O3各項已完成 checklist item" [disabled] [ref=e1274]
+                          - generic [ref=e1275]:
+                            - text: 核對O3各項已完成
+                            - blockquote:
+                              - blockquote
+                        - generic [ref=e1282]:
+                          - checkbox "跑兩層釋出前測試 checklist item" [disabled] [ref=e1283]
+                          - generic [ref=e1284]:
+                            - text: 跑兩層釋出前測試
+                            - blockquote:
+                              - blockquote
+                        - generic [ref=e1291]:
+                          - checkbox "種下類案再生檢討 checklist item" [disabled] [ref=e1292]
+                          - generic [ref=e1293]:
+                            - text: 種下類案再生檢討
+                            - blockquote:
+                              - blockquote
+                      - status [ref=e1295]
+                  - heading [level=3] [ref=e1296]:
+                    - text: G3（
+                    - code [ref=e1297]: RELEASED
+                    - text: ；授權可代核，hotfix 恆守 USR）
+                  - list [ref=e1298]:
+                    - listitem [ref=e1299]:
+                      - generic [ref=e1301]:
+                        - generic [ref=e1307]:
+                          - checkbox "守對外不可逆紀律 checklist item" [disabled] [ref=e1308]
+                          - generic [ref=e1309]:
+                            - text: 守對外不可逆紀律
+                            - blockquote:
+                              - blockquote
+                        - generic [ref=e1316]:
+                          - checkbox "定版打tag建Release checklist item" [disabled] [ref=e1317]
+                          - generic [ref=e1318]:
+                            - text: 定版打tag建Release
+                            - blockquote:
+                              - blockquote
+                        - generic [ref=e1325]:
+                          - checkbox "散佈至各通道 checklist item" [disabled] [ref=e1326]
+                          - generic [ref=e1327]:
+                            - text: 散佈至各通道
+                            - blockquote:
+                              - blockquote
+                        - generic [ref=e1334]:
+                          - checkbox "收尾svc並回填工單 checklist item" [disabled] [ref=e1335]
+                          - generic [ref=e1336]:
+                            - text: 收尾svc並回填工單
+                            - blockquote:
+                              - blockquote
+                        - generic [ref=e1343]:
+                          - checkbox "確認狀態達成 checklist item" [disabled] [ref=e1344]
+                          - generic [ref=e1345]:
+                            - text: 確認狀態達成
+                            - blockquote:
+                              - blockquote
+                      - status [ref=e1347]
+                  - heading "D. 4階段（檢討策進） → 正本 [2tech-sprintFlow] ＜III＞" [level=2] [ref=e1348]
+                  - heading "T4" [level=3] [ref=e1349]
+                  - list [ref=e1350]:
+                    - listitem [ref=e1351]:
+                      - generic [ref=e1353]:
+                        - generic [ref=e1359]:
+                          - checkbox "顯示ISSUE全景 checklist item" [disabled] [ref=e1360]
+                          - generic [ref=e1361]:
+                            - text: 顯示ISSUE全景
+                            - blockquote:
+                              - blockquote
+                        - generic [ref=e1368]:
+                          - checkbox "確認子技能檔案存在 checklist item" [disabled] [ref=e1369]
+                          - generic [ref=e1370]:
+                            - text: 確認子技能檔案存在
+                            - blockquote:
+                              - blockquote
+                        - generic [ref=e1377]:
+                          - checkbox "確認本階段作業目標 checklist item" [disabled] [ref=e1378]
+                          - generic [ref=e1379]:
+                            - text: 確認本階段作業目標
+                            - blockquote:
+                              - blockquote
+                        - generic [ref=e1386]:
+                          - checkbox "更新ISSUE進度 checklist item" [disabled] [ref=e1387]
+                          - generic [ref=e1388]:
+                            - text: 更新ISSUE進度
+                            - blockquote:
+                              - blockquote
+                      - status [ref=e1390]
+                  - heading "O4" [level=3] [ref=e1391]
+                  - list [ref=e1392]:
+                    - listitem [ref=e1393]:
+                      - generic [ref=e1395]:
+                        - generic [ref=e1401]:
+                          - checkbox "顯示ISSUE全景 checklist item" [disabled] [ref=e1402]
+                          - generic [ref=e1403]:
+                            - text: 顯示ISSUE全景
+                            - blockquote:
+                              - blockquote
+                        - generic [ref=e1410]:
+                          - checkbox "調用專屬skill以進行檢討策進 checklist item" [disabled] [ref=e1411]
+                          - generic [ref=e1412]:
+                            - text: 調用專屬skill以進行檢討策進
+                            - blockquote:
+                              - blockquote
+                        - generic [ref=e1419]:
+                          - checkbox "更新ISSUE進度 checklist item" [disabled] [ref=e1420]
+                          - generic [ref=e1421]:
+                            - text: 更新ISSUE進度
+                            - blockquote:
+                              - blockquote
+                      - status [ref=e1423]
+                  - heading "P4（不可跳過）" [level=3] [ref=e1424]
+                  - list [ref=e1425]:
+                    - listitem [ref=e1426]:
+                      - generic [ref=e1428]:
+                        - generic [ref=e1434]:
+                          - checkbox "顯示ISSUE全景 checklist item" [disabled] [ref=e1435]
+                          - generic [ref=e1436]:
+                            - text: 顯示ISSUE全景
+                            - blockquote:
+                              - blockquote
+                        - generic [ref=e1443]:
+                          - checkbox "核對回報齊備 checklist item" [disabled] [ref=e1444]
+                          - generic [ref=e1445]:
+                            - text: 核對回報齊備
+                            - blockquote:
+                              - blockquote
+                        - generic [ref=e1452]:
+                          - checkbox "核對格式合正本 checklist item" [disabled] [ref=e1453]
+                          - generic [ref=e1454]:
+                            - text: 核對格式合正本
+                            - blockquote:
+                              - blockquote
+                        - generic [ref=e1461]:
+                          - checkbox "更新ISSUE進度 checklist item" [disabled] [ref=e1462]
+                          - generic [ref=e1463]:
+                            - text: 更新ISSUE進度
+                            - blockquote:
+                              - blockquote
+                      - status [ref=e1465]
+                  - heading [level=3] [ref=e1466]:
+                    - text: G4（
+                    - code [ref=e1467]: REVIEWED
+                    - text: ；恆守 USR，唯一硬暫停）
+                  - list [ref=e1468]:
+                    - listitem [ref=e1469]:
+                      - generic [ref=e1471]:
+                        - generic [ref=e1477]:
+                          - checkbox "顯示ISSUE全景 checklist item" [disabled] [ref=e1478]
+                          - generic [ref=e1479]:
+                            - text: 顯示ISSUE全景
+                            - blockquote:
+                              - blockquote
+                        - generic [ref=e1486]:
+                          - checkbox "回報USR已完成並將關閉 checklist item" [disabled] [ref=e1487]
+                          - generic [ref=e1488]:
+                            - text: 回報USR已完成並將關閉
+                            - blockquote:
+                              - blockquote
+                        - generic [ref=e1495]:
+                          - checkbox "更新ISSUE後關期 checklist item" [disabled] [ref=e1496]
+                          - generic [ref=e1497]:
+                            - text: 更新ISSUE後關期
+                            - blockquote:
+                              - blockquote
+                      - status [ref=e1499]
+                  - heading "IV. 備註紀錄" [level=1] [ref=e1500]
+                  - list [ref=e1501]:
+                    - listitem [ref=e1502]:
+                      - list [ref=e1504]:
+                        - listitem [ref=e1505]:
+                          - generic [ref=e1510]:
+                            - checkbox [disabled] [ref=e1511]
+                            - generic [ref=e1512]:
+                              - paragraph [ref=e1513]: 本期檢討種子
+                              - blockquote [ref=e1514]:
+                                - blockquote [ref=e1515]:
+                                  - paragraph [ref=e1516]:
+                                    - strong [ref=e1517]: 隨發現隨記、不等到 4階段 才補
+                                    - text: 。逐項記：事件／依據（違反哪條，或哪條沒寫清楚）／建議落點。
+                                  - paragraph [ref=e1518]:
+                                    - strong [ref=e1519]: 本家掃描面向
+                                    - text: （
+                                    - code [ref=e1520]: 4階段
+                                    - text: 據以核對有無整類略過，缺一類即不完整；無發現記「無」）——類案再生檢討／技術選型盤點／釋出前測試檢討／增量與發車結果。
+                                  - paragraph [ref=e1521]:
+                                    - strong [ref=e1522]: USR 2026-08-03 裁定
+                                    - text: ：本批（種子 1～9）
+                                    - strong [ref=e1523]:
+                                      - text: 不另於
+                                      - code [ref=e1524]: kdbUserSkills
+                                      - text: 開 issue
+                                    - text: ，全數於
+                                    - code [ref=e1525]: 4階段
+                                    - text: 由
+                                    - code [ref=e1526]: O4
+                                    - text: 調用 [9general-maintainSuite-1skill] 逐項裁決並當場改 skill。
+                                    - strong [ref=e1527]:
+                                      - text: 執行 repo 為 skills 庫（
+                                      - code [ref=e1528]: twMoonBear-Laboratory/kdbUserSkills
+                                      - text: ），與本 repo 分屬兩期，不混批。
+                                  - separator [ref=e1529]
+                                  - paragraph [ref=e1530]:
+                                    - strong [ref=e1531]: 種子 1 · 回覆分類標 emoji（通用對話通則）
+                                    - text: 事件：AGT 回報時把自創導讀、查證結果、待決問題混在同一則訊息。USR 裁定以 emoji 分類，並在 AGT 首次誤用後二訂精確定義。 裁定：
+                                    - code [ref=e1532]: 😌
+                                    - text: 我自己的
+                                    - strong [ref=e1533]: 思考過程，USR 不需要看的
+                                    - text: ／
+                                    - code [ref=e1534]: 🗺️
+                                    - text: 全景／
+                                    - code [ref=e1535]: ℹ️
+                                    - strong [ref=e1536]: 提供給 USR 的參考資訊
+                                    - text: ／
+                                    - code [ref=e1537]: 🙋
+                                    - text: 要問 USR 的待決之事並
+                                    - strong [ref=e1538]: 附建議值
+                                    - text: 。分類軸＝「這段給誰看、需不需要看」，非主觀客觀；USR 跳過會漏掉該知道的事就不能標
+                                    - code [ref=e1539]: 😌
+                                    - text: 。 依據：條文缺口。現行
+                                    - code [ref=e1540]: 0shared/ARCHITECTURE.md:179
+                                    - text: 僅於
+                                    - code [ref=e1541]: 呈報並請USR裁示
+                                    - text: 單一工項訂了
+                                    - code [ref=e1542]: ℹ️
+                                    - text: ＋
+                                    - code [ref=e1543]: 🙋
+                                    - text: ；
+                                    - code [ref=e1544]: 😌
+                                    - text: ／
+                                    - code [ref=e1545]: 🗺️
+                                    - text: 全庫無定義。 落點：
+                                    - strong [ref=e1546]:
+                                      - code [ref=e1547]: 0shared
+                                    - text: （USR 指定）。須與
+                                    - code [ref=e1548]: 2tech-sprintFlow/SKILL.md
+                                    - text: ＜II＞「回報體例」合併，不得兩處各存一份。 USR 定位：「這是最核心的對話通則」。已即時套用。
+                                  - paragraph [ref=e1549]:
+                                    - strong [ref=e1550]: 種子 2 · 全景表改矩陣式
+                                    - text: 裁定：直列＝4 階段、橫欄＝T／O／P／G 四節點、每格內列工作項目及進度。 依據：與
+                                    - code [ref=e1551]: 0shared/ARCHITECTURE.md:159
+                                    - text: 現行「欄為
+                                    - code [ref=e1552]: 階段｜節點｜工項｜狀態
+                                    - text: 」直接牴觸，
+                                    - strong [ref=e1553]: 須改共用區塊本體
+                                    - text: ，非各家變通。 落點：
+                                    - code [ref=e1554]: 0shared/ARCHITECTURE.md
+                                    - text: ＜III.D節＞
+                                    - code [ref=e1555]: 顯示ISSUE全景
+                                    - text: 條。連動
+                                    - code [ref=e1556]: 0shared/src/sharedBlockLint.py
+                                    - text: 。已即時套用。
+                                  - paragraph [ref=e1557]:
+                                    - strong [ref=e1558]: 種子 3 · 起手展示被 AGT 自行擴寫為導讀
+                                    - text: 事件：SKILL ＜II＞ 只要求「以條列展示階段表、各階段一行」，AGT 自下標題「這套流程長什麼樣」、擴寫成教學文並加自述。USR 質問「skill 有說要解釋這個？」 依據：
+                                    - strong [ref=e1559]: AGT 執行違規，非條文缺口
+                                    - text: （條文寫得清楚）。 建議處置：優先
+                                    - strong [ref=e1560]: 不新增條文
+                                    - text: （＜III.D節＞ 修訂順位：只新增提醒文字＝不合格）；若需加固，考慮與種子 1 合併一條。已即時改正。
+                                  - paragraph [ref=e1561]:
+                                    - strong [ref=e1562]: 種子 4 · 四支子技能之 P／G 節點缺共用首末工項
+                                    - text: 事件：枚舉工項時發現
+                                    - code [ref=e1563]: 2incr
+                                    - text: 之
+                                    - code [ref=e1564]: P2
+                                    - text: ／
+                                    - code [ref=e1565]: G2
+                                    - text: 與
+                                    - code [ref=e1566]: 3train
+                                    - text: 之
+                                    - code [ref=e1567]: P3
+                                    - text: ／
+                                    - code [ref=e1568]: G3
+                                    - text: 皆無
+                                    - code [ref=e1569]: 顯示ISSUE全景
+                                    - text: （首項）與
+                                    - code [ref=e1570]: 更新ISSUE進度
+                                    - text: （末項）；
+                                    - code [ref=e1571]: O2
+                                    - text: 末項為
+                                    - code [ref=e1572]: 回填各件進度
+                                    - text: 、
+                                    - code [ref=e1573]: O3
+                                    - text: 末項為
+                                    - code [ref=e1574]: 建出source-free成品
+                                    - text: ，亦未用共用工項名。 依據：違反
+                                    - code [ref=e1575]: ARCHITECTURE.md:159
+                                    - text: ／
+                                    - code [ref=e1576]: :160
+                                    - text: 「每節點首項／末項，
+                                    - strong [ref=e1577]: 全庫同
+                                    - text: 」。 後果：照現況投影，本期工單 8 個節點中有 4 個沒有回寫格子，該階段登記結構性落空。 關聯：同四支子技能已有另一筆存量違規在案（
+                                    - code [ref=e1578]: ARCHITECTURE.md:274
+                                    - text: ：節點仍編為
+                                    - code [ref=e1579]: T2
+                                    - text: ／
+                                    - code [ref=e1580]: T3
+                                    - text: ，違反「階段編號各自從 1 起算」與「子不知母」），
+                                    - strong [ref=e1581]: 宜合併於同一次修訂
+                                    - text: 。
+                                  - paragraph [ref=e1582]:
+                                    - strong [ref=e1583]: 種子 5 · 工單命名規則（USR 已逐項裁定，待落地）
+                                    - text: 事件：USR 質疑「
+                                    - code [ref=e1584]: 0shared
+                                    - text: 有規範標題格式嗎？我看過好多不同格式」。實查 repo 四種形態，僅一種半有正本。
+                                    - strong [ref=e1585]: A 軸 · 管理型工單
+                                    - text: （不影響版號）：
+                                    - code [ref=e1586]: "sprint:"
+                                    - text: 傘工單／
+                                    - code [ref=e1587]: "release:"
+                                    - text: 發車工單。格式
+                                    - code [ref=e1588]: "sprint: {期別} — {摘要}"
+                                    - text: （破折號摘要為既有實務，本案追認）。
+                                    - strong [ref=e1589]: B 軸 · 交付子工單
+                                    - text: ：
+                                    - code [ref=e1590]: "type(scope): 描述"
+                                    - text: 。
+                                    - code [ref=e1591]: scope
+                                    - text: ＝產物區塊之名詞、小括號（規範原文「a noun describing a section of the codebase surrounded by parenthesis」）；本 repo 對應
+                                    - code [ref=e1592]: present
+                                    - text: →modPresent／
+                                    - code [ref=e1593]: video
+                                    - text: →modVideoCapture／
+                                    - code [ref=e1594]: ebook
+                                    - text: →modEbook／
+                                    - code [ref=e1595]: query
+                                    - text: →modQuery／
+                                    - code [ref=e1596]: capture
+                                    - text: →modCapture，橫切面
+                                    - code [ref=e1597]: app
+                                    - text: ／
+                                    - code [ref=e1598]: ui
+                                    - text: ／
+                                    - code [ref=e1599]: i18n
+                                    - text: ／
+                                    - code [ref=e1600]: design
+                                    - text: ／
+                                    - code [ref=e1601]: deps
+                                    - text: ／
+                                    - code [ref=e1602]: config
+                                    - text: ／
+                                    - code [ref=e1603]: test
+                                    - text: 。描述不放 issue 號（squash 會自動補
+                                    - code [ref=e1604]: (#PR)
+                                    - text: ，再放
+                                    - code [ref=e1605]: "#N"
+                                    - text: 會兩號相撞並污染 changelog）。
+                                    - strong [ref=e1606]: 型別封閉清單與進位
+                                    - text: ：
+                                    - code [ref=e1607]: break
+                                    - text: →
+                                    - strong [ref=e1608]: major
+                                    - text: ／
+                                    - code [ref=e1609]: feat
+                                    - text: →
+                                    - strong [ref=e1610]: minor
+                                    - text: ／
+                                    - code [ref=e1611]: fix
+                                    - text: ·
+                                    - code [ref=e1612]: perf
+                                    - text: ·
+                                    - code [ref=e1613]: revert
+                                    - text: →
+                                    - strong [ref=e1614]: patch
+                                    - text: ／
+                                    - code [ref=e1615]: refactor
+                                    - text: ·
+                                    - code [ref=e1616]: docs
+                                    - text: ·
+                                    - code [ref=e1617]: test
+                                    - text: ·
+                                    - code [ref=e1618]: chore
+                                    - text: ·
+                                    - code [ref=e1619]: build
+                                    - text: ·
+                                    - code [ref=e1620]: ci
+                                    - text: →
+                                    - strong [ref=e1621]: 不進位
+                                    - text: 。
+                                    - strong [ref=e1622]:
+                                      - code [ref=e1623]: break
+                                      - text: 之偏離（硬性，必須連設定一起記載）
+                                    - text: ：
+                                    - code [ref=e1624]: break
+                                    - strong [ref=e1625]: 不在任何標準 preset 內
+                                    - text: ——angular（semantic-release 預設）與 conventionalcommits 皆不認得，解析得出 type 但不匹配任何 release rule，結果是
+                                    - strong [ref=e1626]: 不發版
+                                    - text: 。日後接自動化須同時提供
+                                    - code [ref=e1627]: releaseRules
+                                    - text: 一條：
+                                    - code [ref=e1628]: "{ \"type\": \"break\", \"release\": \"major\" }"
+                                    - text: （commit-analyzer 官方支援選項）。已評估棄用之兩案：
+                                    - code [ref=e1629]: "!"
+                                    - text: 標記（需切 conventionalcommits preset）、
+                                    - code [ref=e1630]: "BREAKING CHANGE:"
+                                    - text: footer（issue 標題無 footer 可寫）。
+                                    - strong [ref=e1631]: 原始需求不強制前綴
+                                    - text: ——USR 隨手開的 issue 是進料，等
+                                    - code [ref=e1632]: O1
+                                    - text: 立成子工單時才正規化。 其他漂移：本 repo
+                                    - strong [ref=e1633]:
+                                      - text: 無
+                                      - code [ref=e1634]: increment
+                                      - text: label
+                                    - text: （子工單實掛
+                                    - code [ref=e1635]: enhancement
+                                    - text: ／
+                                    - code [ref=e1636]: bug
+                                    - text: ／
+                                    - code [ref=e1637]: documentation
+                                    - text: ＋
+                                    - code [ref=e1638]: ISSUE-READY
+                                    - text: ），與家族正本不符；
+                                    - code [ref=e1639]: sprint
+                                    - text: label 描述仍寫「epicSprint 工單」，該名已退役。
+                                    - strong [ref=e1640]:
+                                      - text: 落點＝
+                                      - code [ref=e1641]: 0shared
+                                    - text: （全庫通則，非 sprintFlow 專屬）。理由見種子 6 之 USR 裁定。
+                                  - paragraph [ref=e1642]:
+                                    - strong [ref=e1643]: 種子 6 · major 判準依產物型別分兩種（USR 裁定）
+                                    - text: USR 原話：「嚴格 major 版號是有不相容情況，特別適用於 library 管制，原因是 library 是由軟體判斷。但應用軟體常以重大功能作為 major 版號，反而是如果檔案不相容，還不一定會升 major，原因是應用 app 是由人主觀感受。」 依據：semver 開宗明義「Software using Semantic Versioning MUST declare a
+                                    - strong [ref=e1644]: public API
+                                    - text: 」，major 定義為「incompatible
+                                    - strong [ref=e1645]: API
+                                    - text: changes」——整套規範是為被別的東西依賴的軟體設計的。
+                                    - strong [ref=e1646]: library 型
+                                    - text: （消費者＝機器／下游文件／agent）：嚴格，下游會壞＝major。
+                                    - strong [ref=e1647]: skills 庫規格檔屬此類。
+                                    - strong [ref=e1648]: application 型
+                                    - text: （消費者＝人）：主觀，重大功能升格亦得為 major。
+                                    - strong [ref=e1649]: solLingoIsland 屬此類。
+                                    - code [ref=e1650]: break
+                                    - text: 定義為「使用者會痛」而非「檔案格式變了」——本 repo 有
+                                    - code [ref=e1651]: sysLingoIsland/AppDataMigration.cs
+                                    - text: ，資料檔改版自動遷移、使用者無感，不升 major。
+                                    - strong [ref=e1652]: 回溯校正（不改歷史，僅記明）
+                                    - text: ：
+                                    - code [ref=e1653]: structVersion 4.4
+                                    - text: ／
+                                    - code [ref=e1654]: "4.7"
+                                    - text: 將節點代號
+                                    - code [ref=e1655]: S
+                                    - text: ／
+                                    - code [ref=e1656]: Q
+                                    - text: 改為
+                                    - code [ref=e1657]: T
+                                    - text: ／
+                                    - code [ref=e1658]: O
+                                    - text: ／
+                                    - code [ref=e1659]: P
+                                    - text: ，既有工單全部對不上——library 型之破壞性變更，當時升 minor 屬誤判，照本規則應為
+                                    - code [ref=e1660]: "5.0"
+                                    - text: 。
+                                    - strong [ref=e1661]:
+                                      - text: 里程碑 major 之判定落
+                                      - code [ref=e1662]: T1
+                                    - text: （USR 裁定：「判斷應用程式的 major，應該是
+                                    - code [ref=e1663]: T1
+                                    - text: 喔。如果說
+                                    - code [ref=e1664]: P
+                                    - text: 階段是自動審查，
+                                    - code [ref=e1665]: G
+                                    - text: 階段則是最後呈報結尾，準備進下一階段。」）依據＝
+                                    - code [ref=e1666]: ARCHITECTURE.md
+                                    - text: ＜II節＞
+                                    - code [ref=e1667]: T
+                                    - text: ＝「確認目標……本次目標為何」，里程碑是 USR 帶進來的輸入、不依賴盤點結果。
+                                    - strong [ref=e1668]: 對照
+                                    - text: ：
+                                    - code [ref=e1669]: G1
+                                    - text: 之
+                                    - code [ref=e1670]: 詢問執行及授權模式
+                                    - text: 維持在
+                                    - code [ref=e1671]: G1
+                                    - text: （
+                                    - code [ref=e1672]: :180
+                                    - text: 已記明「看懂了要處理什麼，才決定放多少手」，授權依賴盤點、里程碑不依賴）。
+                                    - strong [ref=e1673]: 未決
+                                    - text: ：論文（paperFlow）／財報（acctFlow）屬哪一型。
+                                  - paragraph [ref=e1674]:
+                                    - strong [ref=e1675]:
+                                      - text: 種子 7 ·
+                                      - code [ref=e1676]: T1 詢問USER工單位置
+                                      - text: 與
+                                      - code [ref=e1677]: O1 盤點候選子項並建子工單
+                                      - text: 條文擴充
+                                    - code [ref=e1678]: T1
+                                    - text: 擴充三項（
+                                    - strong [ref=e1679]: 採擴充既有工項、不新增工項
+                                    - text: ——USR 指正 AGT 原提案，減法優先）：① 確認本期目標與定位（期別意圖、是否里程碑期）；② 正規化本期傘工單標題；③ 補但書於「沿用既有工單時不改其主旨」——該規則之用意是「不得在別人已有慣例的 repo 裡硬塞第二套」，若 repo 用的就是本庫這套、僅個別工單未照做，拉回一致不算製造第二套，屬正規化。無此但書則第 ② 項與現行條文字面牴觸。
+                                    - code [ref=e1680]: O1
+                                    - text: 擴充：原始需求立成子工單時於此給正規標題（例：
+                                    - code [ref=e1681]: 主題配色相關兩項。
+                                    - text: →
+                                    - code [ref=e1682]: "fix(present): …"
+                                    - text: ）。不放
+                                    - code [ref=e1683]: T1
+                                    - text: ——
+                                    - code [ref=e1684]: T1
+                                    - text: 手上只有傘工單。
+                                  - paragraph [ref=e1685]:
+                                    - strong [ref=e1686]: 種子 8 · skills 庫版號減法（L1–L4）＋ Flow 家族資料夾收攏
+                                    - strong [ref=e1687]: 現況（AGT 實測）
+                                    - text: ：48 個
+                                    - code [ref=e1688]: .md
+                                    - text: 各自帶版號、
+                                    - strong [ref=e1689]: 25 種名稱
+                                    - text: ；同名不同軌（
+                                    - code [ref=e1690]: gateVersion
+                                    - text: ＝1.35 於 sprintFlow-3code 與 3.1 於 paperFlow-2refine；
+                                    - code [ref=e1691]: statesVersion
+                                    - text: ＝0.9／1.0／3.3 三家）；全為兩段式
+                                    - code [ref=e1692]: X.Y
+                                    - text: 、
+                                    - strong [ref=e1693]: 無 patch 位
+                                    - text: ，故小修一律升 minor（
+                                    - code [ref=e1694]: gateVersion
+                                    - text: 累積到 1.35、
+                                    - code [ref=e1695]: releaseVersion
+                                    - text: 到 2.19）；修訂紀錄四種做法並存——無紀錄（
+                                    - code [ref=e1696]: 3code/test/GATE.md
+                                    - text: ）／塞標題括號（
+                                    - code [ref=e1697]: sprintFlow/STATES.md
+                                    - text: 第 1 行 3004 字元）／獨立章佔 39%（
+                                    - code [ref=e1698]: ARCHITECTURE.md
+                                    - text: 168／428 行）／獨立章正常。skills 庫根目錄無
+                                    - code [ref=e1699]: VERSION
+                                    - text: 檔。
+                                    - strong [ref=e1700]: USR 裁定之減法
+                                    - text: ：L1 型別與進位規則全庫一套／L2 版號欄位名一律
+                                    - code [ref=e1701]: version
+                                    - text: ／L3 兩段改三段 semver／L4 修訂紀錄落點統一。
+                                    - strong [ref=e1702]: L1–L3 互相依賴且動同一批檔，須同批
+                                    - text: ；L4 可次批但須明列待辦與代價。
+                                    - strong [ref=e1703]: 顆粒度＝家族（11 個版控單元）
+                                    - text: ：
+                                    - code [ref=e1704]: 0shared
+                                    - text: ／acctFlow／marketRsh／paperFlow／sprintFlow／prepare／getVideoSrt／create-pwshscript／main-branch-protect／maintainSuite／repo-dirty-guard。不採第一層資料夾（21 個）——同家族資料夾共用 README 階段表、
+                                    - code [ref=e1705]: STATES.md
+                                    - text: 、
+                                    - code [ref=e1706]: 範本庫/
+                                    - text: ，本即一個契約單元，分開編號要維護相容矩陣。
+                                    - strong [ref=e1707]: Flow 家族收成「一個母技能＋子技能」
+                                    - text: ：
+                                    - code [ref=e1708]: "-2incr"
+                                    - text: ／
+                                    - code [ref=e1709]: "-3train"
+                                    - text: 等降為
+                                    - code [ref=e1710]: 子技能/*/subSKILL.md
+                                    - text: ，不獨立觸發。背景更正——並排不是平台限制造成的，
+                                    - code [ref=e1711]: incrFlow
+                                    - text: ／
+                                    - code [ref=e1712]: trainFlow
+                                    - text: ／
+                                    - code [ref=e1713]: epicSprint
+                                    - text: 原是三個獨立家族，3.6 合併、4.8 再併
+                                    - code [ref=e1714]: "-0shared"
+                                    - text: ＋
+                                    - code [ref=e1715]: "-1issue"
+                                    - text: ，
+                                    - strong [ref=e1716]: 並排是合併做到一半留下的形狀
+                                    - text: 。失去直接觸發不成問題：
+                                    - code [ref=e1717]: STATES.md
+                                    - text: ＜2節＞ 明訂起手須做現況偵測，母讀工單即知從第幾階段接。
+                                    - strong [ref=e1718]: 評估後不採 skills-directory plugin 一案
+                                    - text: （子技能機制已足，多一層 plugin 屬過度設計）。
+                                    - strong [ref=e1719]: 例外：Suite 型不適用
+                                    - text: ——maintainSuite 四件是型別互斥的四個入口，各憑 description 自動選中，折進單一母會失去分辨能力。
+                                    - strong [ref=e1720]: 資料夾數
+                                    - text: ：21 →
+                                    - strong [ref=e1721]: "15"
+                                    - text: 。
+                                    - strong [ref=e1722]: 殘留不一致（明列）
+                                    - text: ：收攏後 Flow 之「第一層資料夾＝家族＝版控單位」成立，但 maintainSuite 仍是 5 個資料夾對 1 個版控單位（
+                                    - code [ref=e1723]: VERSION
+                                    - text: 置
+                                    - code [ref=e1724]: "-0shared/"
+                                    - text: ）；此為 Suite 型固有形狀，非缺陷。
+                                    - strong [ref=e1725]: 既有數字保留不重編
+                                    - text: （重編會使既有工單與交叉引用全部失去對應）；
+                                    - strong [ref=e1726]: 修訂紀錄內之歷史版號名不改
+                                    - text: （記的是當時的樣子，比照 structVersion 4.8 對歷史路徑之處置）。
+                                    - strong [ref=e1727]: 量體提醒
+                                    - text: ：涉 48 檔、25 種名稱、三家資料夾收攏，大於一般「改幾條條文」；
+                                    - code [ref=e1728]: 4階段
+                                    - text: 裁決時須一併定「本期做到哪、哪些順延」。連動
+                                    - code [ref=e1729]: 0shared/src/sharedBlockLint.py
+                                    - text: 。
+                                  - paragraph [ref=e1730]:
+                                    - strong [ref=e1731]:
+                                      - text: 種子 9 · 新建期之
+                                      - code [ref=e1732]: 更新ISSUE進度
+                                      - text: 無標的（USR 已裁定通用作法）
+                                    - text: 事件：本期為新建，依現行
+                                    - code [ref=e1733]: ARCHITECTURE.md:169
+                                    - text: 「只定位、不建骨架」與
+                                    - code [ref=e1734]: :171
+                                    - text: 「只記結論、不動 Issue」，
+                                    - code [ref=e1735]: T1
+                                    - text: ／
+                                    - code [ref=e1736]: O1
+                                    - text: ／
+                                    - code [ref=e1737]: P1
+                                    - text: 之
+                                    - code [ref=e1738]: 更新ISSUE進度
+                                    - text: 無標的可寫；
+                                    - code [ref=e1739]: O1 盤點候選子項並建子工單
+                                    - text: 要「掛為本傘之 sub-issue」亦無傘可掛；且若在
+                                    - code [ref=e1740]: O1
+                                    - text: 就建好掛上，與
+                                    - code [ref=e1741]: G1
+                                    - text: 「未裁示者不得標納入本期」衝突。
+                                    - strong [ref=e1742]: USR 裁定（通用作法）
+                                    - text: ：「在
+                                    - code [ref=e1743]: T1
+                                    - text: 的〔詢問USER工單位置〕，會沿用或
+                                    - strong [ref=e1744]: 新增 ISSUE
+                                    - text: ，所以
+                                    - code [ref=e1745]: T1
+                                    - text: 是可以〔更新ISSUE進度〕的。」即「新增」＝真的把 issue 開出來。
+                                    - strong [ref=e1746]: 須同批改之條文
+                                    - text: ：
+                                    - code [ref=e1747]: :169
+                                    - text: 「只定位、
+                                    - strong [ref=e1748]: 不建骨架
+                                    - text: 」→「
+                                    - strong [ref=e1749]: 建單但不投影骨架
+                                    - text: 」；
+                                    - code [ref=e1750]: :171
+                                    - text: 「只記結論、
+                                    - strong [ref=e1751]: 不動 Issue
+                                    - text: 」→ 與「新增」互斥，須改寫。原理由「作業模式未定案前把 Issue 寫掉，收不回來」仍成立但
+                                    - strong [ref=e1752]: 範圍縮小
+                                    - text: ——不能先寫的是 ＜I＞ 本期範圍與 ＜III＞ 骨架，不是 issue 本身。
+                                    - strong [ref=e1753]:
+                                      - code [ref=e1754]: G1
+                                      - text: 裁「取消」時之處置（USR 裁定）
+                                    - text: ：
+                                    - code [ref=e1755]: T1
+                                    - text: 已開之工單
+                                    - strong [ref=e1756]: 留言關閉，不刪
+                                    - text: 。 落點：
+                                    - code [ref=e1757]: 0shared/ARCHITECTURE.md
+                                    - text: ＜III.D節＞ 共用區塊。
+                                    - strong [ref=e1758]: 已即時套用
+                                    - text: ——本工單即依此於
+                                    - code [ref=e1759]: T1
+                                    - text: 開出。
+                                  - paragraph [ref=e1760]:
+                                    - strong [ref=e1761]:
+                                      - text: 種子 10 · T／O／P／G 之提問時機——不得把決策積累到
+                                      - code [ref=e1762]: G
+                                      - text: （USR 裁定）
+                                    - text: USR 原話：「作業中需要詢問使用者的細節問題，如剛剛
+                                    - code [ref=e1763]: T1
+                                    - text: 要問工單位置，
+                                    - code [ref=e1764]: O1
+                                    - text: 要問執行內容。而
+                                    - code [ref=e1765]: G
+                                    - text: 的定義並不是把前面所有的問題積累到
+                                    - code [ref=e1766]: G
+                                    - text: 一起問，如果這樣，
+                                    - code [ref=e1767]: P
+                                    - text: 就沒辦法驗證了，因為很多事都無法確定。應該是
+                                    - strong [ref=e1768]:
+                                      - code [ref=e1769]: T
+                                      - text: 、
+                                      - code [ref=e1770]: O
+                                      - text: 有問題就及時問；
+                                      - code [ref=e1771]: P
+                                      - text: 則針對作業成果做把關；
+                                      - code [ref=e1772]: G
+                                      - text: 主要是報告小結並請求進入下一環節
+                                    - text: 。」
+                                    - strong [ref=e1773]: 依據（現行條文自相矛盾，可佐證其不穩定）
+                                    - text: ：
+                                  - list [ref=e1774]:
+                                    - listitem [ref=e1775]:
+                                      - code [ref=e1776]: ARCHITECTURE.md:179
+                                      - text: （通用）：
+                                      - code [ref=e1777]: 呈報並請USR裁示
+                                      - text: ＝「
+                                      - strong [ref=e1778]: ℹ️ 一張表呈報現況（不要求 USR 逐列回應）
+                                      - text: ＋ 🙋 另問真正待決之事」。
+                                    - listitem [ref=e1779]:
+                                      - code [ref=e1780]: ARCHITECTURE.md:220
+                                      - text: （傘型專屬）：二者之產出併入
+                                      - code [ref=e1781]: G1
+                                      - text: 之
+                                      - code [ref=e1782]: 呈報並請USR裁示
+                                      - text: （「
+                                      - strong [ref=e1783]: 一張表逐列裁示
+                                      - text: ，未裁示者不得標納入本期」）。
+                                    - listitem [ref=e1784]:
+                                      - text: 一個說「不要求逐列回應」、一個說「逐列裁示」，
+                                      - strong [ref=e1785]: 同一份文件兩種讀法
+                                      - text: 。USR 之模型解開此結：逐列裁示屬
+                                      - code [ref=e1786]: O1
+                                      - text: ，
+                                      - code [ref=e1787]: G1
+                                      - text: 只報告已定結果並請准放行。
+                                      - strong [ref=e1788]: 結構性後果
+                                      - text: ：名單未定，
+                                      - code [ref=e1789]: P1
+                                      - text: 之
+                                      - code [ref=e1790]: 核對子項可行性
+                                      - text: 即無標的可驗——驗一份可能被推翻的候選清單等於白驗。此非順序偏好，是邏輯上跑不通。
+                                      - strong [ref=e1791]: 須改之三處
+                                      - text: ：
+                                    - listitem [ref=e1792]:
+                                      - text: ＜II節＞
+                                      - code [ref=e1793]: G
+                                      - text: 之定義「把前面的結果
+                                      - strong [ref=e1794]: 彙整成一張可逐列裁示的表
+                                      - text: 呈給 USR，並承接其裁決」→ 改為「
+                                      - strong [ref=e1795]: 報告小結並請求進入下一環節
+                                      - text: 」。此句即把決策往
+                                      - code [ref=e1796]: G
+                                      - text: 堆的源頭。
+                                    - listitem [ref=e1797]:
+                                      - code [ref=e1798]: :220
+                                      - text: 傘型專屬條之「逐列裁示」移至
+                                      - code [ref=e1799]: O1
+                                      - text: 。
+                                    - listitem [ref=e1800]:
+                                      - text: 補四層通則一條：
+                                      - strong [ref=e1801]:
+                                        - code [ref=e1802]: T
+                                        - text: ／
+                                        - code [ref=e1803]: O
+                                        - text: 有問題當場問、不積累到
+                                        - code [ref=e1804]: G
+                                        - text: ；
+                                        - code [ref=e1805]: P
+                                        - text: 只對已定的成果把關；
+                                        - code [ref=e1806]: G
+                                        - text: 報告並請准放行。
+                                      - strong [ref=e1807]: 附帶待定
+                                      - text: ：
+                                      - code [ref=e1808]: G1
+                                      - text: 現掛之
+                                      - code [ref=e1809]: 詢問執行及授權模式
+                                      - text: ，依此模型宜再拆——「作業模式」（這一階段怎麼做）歸
+                                      - code [ref=e1810]: T1
+                                      - text: ，「授權等級」（下游放多少手）屬「請求進入下一環節」，留
+                                      - code [ref=e1811]: G1
+                                      - text: 。 落點：
+                                      - code [ref=e1812]: 0shared/ARCHITECTURE.md
+                                      - text: ＜II節＞ ＋ ＜III.D節＞。
+                                      - strong [ref=e1813]: 已即時套用
+                                      - text: ——本期名單於
+                                      - code [ref=e1814]: O1
+                                      - text: 當場裁示，未累積至
+                                      - code [ref=e1815]: G1
+                                      - text: 。
+                                  - paragraph [ref=e1816]:
+                                    - strong [ref=e1817]: 附帶未決（非種子，待 4階段 一併定）
+                                    - text: ①
+                                    - code [ref=e1818]: "release:"
+                                    - text: 工單存廢——
+                                    - code [ref=e1819]: 2tech-sprintFlow/README.md:14
+                                    - text: 說「傘下子項含 release 工單」、
+                                    - code [ref=e1820]: :47
+                                    - text: 與
+                                    - code [ref=e1821]: STATES.md:59
+                                    - text: 說「發車不另立工單」，
+                                    - strong [ref=e1822]: 同一 README 兩句互斥
+                                    - text: ；repo 實況站「有 release 工單」那邊（
+                                    - 'link "release: v4.9.0 — 中英雙語朗讀、書櫃/影片櫃卡片版式、UIA 驗收腳本相容成品 #280" [ref=e1827] [cursor=pointer]':
+                                      - /url: https://github.com/twStellerWhale-Ocean2/solLingoIsland/issues/280
+                                    - text: ／
+                                    - 'link "release: v4.7.0 — 電子書內容頁分隔線快修＋章界雙擊換章 #269" [ref=e1832] [cursor=pointer]':
+                                      - /url: https://github.com/twStellerWhale-Ocean2/solLingoIsland/issues/269
+                                    - text: ／
+                                    - 'link "release: v4.6.0 — 電子書編輯匯出、頁面整併與朗讀範圍 #260" [ref=e1837] [cursor=pointer]':
+                                      - /url: https://github.com/twStellerWhale-Ocean2/solLingoIsland/issues/260
+                                    - text: ／
+                                    - 'link "release: v4.4.0 — 電子書學習模式（自 v3.14.0 累積） #253" [ref=e1842] [cursor=pointer]':
+                                      - /url: https://github.com/twStellerWhale-Ocean2/solLingoIsland/issues/253
+                                    - text: ）。AGT 建議保留 release 工單、改
+                                    - code [ref=e1843]: :47
+                                    - text: 與
+                                    - code [ref=e1844]: STATES:59
+                                    - text: 。 ②
+                                    - code [ref=e1845]: 0shared/子技能/sub-issue-projection/subSKILL.md
+                                    - text: 之進度圖形狀語彙仍為
+                                    - code [ref=e1846]: S
+                                    - text: ／
+                                    - code [ref=e1847]: Q
+                                    - text: ／
+                                    - code [ref=e1848]: G
+                                    - text: 三分法，未涵蓋
+                                    - code [ref=e1849]: T
+                                    - text: （且其引用之
+                                    - code [ref=e1850]: ARCHITECTURE.md
+                                    - text: ＜III.C節＞ 已於 structVersion 4.9 刪除）。
+                        - listitem [ref=e1852]:
+                          - generic [ref=e1857]:
+                            - checkbox "本期結論 （待 4階段 填寫） checklist item" [disabled] [ref=e1858]
+                            - generic [ref=e1859]:
+                              - paragraph [ref=e1860]: 本期結論
+                              - blockquote [ref=e1861]:
+                                - blockquote [ref=e1862]:
+                                  - paragraph [ref=e1863]:
+                                    - text: （待
+                                    - code [ref=e1864]: 4階段
+                                    - text: 填寫）
+                        - listitem [ref=e1866]:
+                          - generic [ref=e1871]:
+                            - checkbox "交棒與順延 （待 4階段 填寫） checklist item" [disabled] [ref=e1872]
+                            - generic [ref=e1873]:
+                              - paragraph [ref=e1874]: 交棒與順延
+                              - blockquote [ref=e1875]:
+                                - blockquote [ref=e1876]:
+                                  - paragraph [ref=e1877]:
+                                    - text: （待
+                                    - code [ref=e1878]: 4階段
+                                    - text: 填寫）
+                        - listitem [ref=e1880]:
+                          - generic [ref=e1882]:
+                            - paragraph [ref=e1883]: "[✅] 本工單投影來源"
+                            - blockquote [ref=e1884]:
+                              - blockquote [ref=e1885]:
+                                - paragraph [ref=e1886]:
+                                  - text: 骨架投影自 [0shared/範本庫/ISSUE.md]（issueSkeletonVersion 1.0）＋ [2tech-sprintFlow/範本庫/ISSUE.md]（sprintIssueVersion 4.0）；程序依 [0shared/子技能/sub-issue-projection/subSKILL.md] ＜III.A＞ 新建投影。
+                                  - strong [ref=e1887]: 分兩次投影
+                                  - text: （依種子 9 之 USR 裁定通用作法）——
+                                  - code [ref=e1888]: T1
+                                  - text: 建單並寫入自身節點（2026-08-03）；
+                                  - code [ref=e1889]: O1
+                                  - text: ／
+                                  - code [ref=e1890]: P1
+                                  - text: 各於完成時增補自己那格；
+                                  - strong [ref=e1891]:
+                                    - code [ref=e1892]: G1
+                                    - text: 補齊
+                                    - code [ref=e1893]: "## B"
+                                    - text: ／
+                                    - code [ref=e1894]: "## C"
+                                    - text: ／
+                                    - code [ref=e1895]: "## D"
+                                    - text: 共 12 節點與 ＜II＞ 進度圖
+                                  - text: （2026-08-03）。 節點數與大綱項數以 [2tech-sprintFlow/README.md] 階段表與各階段 skill ＜III＞ 為準
+                                  - strong [ref=e1896]: 動態比對，不寫死數字
+                                  - text: ：階段表為 4 階段 × 各 4 節點；各節點大綱項逐字取自該階段 skill ＜III＞ 之
+                                  - code [ref=e1897]: "####"
+                                  - text: 子標題。 節點名與階段結構若與該等正本不符，以正本為準重新投影。
+                                  - strong [ref=e1898]: 已知偏差
+                                  - text: ：
+                                  - code [ref=e1899]: 2incr
+                                  - text: 之
+                                  - code [ref=e1900]: P2
+                                  - text: ／
+                                  - code [ref=e1901]: G2
+                                  - text: 與
+                                  - code [ref=e1902]: 3train
+                                  - text: 之
+                                  - code [ref=e1903]: P3
+                                  - text: ／
+                                  - code [ref=e1904]: G3
+                                  - text: 缺共用首末工項（見種子 4），本工單照現況投影、未代補。
+                      - status [ref=e1905]
+                - generic:
+                  - toolbar "Reactions"
+          - generic [ref=e1908]:
+            - heading "Sub-issues" [level=2] [ref=e1909]
+            - generic [ref=e1910]:
+              - heading "Collapse Sub-issues Sub-issues" [level=3] [ref=e1912]:
+                - button "Collapse Sub-issues" [expanded] [ref=e1913] [cursor=pointer]
+                - text: Sub-issues
+              - generic [ref=e1920]:
+                - text: 0 of 3
+                - generic [ref=e1921]: 0 of 3 Issues completed
+            - tree "Sub-issues" [ref=e1924]:
+              - 'treeitem "fix(present): 主題頁未儲存離開時提醒 #285. Press Control, Shift, U for more actions." [level=1] [ref=e1928]':
+                - generic [ref=e1932]:
+                  - 'link "fix(present): 主題頁未儲存離開時提醒 #285" [ref=e1934] [cursor=pointer]':
+                    - /url: https://github.com/twStellerWhale-Ocean2/solLingoIsland/issues/285
+                  - img "Open" [ref=e1941]
+              - 'treeitem "fix(present): 配色變更即時套用至其他分頁 #286. Press Control, Shift, U for more actions." [level=1] [ref=e1955]':
+                - generic [ref=e1959]:
+                  - 'link "fix(present): 配色變更即時套用至其他分頁 #286" [ref=e1961] [cursor=pointer]':
+                    - /url: https://github.com/twStellerWhale-Ocean2/solLingoIsland/issues/286
+                  - img "Open" [ref=e1968]
+              - 'treeitem "feat(ebook): 朗讀中游標改為忙碌但可操作樣式 #283. Press Control, Shift, U for more actions." [level=1] [ref=e1982]':
+                - generic [ref=e1986]:
+                  - 'link "feat(ebook): 朗讀中游標改為忙碌但可操作樣式 #283" [ref=e1988] [cursor=pointer]':
+                    - /url: https://github.com/twStellerWhale-Ocean2/solLingoIsland/issues/283
+                  - img "Open" [ref=e1995]
+            - status [ref=e2006]
+          - generic [ref=e2008]:
+            - generic [ref=e2009]:
+              - heading "Activity" [level=2] [ref=e2010]
+              - region "Events" [ref=e2012]:
+                - generic [ref=e2027]:
+                  - link "carlton0521" [ref=e2029] [cursor=pointer]:
+                    - /url: /carlton0521
+                  - text: added
+                  - link "sprint epicSprint 工單（1 期＝N 子項；epic 範圍傘＋sprint 時間盒合一）" [ref=e2032] [cursor=pointer]:
+                    - /url: /twStellerWhale-Ocean2/solLingoIsland/issues?q=state%3Aopen%20label%3A%22sprint%22
+                    - generic [ref=e2033]: sprint
+                    - generic [ref=e2035]: epicSprint 工單（1 期＝N 子項；epic 範圍傘＋sprint 時間盒合一）
+                  - link "on Aug 3, 202651m ago" [ref=e2036] [cursor=pointer]:
+                    - /url: https://github.com/twStellerWhale-Ocean2/solLingoIsland/issues/284#event-28877755402
+                - generic [ref=e2049]:
+                  - generic [ref=e2051]:
+                    - link "carlton0521" [ref=e2053] [cursor=pointer]:
+                      - /url: /carlton0521
+                    - text: mentioned this in 3 issues
+                    - link "on Aug 3, 202638m ago" [ref=e2055] [cursor=pointer]:
+                      - /url: https://github.com/twStellerWhale-Ocean2/solLingoIsland/issues/284#event-9190714641
+                  - region "Issues mentioned" [ref=e2058]:
+                    - list [ref=e2059]:
+                      - listitem [ref=e2060]:
+                        - generic [ref=e2061]:
+                          - img "Open" [ref=e2062]
+                          - 'link "fix(present): 主題頁未儲存離開時提醒 #285" [ref=e2065] [cursor=pointer]':
+                            - /url: https://github.com/twStellerWhale-Ocean2/solLingoIsland/issues/285
+                            - text: "fix(present): 主題頁未儲存離開時提醒"
+                            - generic [ref=e2066]: "#285"
+                      - listitem [ref=e2067]:
+                        - generic [ref=e2068]:
+                          - img "Open" [ref=e2069]
+                          - 'link "fix(present): 配色變更即時套用至其他分頁 #286" [ref=e2072] [cursor=pointer]':
+                            - /url: https://github.com/twStellerWhale-Ocean2/solLingoIsland/issues/286
+                            - text: "fix(present): 配色變更即時套用至其他分頁"
+                            - generic [ref=e2073]: "#286"
+                      - listitem [ref=e2074]:
+                        - generic [ref=e2075]:
+                          - img "Open" [ref=e2076]
+                          - 'link "feat(ebook): 朗讀中游標改為忙碌但可操作樣式 #283" [ref=e2079] [cursor=pointer]':
+                            - /url: https://github.com/twStellerWhale-Ocean2/solLingoIsland/issues/283
+                            - text: "feat(ebook): 朗讀中游標改為忙碌但可操作樣式"
+                            - generic [ref=e2080]: "#283"
+                - generic [ref=e2094]:
+                  - generic [ref=e2096]:
+                    - link "carlton0521" [ref=e2098] [cursor=pointer]:
+                      - /url: /carlton0521
+                    - text: added sub-issues
+                    - link "on Aug 3, 202638m ago" [ref=e2100] [cursor=pointer]:
+                      - /url: https://github.com/twStellerWhale-Ocean2/solLingoIsland/issues/284#event-28878421604
+                  - list [ref=e2103]:
+                    - listitem [ref=e2104]:
+                      - generic [ref=e2105]:
+                        - img "Open" [ref=e2106]
+                        - 'link "fix(present): 主題頁未儲存離開時提醒 #285" [ref=e2109] [cursor=pointer]':
+                          - /url: https://github.com/twStellerWhale-Ocean2/solLingoIsland/issues/285
+                          - text: "fix(present): 主題頁未儲存離開時提醒"
+                          - generic [ref=e2110]: "#285"
+                    - listitem [ref=e2111]:
+                      - generic [ref=e2112]:
+                        - img "Open" [ref=e2113]
+                        - 'link "fix(present): 配色變更即時套用至其他分頁 #286" [ref=e2116] [cursor=pointer]':
+                          - /url: https://github.com/twStellerWhale-Ocean2/solLingoIsland/issues/286
+                          - text: "fix(present): 配色變更即時套用至其他分頁"
+                          - generic [ref=e2117]: "#286"
+                    - listitem [ref=e2118]:
+                      - generic [ref=e2119]:
+                        - img "Open" [ref=e2120]
+                        - 'link "feat(ebook): 朗讀中游標改為忙碌但可操作樣式 #283" [ref=e2123] [cursor=pointer]':
+                          - /url: https://github.com/twStellerWhale-Ocean2/solLingoIsland/issues/283
+                          - text: "feat(ebook): 朗讀中游標改為忙碌但可操作樣式"
+                          - generic [ref=e2124]: "#283"
+                - generic [ref=e2137]:
+                  - generic [ref=e2139]:
+                    - link "carlton0521" [ref=e2141] [cursor=pointer]:
+                      - /url: /carlton0521
+                    - text: mentioned this
+                    - link "on Aug 3, 202637m ago" [ref=e2143] [cursor=pointer]:
+                      - /url: https://github.com/twStellerWhale-Ocean2/solLingoIsland/issues/284#event-9190751884
+                  - region "Issues mentioned" [ref=e2146]:
+                    - list [ref=e2147]:
+                      - listitem [ref=e2148]:
+                        - generic [ref=e2149]:
+                          - img "Completed" [ref=e2150]
+                          - 'link "主題配色相關兩項。 #281" [ref=e2153] [cursor=pointer]':
+                            - /url: https://github.com/twStellerWhale-Ocean2/solLingoIsland/issues/281
+                            - text: 主題配色相關兩項。
+                            - generic [ref=e2154]: "#281"
+                - generic [ref=e2169]:
+                  - link "carlton0521" [ref=e2171] [cursor=pointer]:
+                    - /url: /carlton0521
+                  - text: changed the title
+                  - deletion [ref=e2174]:
+                    - generic [ref=e2175]: "[-]"
+                    - text: "sprint: 2026-08"
+                    - generic [ref=e2176]: "[/-]"
+                  - insertion [ref=e2178]:
+                    - generic [ref=e2179]: "[+]"
+                    - text: "sprint: 2026-08 — 主題頁未儲存提醒、配色即時套用、朗讀游標"
+                    - generic [ref=e2180]: "[/+]"
+                  - link "on Aug 3, 202629m ago" [ref=e2181] [cursor=pointer]:
+                    - /url: https://github.com/twStellerWhale-Ocean2/solLingoIsland/issues/284#event-28878842721
+            - generic [ref=e2182]:
+              - link "Sign up for free" [ref=e2183] [cursor=pointer]:
+                - /url: /signup?return_to=https://github.com/twStellerWhale-Ocean2/solLingoIsland/issues/284
+              - generic [ref=e2186]:
+                - strong [ref=e2187]: to join this conversation on GitHub.
+                - text: Already have an account?
+              - link "Sign in to comment" [ref=e2188] [cursor=pointer]:
+                - /url: /login?return_to=https://github.com/twStellerWhale-Ocean2/solLingoIsland/issues/284
+        - generic [ref=e2190]:
+          - heading "Metadata" [level=2] [ref=e2191]
+          - generic [ref=e2193]:
+            - generic [ref=e2195]:
+              - generic [ref=e2196]:
+                - heading "Assignees" [level=3]
+              - generic [ref=e2197]: No one assigned
+            - generic [ref=e2198]:
+              - generic [ref=e2200]:
+                - heading "Labels" [level=3]
+              - link "sprint epicSprint 工單（1 期＝N 子項；epic 範圍傘＋sprint 時間盒合一）" [ref=e2203] [cursor=pointer]:
+                - /url: https://github.com/twStellerWhale-Ocean2/solLingoIsland/issues?q=state%3Aopen%20label%3A%22sprint%22
+                - generic [ref=e2204]: sprint
+                - generic [ref=e2206]: epicSprint 工單（1 期＝N 子項；epic 範圍傘＋sprint 時間盒合一）
+            - generic [ref=e2208]:
+              - generic [ref=e2209]:
+                - heading "Type" [level=3]
+              - generic [ref=e2210]: No type
+            - generic [ref=e2212]:
+              - generic [ref=e2213]:
+                - heading "Projects" [level=3]
+              - generic [ref=e2214]: No projects
+            - generic [ref=e2216]:
+              - generic [ref=e2217]:
+                - heading "Milestone" [level=3]
+              - generic [ref=e2218]: No milestone
+            - generic [ref=e2220]:
+              - generic [ref=e2221]:
+                - heading "Relationships" [level=3]
+              - generic [ref=e2222]: None yet
+            - generic [ref=e2223]:
+              - generic [ref=e2225]:
+                - heading "Development" [level=3]
+              - generic [ref=e2226]:
+                - generic [ref=e2227]: No branches or pull requests
+                - list
+            - generic [ref=e2228]:
+              - generic [ref=e2230]:
+                - heading "Participants" [level=3]
+              - link [ref=e2234] [cursor=pointer]:
+                - /url: /carlton0521
+                - img "@carlton0521" [ref=e2235]
+            - heading "Issue actions" [level=2] [ref=e2236]
+            - list [ref=e2237]:
+              - listitem [ref=e2238]:
+                - button "Open in GitHub Copilot app" [ref=e2239] [cursor=pointer]
+  - contentinfo [ref=e2243]:
+    - heading "Footer" [level=2] [ref=e2244]
+    - generic [ref=e2245]:
+      - generic [ref=e2246]:
+        - link "GitHub Homepage" [ref=e2247] [cursor=pointer]:
+          - /url: https://github.com
+        - generic [ref=e2250]: © 2026 GitHub, Inc.
+      - navigation "Footer" [ref=e2251]:
+        - heading "Footer navigation" [level=3] [ref=e2252]
+        - list "Footer navigation" [ref=e2253]:
+          - listitem [ref=e2254]:
+            - link "Terms" [ref=e2255] [cursor=pointer]:
+              - /url: https://docs.github.com/site-policy/github-terms/github-terms-of-service
+          - listitem [ref=e2256]:
+            - link "Privacy" [ref=e2257] [cursor=pointer]:
+              - /url: https://docs.github.com/site-policy/privacy-policies/github-privacy-statement
+          - listitem [ref=e2258]:
+            - link "Security" [ref=e2259] [cursor=pointer]:
+              - /url: https://github.com/security
+          - listitem [ref=e2260]:
+            - link "Status" [ref=e2261] [cursor=pointer]:
+              - /url: https://www.githubstatus.com/
+          - listitem [ref=e2262]:
+            - link "Community" [ref=e2263] [cursor=pointer]:
+              - /url: https://github.community/
+          - listitem [ref=e2264]:
+            - link "Docs" [ref=e2265] [cursor=pointer]:
+              - /url: https://docs.github.com/
+          - listitem [ref=e2266]:
+            - link "Contact" [ref=e2267] [cursor=pointer]:
+              - /url: https://support.github.com?tags=dotcom-footer
+          - listitem [ref=e2268]:
+            - button "Manage cookies" [ref=e2270] [cursor=pointer]
+          - listitem [ref=e2271]:
+            - button "Do not share my personal information" [ref=e2273] [cursor=pointer]
