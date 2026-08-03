@@ -168,9 +168,17 @@ public partial class App : System.Windows.Application
         _ = _updates.CheckAndDownloadAsync();
     }
 
-    /// <summary>明確結束常駐：允許主視窗真正關閉後 Shutdown（關主視窗本身只收合、不結束）。</summary>
+    /// <summary>
+    /// 明確結束常駐（主視窗 ✕／<c>Alt+F4</c>／系統匣「結束」三入口之匯流點）。
+    /// <para>
+    /// spec#11：**先過未存變更離開守衛**，取消即不結束。守衛必須掛在此處而非
+    /// <c>MainWindow.OnClosing</c>——本方法先呼叫 <c>AllowClose()</c> 令 <c>_exiting</c> 為真，
+    /// <c>OnClosing</c> 屆時會直接放行，掛在那裡會漏掉系統匣「結束」。
+    /// </para>
+    /// </summary>
     private void ExitApp()
     {
+        if (_main is not null && !_main.ConfirmLeaveCurrentPage()) { return; }
         _main?.AllowClose();
         Shutdown();
     }

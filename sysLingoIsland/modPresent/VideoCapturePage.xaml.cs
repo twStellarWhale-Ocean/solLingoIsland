@@ -16,6 +16,7 @@ namespace LingoIsland.Present;
 /// WebView2 內嵌 YouTube IFrame Player API 導引播放、<see cref="PauseDecider"/> 到句暫停顯字幕→暫停句逐字可點（<see cref="WordLookupRequested"/>，沿用既有查詢）→
 /// 加入既有筆記（<see cref="AddToNotesRequested"/>）。時間偏移量供整體微調。與螢幕擷取並列之可插拔擷取來源、下游完全共用。
 /// </summary>
+[UnsavedStateOutOfScope("Edit YAML 之未存緩衝，#285 範圍外")]
 public partial class VideoCapturePage : System.Windows.Controls.UserControl
 {
     private readonly VideoStore _videoStore;                       // 影片清單持久化（epic #145 增量4）

@@ -31,6 +31,7 @@ namespace LingoIsland.Present;
 /// 下為 <b>截圖管理</b>——擷取之截圖保存於 <see cref="ScreenshotStore"/>，於此縮圖清單檢視／刪除／清空（標記擷取當下使用中主題）。
 /// 事件供 App 接：<see cref="CaptureRequested"/>／<see cref="HotkeyChanged"/>／<see cref="ListeningChanged"/>。
 /// </summary>
+[NoUnsavedState]
 public partial class ScreenCapturePage : UserControl
 {
     // 喚起快捷鍵設定（#133；保留 #127 視窗層擷取寫法）

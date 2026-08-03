@@ -10,7 +10,8 @@ namespace LingoIsland.Present;
 /// 儲存後 raise <see cref="SettingsChanged"/>；情境提示改由「情境」分頁管理、喚起快捷鍵改由「螢幕擷取」
 /// 分頁管理（#133），本頁不呈現該二者，但 <see cref="Gather"/> 保留既有 Context／HistoryMax／Hotkey、不重置。
 /// </summary>
-public partial class OptionsPage : UserControl
+[EditablePage]
+public partial class OptionsPage : UserControl, IUnsavedGuardPage
 {
     private const string DefaultVoiceTag = "";
     private ISpeechService? _testSvc;
@@ -143,6 +144,9 @@ public partial class OptionsPage : UserControl
     /// 是否有未儲存變更（#複查）：任一欄位值異於上次儲存的 <see cref="Config"/>，或已輸入尚未套用的金鑰。
     /// 供主視窗於離開選項頁前提示。以 <see cref="Gather"/> 對上次儲存快照做記錄式結構比對。
     /// </summary>
+    /// <summary>對話文案用之頁面顯示名（spec#11 四成員契約）。</summary>
+    public string PageDisplayName => "選項頁";
+
     public bool IsDirty => !string.IsNullOrEmpty(KeyBox.Password) || Gather() != Config;
 
     /// <summary>捨棄未儲存變更、還原為上次儲存值（#複查：離開頁時選「確定離開」則還原）。</summary>

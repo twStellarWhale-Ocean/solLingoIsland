@@ -9,6 +9,7 @@ namespace LingoIsland.Present;
 /// Issue #51 增更新區：手動「檢查更新」與新版就緒後之「立即重啟更新」；
 /// 僅 Velopack 安裝形態顯示（dev 裸跑隱藏）、狀態字串歸 <see cref="AppStatusText"/>。
 /// </summary>
+[NoUnsavedState]
 public partial class AboutPage : UserControl
 {
     private readonly UpdateService? _updates;

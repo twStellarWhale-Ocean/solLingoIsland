@@ -58,6 +58,7 @@ namespace LingoIsland.Present;
 /// （**插入位置指示線**即時回饋）、**右鍵選單**（播音／檢視／底色粉彩盤／刪除，Issue #44）＋**雙擊＝檢視**、
 /// 卡片底色套 <see cref="NoteEntry.Color"/>。每次變更即落地 notes.json；語音以 provider 委派取用。
 /// </summary>
+[UnsavedStateOutOfScope("F2 原地更名之暫態編輯，#285 範圍外")]
 public partial class NotesPage : UserControl
 {
     private const string FmtFolder = "LingoIsland.NoteFolderId";

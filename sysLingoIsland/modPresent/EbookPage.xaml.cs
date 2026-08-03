@@ -66,6 +66,7 @@ namespace LingoIsland.Present;
 /// 批次確認後逐檔 <see cref="EbookStore.Add"/>（略過已在書櫃/失敗、非同步不阻塞 UI）；左書櫃以封面縮圖卡列出（主題篩選／四鍵排序／
 /// 右鍵標記主題或刪除／Delete 刪／清空）。資料層（切片1）之解析與持久化不在此重寫，僅接線。
 /// </summary>
+[NoUnsavedState]
 public partial class EbookPage : UserControl
 {
     private readonly EbookStore _store;      // 書櫃持久化（切片1；spec#5/#6）

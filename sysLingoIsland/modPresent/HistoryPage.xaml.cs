@@ -41,6 +41,7 @@ namespace LingoIsland.Present;
 /// 查詢歷史分頁（Issue #34；原 HistoryWindow 內容移入為 UserControl）：左依日期分組、右該日條目
 /// （前端「＋筆記」加入我的筆記、尾端 播音／檢視／刪除、頂部清除全部）。非結果視窗、由主視窗分頁承載。
 /// </summary>
+[NoUnsavedState]
 public partial class HistoryPage : UserControl
 {
     private readonly HistoryStore _store;

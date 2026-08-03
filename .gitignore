@@ -14,3 +14,6 @@ TestResults/
 # IDE／使用者設定
 .vs/
 *.user
+
+# Playwright MCP 工作產物（截圖、console log、snapshot），不入版控
+.playwright-mcp/
