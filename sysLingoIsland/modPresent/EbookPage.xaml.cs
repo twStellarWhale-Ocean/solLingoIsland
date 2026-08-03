@@ -1409,7 +1409,24 @@ public partial class EbookPage : UserControl
         if (_subscribedSpeech is not null) { _subscribedSpeech.SpeakCompleted += OnSpeechCompleted; }
     }
 
-    private void UpdateSpeakButton() => ReaderResumeBtn.Content = _ttsReading ? "⏸ 暫停" : "▶ 播放/繼續"; // 播放鈕切 播放/繼續↔暫停
+    private void UpdateSpeakButton()
+    {
+        ReaderResumeBtn.Content = _ttsReading ? "⏸ 暫停" : "▶ 播放/繼續"; // 播放鈕切 播放/繼續↔暫停
+        UpdateReadingCursor();
+    }
+
+    /// <summary>
+    /// 朗讀中之游標（spec#13）：閱讀區改為 <see cref="Cursors.AppStarting"/>——語意為「**程式在動，但你仍可操作**」。
+    /// <para>
+    /// **不用 <see cref="Cursors.Wait"/>**：`Wait` 語意為「阻塞、現在不能操作」，而朗讀期間逐字查詞、跳段、
+    /// 暫停、切章一律照常可用，用 `Wait` 會誤導使用者以為畫面卡住（Windows 慣例：AppStarting＝忙碌但可互動）。
+    /// </para>
+    /// <para>
+    /// 掛在閱讀區容器而非整頁：左側章節目錄與右側說話人面板不屬「朗讀中」之範圍，維持預設游標；
+    /// 段落上之 Hyperlink 自帶 <see cref="Cursors.Hand"/>，其優先權高於本設定，逐字可點之提示不受影響。
+    /// </para>
+    /// </summary>
+    private void UpdateReadingCursor() => ReadingScroller.Cursor = _ttsReading ? Cursors.AppStarting : null;
 
     // ---- 說話人勾選面板／上色（比照影片頁；全書說話人） ----
 
