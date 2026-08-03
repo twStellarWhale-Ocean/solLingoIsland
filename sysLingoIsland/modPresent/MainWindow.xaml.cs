@@ -61,51 +61,76 @@ public partial class MainWindow : Window
 
         // 各分頁切換前先過「離開選項頁」守衛（#複查）：選項頁有未存變更時提示，取消則留在選項頁。
         // 切至筆記/歷史時於狀態列顯目前檢視條目數，其餘分頁隱藏（#132）。
-        TabNotes.Checked += (_, _) => { if (!ConfirmLeaveOptions()) { ReselectOptionsTab(); return; } _notes.Reload(); Host.Content = _notes; ShowEntryCount(_notes.CurrentEntryCount); };
-        TabHistory.Checked += (_, _) => { if (!ConfirmLeaveOptions()) { ReselectOptionsTab(); return; } _history.Reload(); Host.Content = _history; ShowEntryCount(_history.CurrentEntryCount); };
-        TabThemes.Checked += (_, _) => { if (!ConfirmLeaveOptions()) { ReselectOptionsTab(); return; } _themes.Reload(preferActive: true); Host.Content = _themes; ShowEntryCount(null); }; // USR：切到本頁預設選使用中主題
-        TabCapture.Checked += (_, _) => { if (!ConfirmLeaveOptions()) { ReselectOptionsTab(); return; } Host.Content = _capture; ShowEntryCount(null); };
-        TabVideo.Checked += (_, _) => { if (!ConfirmLeaveOptions()) { ReselectOptionsTab(); return; } Host.Content = _video; ShowEntryCount(null); };
-        TabEbook.Checked += (_, _) => { if (!ConfirmLeaveOptions()) { ReselectOptionsTab(); return; } Host.Content = _ebook; ShowEntryCount(null); }; // 電子書分頁（#229）：切入即由 EbookPage.IsVisibleChanged 重填主題篩選並重整書櫃
-        TabOptions.Checked += (_, _) => { Host.Content = _options; ShowEntryCount(null); };
-        TabAbout.Checked += (_, _) => { if (!ConfirmLeaveOptions()) { ReselectOptionsTab(); return; } Host.Content = _about; ShowEntryCount(null); };
+        TabNotes.Checked += (_, _) => { if (!_reselecting && !ConfirmLeaveCurrentPage()) { ReselectCurrentTab(); return; } _notes.Reload(); Host.Content = _notes; ShowEntryCount(_notes.CurrentEntryCount); };
+        TabHistory.Checked += (_, _) => { if (!_reselecting && !ConfirmLeaveCurrentPage()) { ReselectCurrentTab(); return; } _history.Reload(); Host.Content = _history; ShowEntryCount(_history.CurrentEntryCount); };
+        TabThemes.Checked += (_, _) => { if (!_reselecting && !ConfirmLeaveCurrentPage()) { ReselectCurrentTab(); return; } _themes.Reload(preferActive: true); Host.Content = _themes; ShowEntryCount(null); }; // USR：切到本頁預設選使用中主題
+        TabCapture.Checked += (_, _) => { if (!_reselecting && !ConfirmLeaveCurrentPage()) { ReselectCurrentTab(); return; } Host.Content = _capture; ShowEntryCount(null); };
+        TabVideo.Checked += (_, _) => { if (!_reselecting && !ConfirmLeaveCurrentPage()) { ReselectCurrentTab(); return; } Host.Content = _video; ShowEntryCount(null); };
+        TabEbook.Checked += (_, _) => { if (!_reselecting && !ConfirmLeaveCurrentPage()) { ReselectCurrentTab(); return; } Host.Content = _ebook; ShowEntryCount(null); }; // 電子書分頁（#229）：切入即由 EbookPage.IsVisibleChanged 重填主題篩選並重整書櫃
+        TabOptions.Checked += (_, _) => { if (!_reselecting && !ConfirmLeaveCurrentPage()) { ReselectCurrentTab(); return; } Host.Content = _options; ShowEntryCount(null); }; // spec#11：一般化後不再豁免；目標頁＝目前頁時守衛自然放行
+        TabAbout.Checked += (_, _) => { if (!_reselecting && !ConfirmLeaveCurrentPage()) { ReselectCurrentTab(); return; } Host.Content = _about; ShowEntryCount(null); };
         ResultBtn.Click += (_, _) => ResultRequested?.Invoke();
 
+        _themes.AttachLeaveGuard(ConfirmLeaveCurrentPage); // spec#11：頁不認識視窗型別，以 Func<bool> 注入
         Host.Content = _notes; // 預設筆記分頁（XAML IsChecked 於接線前已設，故此處明確帶入）
         ShowEntryCount(_notes.CurrentEntryCount); // #132：初始筆記分頁條目數
     }
 
+    /// <summary>三選提示（spec#11 斷言③ 之 seam：可注入以供單元測試；預設仍為 WPF MessageBox、畫面不變）。</summary>
+    internal Func<string, MessageBoxResult> AskLeave { get; set; } = body =>
+        System.Windows.MessageBox.Show(body, "未儲存的變更", MessageBoxButton.YesNoCancel, MessageBoxImage.Warning);
+
     /// <summary>
-    /// 離開選項頁守衛（#複查）：目前非選項頁或選項頁無未存變更時直接放行；否則提示——
-    /// 「確定離開」＝還原變更值後放行，「取消」＝留在選項頁（回傳 false，由呼叫端還原分頁選取）。
+    /// 離開守衛（spec#11）：對**目前承載之頁**求值，**不判斷任何具名頁面型別**。
+    /// 目前頁未實作 <see cref="IUnsavedGuardPage"/> 或無未存變更即放行；否則三選——
+    /// 存後離開（存檔成功才離開）／捨棄還原離開／取消留原處（回傳 false，由呼叫端撥回分頁選取）。
     /// </summary>
-    private bool ConfirmLeaveOptions()
+    [LeaveGuard]
+    public bool ConfirmLeaveCurrentPage()
     {
-        if (Host.Content != _options || !_options.IsDirty)
+        if (Host.Content is not IUnsavedGuardPage page || !page.IsDirty)
         {
             return true;
         }
-        // #125：兩選（OK/Cancel）改三選（Yes/No/Cancel）——存後離開／不存還原離開／取消留頁。
-        var r = System.Windows.MessageBox.Show(
-            "選項頁有未儲存的變更。\n\n" +
-            "是 — 儲存並離開\n否 — 捨棄變更並離開\n取消 — 留在選項頁",
-            "未儲存的變更",
-            MessageBoxButton.YesNoCancel,
-            MessageBoxImage.Warning);
+        var name = page.PageDisplayName;
+        // #125：兩選（OK/Cancel）改三選（Yes/No/Cancel）——存後離開／捨棄變更並離開／取消留原處。
+        var r = AskLeave(
+            $"{name}有未儲存的變更。\n\n" +
+            $"是 — 儲存並離開\n否 — 捨棄變更並離開\n取消 — 留在{name}");
         switch (r)
         {
             case MessageBoxResult.Yes:
-                return _options.TrySave(); // 存後離開：存檔成功才離開；失敗（TrySave 已報錯）留在選項頁
+                return page.TrySave();     // 存檔成功才離開；失敗（實作已以持續性通道報錯）留在原頁
             case MessageBoxResult.No:
-                _options.RevertChanges();  // 不存離開＝還原為上次儲存值
+                page.RevertChanges();      // 不存離開＝還原為上次儲存值
                 return true;
             default:
-                return false;              // Cancel＝留在選項頁
+                return false;              // Cancel＝留在原處
         }
     }
 
-    /// <summary>取消離開後把分頁選取撥回選項頁（設 IsChecked 會觸發 TabOptions.Checked 還原 Host.Content）。</summary>
-    private void ReselectOptionsTab() => TabOptions.IsChecked = true;
+    /// <summary>取消離開後把分頁選取撥回**原分頁**（不寫死任一頁；設 IsChecked 會觸發該頁 Checked 還原 Host.Content）。</summary>
+    private void ReselectCurrentTab()
+    {
+        _reselecting = true;
+        foreach (var tab in new[] { TabNotes, TabHistory, TabThemes, TabCapture, TabVideo, TabEbook, TabOptions, TabAbout })
+        {
+            if (ReferenceEquals(Host.Content, TabContent(tab))) { tab.IsChecked = true; break; }
+        }
+        _reselecting = false;
+    }
+
+    private bool _reselecting; // 撥回期間抑制守衛，免再進入
+
+    private object? TabContent(System.Windows.Controls.Primitives.ToggleButton tab) =>
+        ReferenceEquals(tab, TabNotes) ? _notes
+        : ReferenceEquals(tab, TabHistory) ? _history
+        : ReferenceEquals(tab, TabThemes) ? _themes
+        : ReferenceEquals(tab, TabCapture) ? _capture
+        : ReferenceEquals(tab, TabVideo) ? _video
+        : ReferenceEquals(tab, TabEbook) ? _ebook
+        : ReferenceEquals(tab, TabOptions) ? _options
+        : ReferenceEquals(tab, TabAbout) ? (object?)_about : null;
 
     /// <summary>切到指定分頁並自收合還原（tray／入口呼叫）。</summary>
     public void ShowTab(MainTab tab)

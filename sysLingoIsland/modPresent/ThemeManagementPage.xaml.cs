@@ -41,13 +41,17 @@ namespace LingoIsland.Present;
 /// （名稱＋縮圖＋使用中標記），右編輯區（名稱、描述、貼上剪貼簿圖片／上傳檔、以 vision 自動解釋、設為使用中、刪除、儲存）。
 /// 查詢注入來源＝使用中主題描述。螢幕擷取與喚起快捷鍵已移至 <see cref="ScreenCapturePage"/>。
 /// </summary>
-public partial class ThemeManagementPage : UserControl
+[EditablePage]
+public partial class ThemeManagementPage : UserControl, IUnsavedGuardPage
 {
     private readonly ThemeStore _store;
     private readonly Func<byte[], Task<ImageContext>> _describe;
     private ThemesData _data = new();
     private ThemeItem? _selected;
     private byte[]? _pending; // 剛貼上/上傳、尚未儲存之圖片
+    private string _baseline = ""; // 載入編輯區當下之快照（spec#11 未存判定基準）
+    private bool _suppressGuard; // 程式內部改選（SelectById／Reload／刪除後重載）期間抑制守衛
+    private Func<bool>? _confirmLeave; // 由主視窗注入之離開守衛（頁不認識視窗型別）
     private readonly List<(Border Swatch, TextBox Box)> _colorRows = new(); // 12 色可編輯列（#189-checklist USR）：色票（點擊改色）＋描述框
 
     public ThemeManagementPage(ThemeStore store, Func<byte[], Task<ImageContext>> describeAsync)
@@ -197,7 +201,9 @@ public partial class ThemeManagementPage : UserControl
         }
         EmptyHint.Visibility = Visibility.Collapsed;
         Editor.Visibility = Visibility.Visible;
+        _suppressGuard = true;
         SelectById(keepId ?? ThemeStore.GetActive(_data)?.Id ?? _data.Items[0].Id);
+        _suppressGuard = false;
     }
 
     private void BuildList()
@@ -246,6 +252,14 @@ public partial class ThemeManagementPage : UserControl
 
     private void OnSelect(object? sender, SelectionChangedEventArgs e)
     {
+        // spec#11：使用者於同頁改選另一主題時先過守衛；程式內部改選（SelectById／Reload／存後重載）不攔。
+        if (!_suppressGuard && IsDirty && _confirmLeave is not null && !_confirmLeave())
+        {
+            _suppressGuard = true;
+            SelectById(_selected!.Id); // 撥回原項；抑制再進入，免迴圈
+            _suppressGuard = false;
+            return;
+        }
         _selected = (List.SelectedItem as ListBoxItem)?.Tag as ThemeItem;
         _pending = null;
         LoadEditor();
@@ -270,6 +284,7 @@ public partial class ThemeManagementPage : UserControl
             _colorRows[i].Swatch.Background = Brush(string.IsNullOrWhiteSpace(col.Hex) ? ThemeColors.HexagonDefaults[i] : col.Hex);
             _colorRows[i].Box.Text = col.Description;
         }
+        CaptureBaseline();
     }
 
     private void ShowPreview(BitmapSource? src)
@@ -282,12 +297,16 @@ public partial class ThemeManagementPage : UserControl
 
     private void OnAdd(object? sender, RoutedEventArgs e)
     {
+        if (IsDirty && _confirmLeave is not null && !_confirmLeave()) { return; } // spec#11：新增亦會換掉編輯對象
         var created = ThemeStore.Add(_data, ThemeStore.DefaultName);
         _store.Save(_data);
+        _suppressGuard = true;
         BuildList();
         Editor.Visibility = Visibility.Visible;
         EmptyHint.Visibility = Visibility.Collapsed;
         SelectById(created.Id);
+        _suppressGuard = false;
+        CaptureBaseline();
         NameBox.Focus();
     }
 
@@ -312,19 +331,76 @@ public partial class ThemeManagementPage : UserControl
                 Description = _colorRows[i].Box.Text?.Trim() ?? "",
             });
         }
-        _store.Save(_data);
+        if (!_store.TrySave(_data, out var err))
+        {
+            System.Windows.MessageBox.Show("儲存失敗：" + err, "LingoIsland 主題"); // 持續性通道（模態），非數秒閃示
+            return;
+        }
+        _suppressGuard = true;
         BuildList();
         SelectById(_selected.Id);
+        _suppressGuard = false;
+        CaptureBaseline();
         StatusLine.Text = "已儲存。";
     }
+
+    /// <summary>快照目前編輯區六類欄位，作為未存判定基準（spec#11）。</summary>
+    private void CaptureBaseline() => _baseline = SnapshotEditor();
+
+    /// <summary>編輯區六類欄位之正規化快照：名稱／主題描述／自動屏蔽字串／12 色色值／12 色描述／未存貼圖。</summary>
+    private string SnapshotEditor()
+    {
+        var sb = new System.Text.StringBuilder();
+        sb.Append(NameBox.Text?.Trim()).Append('');
+        sb.Append(DescBox.Text?.Trim()).Append('');
+        sb.Append(BlockBox.Text?.Trim()).Append('');
+        for (var i = 0; i < _colorRows.Count; i++)
+        {
+            sb.Append(SwatchHex(_colorRows[i].Swatch, ThemeColors.HexagonDefaults[i]).ToUpperInvariant()).Append('');
+            sb.Append(_colorRows[i].Box.Text?.Trim()).Append('');
+        }
+        sb.Append(_pending is null ? "0" : "1");
+        return sb.ToString();
+    }
+
+    /// <inheritdoc/>
+    public bool IsDirty => _selected is not null && Editor.Visibility == Visibility.Visible && SnapshotEditor() != _baseline;
+
+    /// <inheritdoc/>
+    public bool TrySave()
+    {
+        if (_selected is null) { return true; }
+        OnSave(null, null!);
+        return !IsDirty; // OnSave 失敗時未更新基準，IsDirty 仍為真
+    }
+
+    /// <inheritdoc/>
+    public void RevertChanges()
+    {
+        if (_selected is null) { return; }
+        _pending = null;
+        _suppressGuard = true;
+        LoadEditor();
+        _suppressGuard = false;
+    }
+
+    /// <inheritdoc/>
+    public string PageDisplayName => "主題頁";
+
+    /// <summary>由主視窗注入離開守衛，供同頁改選編輯對象時呼叫（頁不認識視窗型別）。</summary>
+    public void AttachLeaveGuard(Func<bool> confirmLeave) => _confirmLeave = confirmLeave;
 
     private void OnSetActive(object? sender, RoutedEventArgs e)
     {
         if (_selected is null) { return; }
+        if (IsDirty && _confirmLeave is not null && !_confirmLeave()) { return; } // spec#11：本動作會重載編輯區
         ThemeStore.SetActive(_data, _selected.Id);
         _store.Save(_data);
+        _suppressGuard = true;
         BuildList();
         SelectById(_selected.Id);
+        _suppressGuard = false;
+        CaptureBaseline();
         StatusLine.Text = "已設為使用中；查詢將使用此主題。";
     }
 
@@ -341,6 +417,8 @@ public partial class ThemeManagementPage : UserControl
         _store.DeleteImage(removed?.Image);
         _store.Save(_data);
         _selected = null;
+        _pending = null;
+        _baseline = ""; // spec#11：刪除本意即捨棄，須清未存狀態，免 Reload→SelectById→OnSelect 拿殘留 dirty 跳提示
         Reload();
     }
 

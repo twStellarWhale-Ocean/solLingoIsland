@@ -1,3 +1,4 @@
+using System;
 using System.IO;
 using System.Text.Json;
 
@@ -126,15 +127,31 @@ public sealed class ThemeStore
         return d;
     }
 
-    public void Save(ThemesData d)
+    /// <summary>
+    /// 寫回主題資料。<c>true</c>＝成功；<c>false</c>＝失敗（訊息置 <paramref name="error"/>）。
+    /// <para>
+    /// spec#11 具名例外：本存放區之「讀寫失敗退空／降級」僅適用於**讀取**；**寫回失敗須上報**，
+    /// 否則未存變更守衛之「儲存失敗」分支恆不成立（design.md ＜II.C.(A).4＞）。
+    /// </para>
+    /// </summary>
+    public bool TrySave(ThemesData d, out string error)
     {
         try
         {
             Directory.CreateDirectory(Path.GetDirectoryName(_path)!);
             File.WriteAllText(_path, JsonSerializer.Serialize(d, Opts));
+            error = "";
+            return true;
         }
-        catch { /* 寫入失敗不影響主流程 */ }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+            return false;
+        }
     }
+
+    /// <summary>寫回主題資料（不關心結果之呼叫端用；失敗靜默）。新程式碼請改用 <see cref="TrySave"/>。</summary>
+    public void Save(ThemesData d) => TrySave(d, out _);
 
     /// <summary>使用中主題之描述文字（查詢注入來源，spec#9）；無使用中則空字串（＝回歸現行行為）。</summary>
     public string ActiveText() => ActiveText(Load());
@@ -150,6 +167,26 @@ public sealed class ThemeStore
         var name = id + ".png";
         File.WriteAllBytes(Path.Combine(_imageDir, name), png);
         return name;
+    }
+
+    /// <summary>
+    /// 寫入某主題圖片，<c>true</c>＝成功（<paramref name="fileName"/> 為檔名）；<c>false</c>＝失敗（訊息置 <paramref name="error"/>）。
+    /// spec#11：**寫圖失敗不得拋穿造成當機**，須轉為可回報之失敗。
+    /// </summary>
+    public bool TryWriteImage(string id, byte[] png, out string fileName, out string error)
+    {
+        try
+        {
+            fileName = WriteImage(id, png);
+            error = "";
+            return true;
+        }
+        catch (Exception ex)
+        {
+            fileName = "";
+            error = ex.Message;
+            return false;
+        }
     }
 
     public void DeleteImage(string? fileName)
