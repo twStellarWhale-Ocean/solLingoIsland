@@ -162,6 +162,14 @@ public partial class VideoCapturePage : System.Windows.Controls.UserControl
         // #208 審查修：初入頁焦點死區——以滑鼠切至影片頁時焦點停在功能列鈕（頁外）、頁級 PreviewKeyDown 收不到；可見即種焦點至頁內
         IsVisibleChanged += (_, e2) => { if ((bool)e2.NewValue && SubTabPlay.IsChecked == true) { Dispatcher.BeginInvoke(new Action(() => Keyboard.Focus(this)), System.Windows.Threading.DispatcherPriority.Input); } };
 
+        // spec#12：主題頁存檔即時套用——訂閱 ThemeStore 變更通知重算說話人配色與主題篩選，
+        // 不倚賴切分頁（逐頁在 IsVisibleChanged 補一行，漏加不會報錯、只會靜默顯示舊配色）。
+        _themes.Changed += () => Dispatcher.BeginInvoke(new Action(() =>
+        {
+            ThemeFilter.Populate(VideoThemeFilter, _themes);
+            RebuildSpeakerColors();
+        }));
+
         // 影片清單（epic #145 增量4）＋依 theme 篩選（B）：點清單載入該片、篩選、初次載入
         VideoList.SelectionChanged += OnVideoSelect;
         ClearVideosBtn.Click += (_, _) => OnClearVideos(); // #165 清空影片清單

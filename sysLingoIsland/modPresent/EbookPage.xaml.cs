@@ -132,6 +132,16 @@ public partial class EbookPage : UserControl
 
         // 切回本頁重填篩選＋reader「主題：」picker（反映主題增刪改）並重整書櫃
         IsVisibleChanged += (_, e) => { if (e.NewValue is true) { PopulateThemeFilter(); if (_openBook is not null) { PopulateReaderThemePicker(_openBook); } RefreshBookshelf(); } };
+
+        // spec#12：主題頁存檔即時套用——訂閱 ThemeStore 變更通知重算配色與篩選，
+        // 不倚賴切分頁（切分頁只是其中一條路徑；且逐頁在 IsVisibleChanged 補一行，漏加不會報錯）。
+        _themes.Changed += () => Dispatcher.BeginInvoke(new Action(() =>
+        {
+            PopulateThemeFilter();
+            if (_openBook is not null) { PopulateReaderThemePicker(_openBook); }
+            RebuildSpeakerColors();
+            RefreshBookshelf();
+        }));
         Focusable = true;
         PreviewKeyDown += OnReaderHotkey; // #6 內容頁快速鍵：←/→＝上/下一段、Space＝播放/繼續（不劫持輸入框/下拉）
 

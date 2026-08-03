@@ -134,6 +134,12 @@ public sealed class ThemeStore
     /// 否則未存變更守衛之「儲存失敗」分支恆不成立（design.md ＜II.C.(A).4＞）。
     /// </para>
     /// </summary>
+    /// <summary>
+    /// 主題資料寫回成功後觸發（spec#12）。消費端（說話人配色、主題篩選、卡片底色）訂閱本事件即時重算，
+    /// **不必各自在 <c>IsVisibleChanged</c> 補一行**——後者漏加不會報錯、只會靜默顯示舊配色。
+    /// </summary>
+    public event Action? Changed;
+
     public bool TrySave(ThemesData d, out string error)
     {
         try
@@ -141,6 +147,7 @@ public sealed class ThemeStore
             Directory.CreateDirectory(Path.GetDirectoryName(_path)!);
             File.WriteAllText(_path, JsonSerializer.Serialize(d, Opts));
             error = "";
+            Changed?.Invoke();
             return true;
         }
         catch (Exception ex)
