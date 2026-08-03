@@ -61,14 +61,14 @@ public partial class MainWindow : Window
 
         // 各分頁切換前先過「離開選項頁」守衛（#複查）：選項頁有未存變更時提示，取消則留在選項頁。
         // 切至筆記/歷史時於狀態列顯目前檢視條目數，其餘分頁隱藏（#132）。
-        TabNotes.Checked += (_, _) => { if (!_reselecting && !ConfirmLeaveCurrentPage()) { ReselectCurrentTab(); return; } _notes.Reload(); Host.Content = _notes; ShowEntryCount(_notes.CurrentEntryCount); };
-        TabHistory.Checked += (_, _) => { if (!_reselecting && !ConfirmLeaveCurrentPage()) { ReselectCurrentTab(); return; } _history.Reload(); Host.Content = _history; ShowEntryCount(_history.CurrentEntryCount); };
-        TabThemes.Checked += (_, _) => { if (!_reselecting && !ConfirmLeaveCurrentPage()) { ReselectCurrentTab(); return; } _themes.Reload(preferActive: true); Host.Content = _themes; ShowEntryCount(null); }; // USR：切到本頁預設選使用中主題
-        TabCapture.Checked += (_, _) => { if (!_reselecting && !ConfirmLeaveCurrentPage()) { ReselectCurrentTab(); return; } Host.Content = _capture; ShowEntryCount(null); };
-        TabVideo.Checked += (_, _) => { if (!_reselecting && !ConfirmLeaveCurrentPage()) { ReselectCurrentTab(); return; } Host.Content = _video; ShowEntryCount(null); };
-        TabEbook.Checked += (_, _) => { if (!_reselecting && !ConfirmLeaveCurrentPage()) { ReselectCurrentTab(); return; } Host.Content = _ebook; ShowEntryCount(null); }; // 電子書分頁（#229）：切入即由 EbookPage.IsVisibleChanged 重填主題篩選並重整書櫃
-        TabOptions.Checked += (_, _) => { if (!_reselecting && !ConfirmLeaveCurrentPage()) { ReselectCurrentTab(); return; } Host.Content = _options; ShowEntryCount(null); }; // spec#11：一般化後不再豁免；目標頁＝目前頁時守衛自然放行
-        TabAbout.Checked += (_, _) => { if (!_reselecting && !ConfirmLeaveCurrentPage()) { ReselectCurrentTab(); return; } Host.Content = _about; ShowEntryCount(null); };
+        TabNotes.Checked += (_, _) => { if (_reselecting) { return; } if (!ConfirmLeaveCurrentPage()) { ReselectCurrentTab(); return; } _notes.Reload(); Host.Content = _notes; ShowEntryCount(_notes.CurrentEntryCount); };
+        TabHistory.Checked += (_, _) => { if (_reselecting) { return; } if (!ConfirmLeaveCurrentPage()) { ReselectCurrentTab(); return; } _history.Reload(); Host.Content = _history; ShowEntryCount(_history.CurrentEntryCount); };
+        TabThemes.Checked += (_, _) => { if (_reselecting) { return; } if (!ConfirmLeaveCurrentPage()) { ReselectCurrentTab(); return; } _themes.Reload(preferActive: true); Host.Content = _themes; ShowEntryCount(null); }; // USR：切到本頁預設選使用中主題
+        TabCapture.Checked += (_, _) => { if (_reselecting) { return; } if (!ConfirmLeaveCurrentPage()) { ReselectCurrentTab(); return; } Host.Content = _capture; ShowEntryCount(null); };
+        TabVideo.Checked += (_, _) => { if (_reselecting) { return; } if (!ConfirmLeaveCurrentPage()) { ReselectCurrentTab(); return; } Host.Content = _video; ShowEntryCount(null); };
+        TabEbook.Checked += (_, _) => { if (_reselecting) { return; } if (!ConfirmLeaveCurrentPage()) { ReselectCurrentTab(); return; } Host.Content = _ebook; ShowEntryCount(null); }; // 電子書分頁（#229）：切入即由 EbookPage.IsVisibleChanged 重填主題篩選並重整書櫃
+        TabOptions.Checked += (_, _) => { if (_reselecting) { return; } if (!ConfirmLeaveCurrentPage()) { ReselectCurrentTab(); return; } Host.Content = _options; ShowEntryCount(null); }; // spec#11：一般化後不再豁免；目標頁＝目前頁時守衛自然放行
+        TabAbout.Checked += (_, _) => { if (_reselecting) { return; } if (!ConfirmLeaveCurrentPage()) { ReselectCurrentTab(); return; } Host.Content = _about; ShowEntryCount(null); };
         ResultBtn.Click += (_, _) => ResultRequested?.Invoke();
 
         _themes.AttachLeaveGuard(ConfirmLeaveCurrentPage); // spec#11：頁不認識視窗型別，以 Func<bool> 注入
@@ -109,7 +109,15 @@ public partial class MainWindow : Window
         }
     }
 
-    /// <summary>取消離開後把分頁選取撥回**原分頁**（不寫死任一頁；設 IsChecked 會觸發該頁 Checked 還原 Host.Content）。</summary>
+    /// <summary>
+    /// 取消離開後把分頁選取撥回**原分頁**（不寫死任一頁）。
+    /// <para>
+    /// spec#11「撥回不得反噬」：撥回會觸發該頁 <c>Checked</c>，其 handler 內含進場動作
+    /// （如 <c>_themes.Reload(preferActive: true)</c> 會重讀檔並改選使用中主題）——**照跑就會把
+    /// 使用者按「取消」保住的編輯整個覆蓋掉**。故各 handler 於 <c>_reselecting</c> 期間**整段 return**，
+    /// 不只是跳過守衛（本來就已在該頁，無事可做）。
+    /// </para>
+    /// </summary>
     private void ReselectCurrentTab()
     {
         _reselecting = true;
