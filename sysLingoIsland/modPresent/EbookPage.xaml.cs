@@ -8,6 +8,8 @@ using OpenFileDialog = Microsoft.Win32.OpenFileDialog;
 using Run = System.Windows.Documents.Run;
 using Hyperlink = System.Windows.Documents.Hyperlink;
 using Cursors = System.Windows.Input.Cursors;
+using Cursor = System.Windows.Input.Cursor;
+using Mouse = System.Windows.Input.Mouse;
 using ComboBoxItem = System.Windows.Controls.ComboBoxItem;
 using RoutedEventArgs = System.Windows.RoutedEventArgs;
 using MouseButtonEventArgs = System.Windows.Input.MouseButtonEventArgs;
@@ -785,6 +787,7 @@ public partial class EbookPage : UserControl
     private bool _pausedNeedsCurrent;                              // 續念是否含當前段：發言前暫停＝true（未念）、發言後＝false（已念）（#245）
 
     private bool _ttsReading;                                      // 連續朗讀（唸完自動前進）中
+    private bool _ttsOnce;                                         // 單段朗讀（唸完即止、不前進）中——只影響游標，不影響播放鈕與導航續讀
     private int _ttsParagraph = -1;                               // 目前朗讀之段（供完成事件比對，防手動導航後誤前進）
     private ISpeechService? _subscribedSpeech;                     // 目前已訂閱 SpeakCompleted 之語音服務（換聲時改訂）
 
@@ -1003,7 +1006,7 @@ public partial class EbookPage : UserControl
                 Padding = new Thickness(8, 5, 8, 5),
                 Margin = new Thickness(0, 0, 0, 2),
                 CornerRadius = new CornerRadius(4),
-                Cursor = Cursors.Hand,
+                Cursor = ReadingAreaCursor,   // spec#13：朗讀中之新建段落也要是忙碌游標（切章重建於朗讀中亦會發生）
                 ContextMenu = BuildParagraphContextMenu(idx),
             };
             border.MouseLeftButtonUp += (_, e) => OnParagraphClicked(idx, e);
@@ -1057,7 +1060,8 @@ public partial class EbookPage : UserControl
                 if (tok.IsWord)
                 {
                     var word = tok.Text;
-                    var link = new Hyperlink(new Run(word)) { Foreground = speakerBrush, Cursor = Cursors.Hand, TextDecorations = null };
+                    // 不自帶 Cursor：Cursor 為可繼承相依屬性，交由所屬段落 Border 決定（否則單字會永遠壓成手指，spec#13 之忙碌游標在有字處全被蓋掉）
+                    var link = new Hyperlink(new Run(word)) { Foreground = speakerBrush, TextDecorations = null };
                     link.Click += (_, _) => WordLookupRequested?.Invoke(word);
                     tb.Inlines.Add(link);
                 }
@@ -1236,7 +1240,10 @@ public partial class EbookPage : UserControl
         var svc = _speechProvider();
         if (svc is null) { SetStatus("目前沒有可用的語音服務，無法朗讀。"); return; }
         var text = cues[_cursor].Text;
-        if (!string.IsNullOrWhiteSpace(text)) { svc.Speak(text, "en-US", stopPrevious: true); }
+        if (string.IsNullOrWhiteSpace(text)) { return; }
+        svc.Speak(text, "en-US", stopPrevious: true);
+        _ttsOnce = true;            // spec#13：單段朗讀同樣是「電腦在唸」，游標須一致；唸完（非取消）於完成事件歸零
+        UpdateSpeakButton();
     }
 
     /// <summary>內容頁快速鍵（#6、#240、#247、#267）：←/↑＝上一段、→/↓＝下一段、PageUp/PageDown＝上/下一章、Space＝播放/繼續；
@@ -1356,6 +1363,7 @@ public partial class EbookPage : UserControl
     private void StopTts()
     {
         _ttsReading = false;
+        _ttsOnce = false;
         _ttsParagraph = -1;
         try { _speechProvider()?.Speak("", "en-US", stopPrevious: true); } catch { /* 取消盡力 */ }
         UpdateSpeakButton();
@@ -1370,6 +1378,8 @@ public partial class EbookPage : UserControl
 
     private void OnSpeechCompletedUi(bool cancelled)
     {
+        // 單段朗讀唸完即收忙碌游標。只認「非取消」之完成——取消事件可能是本次 Speak 前 StopTts 排出的舊事件，認了會把剛起的單段游標誤關。
+        if (!cancelled && _ttsOnce) { _ttsOnce = false; UpdateSpeakButton(); }
         if (cancelled || !_ttsReading) { return; }   // 被中止／已停朗讀→不前進
         if (_ttsParagraph != _cursor) { return; }     // 手動導航已移游標→此完成作廢（generation guard）
         AdvanceTtsAfterCurrent();
@@ -1415,6 +1425,12 @@ public partial class EbookPage : UserControl
         UpdateReadingCursor();
     }
 
+    /// <summary>朗讀中（連續或單段）＝閱讀區呈忙碌。</summary>
+    private bool TtsBusy => _ttsReading || _ttsOnce;
+
+    /// <summary>段落容器該用的游標：朗讀中忙碌、否則手指（段落可點以跳讀）。單字 Hyperlink 不自帶游標、繼承本值。</summary>
+    private Cursor ReadingAreaCursor => TtsBusy ? Cursors.AppStarting : Cursors.Hand;
+
     /// <summary>
     /// 朗讀中之游標（spec#13）：閱讀區改為 <see cref="Cursors.AppStarting"/>——語意為「**程式在動，但你仍可操作**」。
     /// <para>
@@ -1422,11 +1438,18 @@ public partial class EbookPage : UserControl
     /// 暫停、切章一律照常可用，用 `Wait` 會誤導使用者以為畫面卡住（Windows 慣例：AppStarting＝忙碌但可互動）。
     /// </para>
     /// <para>
-    /// 掛在閱讀區容器而非整頁：左側章節目錄與右側說話人面板不屬「朗讀中」之範圍，維持預設游標；
-    /// 段落上之 Hyperlink 自帶 <see cref="Cursors.Hand"/>，其優先權高於本設定，逐字可點之提示不受影響。
+    /// **必須逐段設，只設外層 ScrollViewer 無效**：每個段落是撐滿內文欄的 Border、且自帶 <see cref="Cursors.Hand"/>，
+    /// 其優先權高於外層，只設外層時忙碌游標僅在段落之間的縫隙看得到——即「有字的地方永遠看不到」。
+    /// 左側章節目錄與右側說話人面板不屬「朗讀中」之範圍，維持預設游標。
     /// </para>
     /// </summary>
-    private void UpdateReadingCursor() => ReadingScroller.Cursor = _ttsReading ? Cursors.AppStarting : null;
+    private void UpdateReadingCursor()
+    {
+        ReadingScroller.Cursor = TtsBusy ? Cursors.AppStarting : null;
+        var para = ReadingAreaCursor;
+        foreach (var b in _paraViews) { b.Cursor = para; }
+        Mouse.UpdateCursor();   // 滑鼠不動也立即換手；否則要移動一下才生效（按下播放時指標多半停在按鈕上不動）
+    }
 
     // ---- 說話人勾選面板／上色（比照影片頁；全書說話人） ----
 
