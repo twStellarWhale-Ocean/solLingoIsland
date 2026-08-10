@@ -553,13 +553,14 @@ public partial class VideoCapturePage : System.Windows.Controls.UserControl, ITh
         var sort = VideoStore.EffectiveSort(d); // #219：排序態（含 legacy SortKey 讀取遷移）
         var shown = VideoStore.SortVideos(d.Items.Where(it => ThemeFilter.Match(themeId, it.ThemeId)), sort); // #207：先篩後排
         UpdateVideoSortButtons(sort); // #219：四 toggle 鈕視覺與排序態單一同步點
+        var themes = _themes.Load(); // #297：每次重繪讀一次（不逐卡讀檔），供卡片標籤依 ThemeId 即時解析主題名
         VideoList.SelectionChanged -= OnVideoSelect;
         VideoList.Items.Clear();
         foreach (var it in shown)
         {
             VideoList.Items.Add(new System.Windows.Controls.ListBoxItem
             {
-                Content = VideoItemView(it),
+                Content = VideoItemView(it, themes),
                 Tag = it,
                 Padding = new System.Windows.Thickness(4),
             });
@@ -639,8 +640,10 @@ public partial class VideoCapturePage : System.Windows.Controls.UserControl, ITh
     /// 片名 <c>Wrap</c> 不截斷；主題無值時**不顯示該列**（維持本頁原有資訊量，與書卡顯「未分類」之差異係各自照現況、不擅自統一）。
     /// </para>
     /// </summary>
-    private System.Windows.Controls.Grid VideoItemView(VideoItem it)
+    private System.Windows.Controls.Grid VideoItemView(VideoItem it, ThemesData themes)
     {
+        // #297：標籤依 ThemeId 即時解析（解析不到才回退快照）——ThemeName 是加入當下的快照，主題更名後不會跟著變
+        var themeText = ThemeStore.ResolveDisplayName(themes, it.ThemeId, it.ThemeName);
         var grid = new System.Windows.Controls.Grid();
         grid.ColumnDefinitions.Add(new System.Windows.Controls.ColumnDefinition { Width = System.Windows.GridLength.Auto });
         grid.ColumnDefinitions.Add(new System.Windows.Controls.ColumnDefinition { Width = new System.Windows.GridLength(1, System.Windows.GridUnitType.Star) });
@@ -650,11 +653,11 @@ public partial class VideoCapturePage : System.Windows.Controls.UserControl, ITh
         grid.Children.Add(thumb);
 
         var col = new System.Windows.Controls.StackPanel { VerticalAlignment = System.Windows.VerticalAlignment.Center };
-        if (!string.IsNullOrWhiteSpace(it.ThemeName))
+        if (!string.IsNullOrWhiteSpace(themeText))
         {
             var theme = new System.Windows.Controls.TextBlock
             {
-                Text = it.ThemeName,
+                Text = themeText,
                 FontSize = 10.5,
                 TextTrimming = System.Windows.TextTrimming.CharacterEllipsis,
                 Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0x9A, 0x6A, 0x82)),

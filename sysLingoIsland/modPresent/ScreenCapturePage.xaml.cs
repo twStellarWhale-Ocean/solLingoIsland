@@ -112,11 +112,12 @@ public partial class ScreenCapturePage : UserControl, IThemeConsumerPage
         var d = _shots.Load();
         var themeId = ThemeFilter.SelectedThemeId(ShotThemeFilter); // null＝All（B）
         var shown = d.Items.Where(it => ThemeFilter.Match(themeId, it.ThemeId)).ToList();
+        var themes = _themes.Load(); // #297：每次重繪讀一次（不逐卡讀檔），供卡片標籤依 ThemeId 即時解析主題名
         ShotList.SelectionChanged -= OnShotSelect;
         ShotList.Items.Clear();
         foreach (var it in shown)
         {
-            ShotList.Items.Add(new ListBoxItem { Content = ShotItemView(it), Tag = it, Padding = new Thickness(4) });
+            ShotList.Items.Add(new ListBoxItem { Content = ShotItemView(it, themes), Tag = it, Padding = new Thickness(4) });
         }
         ShotList.SelectionChanged += OnShotSelect;
 
@@ -142,8 +143,10 @@ public partial class ScreenCapturePage : UserControl, IThemeConsumerPage
         ShotContentPane.Visibility = acquire ? Visibility.Collapsed : Visibility.Visible;
     }
 
-    private StackPanel ShotItemView(ScreenshotItem it)
+    private StackPanel ShotItemView(ScreenshotItem it, ThemesData themes)
     {
+        // #297：標籤依 ThemeId 即時解析（解析不到才回退快照）——ThemeName 是加入當下的快照，主題更名後不會跟著變
+        var themeText = ThemeStore.ResolveDisplayName(themes, it.ThemeId, it.ThemeName);
         var sp = new StackPanel { Orientation = Orientation.Horizontal };
         var thumb = new Image { Width = 56, Height = 36, Stretch = System.Windows.Media.Stretch.UniformToFill, Margin = new Thickness(0, 0, 8, 0) };
         var src = LoadImage(_shots.ImagePathFor(it.File));
@@ -152,9 +155,11 @@ public partial class ScreenCapturePage : UserControl, IThemeConsumerPage
 
         var col = new StackPanel { VerticalAlignment = VerticalAlignment.Center };
         col.Children.Add(new TextBlock { Text = FormatTime(it.CapturedAt), FontSize = 12, Foreground = Brush("#3A2C33") });
-        if (!string.IsNullOrWhiteSpace(it.ThemeName))
+        if (!string.IsNullOrWhiteSpace(themeText))
         {
-            col.Children.Add(new TextBlock { Text = it.ThemeName, FontSize = 11, Foreground = Brush("#9A6A82") });
+            var theme = new TextBlock { Text = themeText, FontSize = 11, Foreground = Brush("#9A6A82") };
+            System.Windows.Automation.AutomationProperties.SetAutomationId(theme, "ShotCardTheme");
+            col.Children.Add(theme);
         }
         sp.Children.Add(col);
         return sp;
