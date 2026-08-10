@@ -1,4 +1,4 @@
-#requires -Version 7
+﻿#requires -Version 7
 <#
   Issue #290（主題變更推送之消費端缺口）之實機走查＋證據擷取管線（spec#12）。
 
