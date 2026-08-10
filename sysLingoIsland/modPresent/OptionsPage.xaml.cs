@@ -11,6 +11,7 @@ namespace LingoIsland.Present;
 /// 分頁管理（#133），本頁不呈現該二者，但 <see cref="Gather"/> 保留既有 Context／HistoryMax／Hotkey、不重置。
 /// </summary>
 [EditablePage]
+[NoThemeConsumption]
 public partial class OptionsPage : UserControl, IUnsavedGuardPage
 {
     private const string DefaultVoiceTag = "";

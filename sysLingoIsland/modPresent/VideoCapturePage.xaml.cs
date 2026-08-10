@@ -17,8 +17,20 @@ namespace LingoIsland.Present;
 /// 加入既有筆記（<see cref="AddToNotesRequested"/>）。時間偏移量供整體微調。與螢幕擷取並列之可插拔擷取來源、下游完全共用。
 /// </summary>
 [UnsavedStateOutOfScope("Edit YAML 之未存緩衝，#285 範圍外")]
-public partial class VideoCapturePage : System.Windows.Controls.UserControl
+[ThemeConsumer]
+public partial class VideoCapturePage : System.Windows.Controls.UserControl, IThemeConsumerPage
 {
+    /// <summary>
+    /// spec#12：主題變更後重算本頁全部主題衍生呈現——主題篩選下拉、說話人字型色、**影片清單卡片之主題標籤**。
+    /// <para>#290 缺口①：原訂閱漏了影片清單重整，使清單卡片仍顯示舊主題名（README 明文承諾之即時更新只是恰好成立）。</para>
+    /// </summary>
+    public void OnThemesChanged()
+    {
+        PopulateVideoThemeFilter();
+        RebuildSpeakerColors();
+        RefreshVideoList();
+    }
+
     private readonly VideoStore _videoStore;                       // 影片清單持久化（epic #145 增量4）
     private readonly ThemeStore _themes;                           // 使用中主題（加入影片時記錄跨媒體歸屬）＋依 theme 篩選（B）＋內容區塊所屬主題指派（#173）
     private bool _populatingVideoFilter;                           // 重填篩選下拉期間抑制 SelectionChanged→重整
@@ -162,13 +174,8 @@ public partial class VideoCapturePage : System.Windows.Controls.UserControl
         // #208 審查修：初入頁焦點死區——以滑鼠切至影片頁時焦點停在功能列鈕（頁外）、頁級 PreviewKeyDown 收不到；可見即種焦點至頁內
         IsVisibleChanged += (_, e2) => { if ((bool)e2.NewValue && SubTabPlay.IsChecked == true) { Dispatcher.BeginInvoke(new Action(() => Keyboard.Focus(this)), System.Windows.Threading.DispatcherPriority.Input); } };
 
-        // spec#12：主題頁存檔即時套用——訂閱 ThemeStore 變更通知重算說話人配色與主題篩選，
-        // 不倚賴切分頁（逐頁在 IsVisibleChanged 補一行，漏加不會報錯、只會靜默顯示舊配色）。
-        _themes.Changed += () => Dispatcher.BeginInvoke(new Action(() =>
-        {
-            ThemeFilter.Populate(VideoThemeFilter, _themes);
-            RebuildSpeakerColors();
-        }));
+        // spec#12：主題頁存檔即時套用。#290 起訂閱上收至 MainWindow（唯一訂閱點），本頁只實作
+        // IThemeConsumerPage.OnThemesChanged、不自行訂閱 ThemeStore.Changed。
 
         // 影片清單（epic #145 增量4）＋依 theme 篩選（B）：點清單載入該片、篩選、初次載入
         VideoList.SelectionChanged += OnVideoSelect;

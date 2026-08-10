@@ -59,6 +59,7 @@ namespace LingoIsland.Present;
 /// 卡片底色套 <see cref="NoteEntry.Color"/>。每次變更即落地 notes.json；語音以 provider 委派取用。
 /// </summary>
 [UnsavedStateOutOfScope("F2 原地更名之暫態編輯，#285 範圍外")]
+[ThemeConsumptionOutOfScope("卡片底色一軌（ColorMath.LightenForBackground）未納入 spec#12 推送，底色於查詢當下決定並隨筆記落地")]
 public partial class NotesPage : UserControl
 {
     private const string FmtFolder = "LingoIsland.NoteFolderId";

@@ -151,7 +151,8 @@ public partial class App : System.Windows.Application
         _ebookPage.AddToNotesRequested += text => _ = AddVideoNoteAsync(text); // 當前段原文→重譯後入既有 NotesStore
         _ebookPage.AddSpeakerNotesRequested += AddSpeakerNotesToFolder;      // 某說話人全書段落原文→〔書名-說話人〕資料夾（App 端確認費用後逐句翻譯）
 
-        _main = new MainWindow(_themePage, _capturePage, _videoPage, _ebookPage, _notesPage, _historyPage, _optionsPage, new AboutPage(_updates));
+        // spec#12（#290）：主題存放區一併注入主視窗——主題變更之訂閱與派送只有主視窗一個落點，消費頁不自行訂閱。
+        _main = new MainWindow(_themePage, _capturePage, _videoPage, _ebookPage, _notesPage, _historyPage, _optionsPage, new AboutPage(_updates), _themeStore);
         _main.RefreshStatus(keyReady, HotkeyDisplay());
         _main.ResultRequested += SummonResult; // 功能列「Dictionary」鈕→喚出獨立字典視窗（v1.0.1 恢復）
         _main.ExitRequested += ExitApp;        // 主視窗關閉(✕)→結束整個程式（v1.0.1：移除原「關閉＝收合」防關閉行為，USR 回饋）
