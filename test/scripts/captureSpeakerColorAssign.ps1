@@ -1,4 +1,4 @@
-#requires -Version 7
+﻿#requires -Version 7
 <#
   Issue #294（說話人清單右鍵指定顏色）之實機走查＋證據擷取。
 
