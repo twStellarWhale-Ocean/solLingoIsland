@@ -209,11 +209,12 @@ public partial class EbookPage : UserControl, IThemeConsumerPage
         var s = d.Sort ?? new EbookSort();
         var shown = EbookStore.SortEbooks(d.Items.Where(it => ThemeFilter.Match(themeId, it.ThemeId)), s); // 先篩後排
         UpdateSortButtons(s);
+        var themes = _themes.Load(); // #297：每次重繪讀一次（不逐卡讀檔），供卡片標籤依 ThemeId 即時解析主題名
         BookList.SelectionChanged -= OnBookSelect;
         BookList.Items.Clear();
         foreach (var it in shown)
         {
-            BookList.Items.Add(new ListBoxItem { Content = BookItemView(it), Tag = it, Padding = new Thickness(4) });
+            BookList.Items.Add(new ListBoxItem { Content = BookItemView(it, themes), Tag = it, Padding = new Thickness(4) });
         }
         if (_selectedBookId is not null)
         {
@@ -279,8 +280,10 @@ public partial class EbookPage : UserControl, IThemeConsumerPage
     /// <c>Level 2 · 博士生</c>…），單行截尾後各卡難以分辨，spec#5「一覽整理／易於在多本藏書間切換管理」失效。
     /// </para>
     /// </summary>
-    private Grid BookItemView(EbookItem it)
+    private Grid BookItemView(EbookItem it, ThemesData themes)
     {
+        // #297：標籤依 ThemeId 即時解析（解析不到才回退快照）——ThemeName 是加入當下的快照，主題更名後不會跟著變
+        var themeText = ThemeStore.ResolveDisplayName(themes, it.ThemeId, it.ThemeName);
         var grid = new Grid();
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
@@ -293,7 +296,7 @@ public partial class EbookPage : UserControl, IThemeConsumerPage
         // 主題標籤置於書名之前（#275）；無主題顯「未分類」＝維持本頁原有資訊量（影片卡原本即不顯示、不擅自統一）
         var theme = new TextBlock
         {
-            Text = string.IsNullOrWhiteSpace(it.ThemeName) ? "未分類" : it.ThemeName,
+            Text = string.IsNullOrWhiteSpace(themeText) ? "未分類" : themeText,
             FontSize = 10,
             Foreground = Brush("#9A6A82"),
             TextTrimming = TextTrimming.CharacterEllipsis,

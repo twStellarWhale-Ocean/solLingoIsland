@@ -234,4 +234,33 @@ public class ThemeStoreTests
         }
         finally { File.Delete(path); }
     }
+
+    // ---- #297：清單卡片主題標籤依 ThemeId 即時解析（ThemeName 僅為加入當下快照，更名後不會跟著變） ----
+
+    [Fact]
+    public void ResolveDisplayName_主題更名後以即時名稱為準_不用舊快照()
+    {
+        var d = new ThemesData();
+        var t = ThemeStore.Add(d, "Paw Patrol");
+        ThemeStore.Rename(d, t.Id, "汪汪隊立大功");
+        Assert.Equal("汪汪隊立大功", ThemeStore.ResolveDisplayName(d, t.Id, "Paw Patrol"));
+    }
+
+    [Fact]
+    public void ResolveDisplayName_解析不到即回退快照_相容舊資料與已刪主題()
+    {
+        var d = new ThemesData();
+        ThemeStore.Add(d, "存在的主題");
+        Assert.Equal("已刪的主題", ThemeStore.ResolveDisplayName(d, "no-such-id", "已刪的主題")); // 已刪主題
+        Assert.Equal("舊資料主題", ThemeStore.ResolveDisplayName(d, null, "舊資料主題"));        // 舊資料無 ThemeId
+    }
+
+    [Fact]
+    public void ResolveDisplayName_兩者皆無回null_去前後空白()
+    {
+        var d = new ThemesData();
+        Assert.Null(ThemeStore.ResolveDisplayName(d, null, null));
+        Assert.Null(ThemeStore.ResolveDisplayName(d, "  ", "   "));
+        Assert.Equal("快照名", ThemeStore.ResolveDisplayName(d, null, "  快照名  "));
+    }
 }

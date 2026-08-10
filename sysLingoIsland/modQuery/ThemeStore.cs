@@ -267,6 +267,26 @@ public sealed class ThemeStore
 
     public static ThemeItem? GetActive(ThemesData d) => d.Items.FirstOrDefault(i => i.IsActive);
 
+    /// <summary>
+    /// 解析清單卡片要顯示的主題名（#297，純函式）：**以 <paramref name="themeId"/> 即時解析為準**，
+    /// 解析不到才回退 <paramref name="snapshot"/>（加入當下寫死的名稱快照）。
+    /// <para>
+    /// 各媒體清單（影片／書櫃／截圖）的項目同時存有 <c>ThemeId</c> 與 <c>ThemeName</c> 兩欄，
+    /// 後者是**加入當下的快照**、主題更名後不會跟著變。卡片標籤若直接繪快照，主題改名並儲存後
+    /// 即使清單有重繪（#290 之 <c>RefreshVideoList()</c>），畫出來的仍是同一份舊名——修了重繪、沒修資料來源。
+    /// </para>
+    /// <para>
+    /// 回退保留是為相容**舊資料**（早期項目無 <c>ThemeId</c>）與**已刪主題**（id 解析不到時仍顯示原名，
+    /// 而非整列變空白使既有資訊量下降）。回傳值去除前後空白；全無可用者回 <c>null</c>。
+    /// </para>
+    /// </summary>
+    public static string? ResolveDisplayName(ThemesData d, string? themeId, string? snapshot)
+    {
+        var live = string.IsNullOrWhiteSpace(themeId) ? null : Find(d, themeId!)?.Name;
+        if (!string.IsNullOrWhiteSpace(live)) { return live!.Trim(); }
+        return string.IsNullOrWhiteSpace(snapshot) ? null : snapshot!.Trim();
+    }
+
     public static string ActiveText(ThemesData d) => GetActive(d)?.Text ?? "";
 
     /// <summary>
