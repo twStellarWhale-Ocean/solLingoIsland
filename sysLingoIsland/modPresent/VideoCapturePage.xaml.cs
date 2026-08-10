@@ -1784,10 +1784,10 @@ window.li_seek_pause=function(t){if(ready&&player){seekPausePending=true;player.
             foreach (var sc in _speakerChecks)
             {
                 if (sc.IsEveryone || sc.IsNoSpeaker) { continue; }
-                foreach (var col in theme.Colors) // 依槽序,取第一個描述含此說話人名之色
+                foreach (var col in theme.Colors) // 依槽序,取第一個描述指名此說話人之色
                 {
-                    if (!string.IsNullOrWhiteSpace(col.Description) && !string.IsNullOrWhiteSpace(col.Hex)
-                        && col.Description.Contains(sc.Name, StringComparison.OrdinalIgnoreCase))
+                    // #294：改用 ThemeStore.DescribesSpeaker（單字邊界比對）——原裸 Contains 會讓 Ann 被含 Annie 之描述吃掉
+                    if (!string.IsNullOrWhiteSpace(col.Hex) && ThemeStore.DescribesSpeaker(col.Description, sc.Name))
                     {
                         _speakerColorHex[sc.Name] = col.Hex.Trim();
                         break;
@@ -1804,6 +1804,25 @@ window.li_seek_pause=function(t){if(ready&&player){seekPausePending=true;player.
     /// `（全部說話人）`／`（無說話人）`／未配色者＝預設近黑。字幕帶另循 <see cref="CueRow.SpeakerBrush"/>（大字、用原色不壓暗）。
     /// 主題改指派／切回本頁時經 <see cref="RebuildSpeakerColors"/> 呼叫，NameBrush 通知即時刷新。
     /// </summary>
+    /// <summary>
+    /// 說話人清單列右鍵（#294）：依現用主題動態填入「指定顏色」選單（12 色槽＋清除）。選單本體與寫入邏輯
+    /// 共用 <see cref="SpeakerColorMenu"/>（電子書頁同一份）；存檔成功即由 <c>ThemeStore.Changed</c> 推送兩頁重繪。
+    /// 「（全部說話人）」／「（無說話人）」兩列非真說話人，不開選單。
+    /// </summary>
+    private void OnSpeakerColorMenuOpening(object sender, System.Windows.Controls.ContextMenuEventArgs e)
+    {
+        if (sender is not System.Windows.FrameworkElement fe || fe.ContextMenu is null
+            || fe.DataContext is not SpeakerCheck sc || sc.IsEveryone || sc.IsNoSpeaker)
+        {
+            e.Handled = true;   // 無可指定之對象→不開選單
+            return;
+        }
+        SpeakerColorMenu.Fill(fe.ContextMenu, _themes, ThemeFilter.PickedThemeId(VideoThemePicker), sc.Name,
+            err => System.Windows.MessageBox.Show(System.Windows.Window.GetWindow(this), "主題儲存失敗：" + err,
+                                                  "指定說話人顏色", System.Windows.MessageBoxButton.OK,
+                                                  System.Windows.MessageBoxImage.Warning));
+    }
+
     private void ApplySpeakerListColors()
     {
         foreach (var sc in _speakerChecks)

@@ -1547,8 +1547,8 @@ public partial class EbookPage : UserControl, IThemeConsumerPage
                 if (sc.IsEveryone || sc.IsNoSpeaker) { continue; }
                 foreach (var col in theme.Colors)
                 {
-                    if (!string.IsNullOrWhiteSpace(col.Description) && !string.IsNullOrWhiteSpace(col.Hex)
-                        && col.Description.Contains(sc.Name, StringComparison.OrdinalIgnoreCase))
+                    // #294：改用 ThemeStore.DescribesSpeaker（單字邊界比對）——原裸 Contains 會讓 Ann 被含 Annie 之描述吃掉
+                    if (!string.IsNullOrWhiteSpace(col.Hex) && ThemeStore.DescribesSpeaker(col.Description, sc.Name))
                     {
                         _speakerColorHex[sc.Name] = col.Hex.Trim();
                         break;
@@ -1558,6 +1558,24 @@ public partial class EbookPage : UserControl, IThemeConsumerPage
         }
         ApplySpeakerListColors();
         RefreshReadingPanel(); // 全章重繪＝說話人色即時反映（#235：原右清單之列刷新改落閱讀區）
+    }
+
+    /// <summary>
+    /// 說話人清單列右鍵（#294）：依現用主題動態填入「指定顏色」選單（12 色槽＋清除）。選單本體與寫入邏輯
+    /// 共用 <see cref="SpeakerColorMenu"/>（影片頁同一份）；存檔成功即由 <c>ThemeStore.Changed</c> 推送兩頁重繪。
+    /// 「（全部說話人）」／「（無說話人）」兩列非真說話人，不開選單。
+    /// </summary>
+    private void OnSpeakerColorMenuOpening(object sender, ContextMenuEventArgs e)
+    {
+        if (sender is not System.Windows.FrameworkElement fe || fe.ContextMenu is null
+            || fe.DataContext is not SpeakerCheck sc || sc.IsEveryone || sc.IsNoSpeaker)
+        {
+            e.Handled = true;   // 無可指定之對象→不開選單
+            return;
+        }
+        SpeakerColorMenu.Fill(fe.ContextMenu, _themes, ThemeFilter.PickedThemeId(ReaderThemePicker), sc.Name,
+            err => MessageBox.Show(System.Windows.Window.GetWindow(this), "主題儲存失敗：" + err,
+                                   "指定說話人顏色", MessageBoxButton.OK, MessageBoxImage.Warning));
     }
 
     private void ApplySpeakerListColors()

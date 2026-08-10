@@ -325,6 +325,96 @@ public sealed class ThemeStore
         return string.Join("; ", parts);
     }
 
+    // ---- 說話人色槽指派（#294，純函式、可單元測試） ----
+
+    /// <summary>拉丁文字之「字內字元」（英數與底線）——僅此類相鄰字元才構成單字邊界違反。</summary>
+    private static bool IsLatinWordChar(char c) =>
+        (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '_';
+
+    /// <summary>
+    /// 某色槽描述是否「指名」該說話人（#294，純函式）。取代原先的裸 <c>Contains</c>——後者會讓
+    /// 說話人 <c>Ann</c> 被描述含 <c>Annie</c> 的色槽吃掉。
+    /// <para>
+    /// 判準＝**大小寫不敏感之出現，且兩側須符合單字邊界**；邊界只在**拉丁文字之間**成立
+    /// （相鄰字元與名字該側端字元「皆為英數／底線」才算違反）。故 <c>Annie</c> 不再命中 <c>Ann</c>，
+    /// 而中日韓名（如描述「小明的顏色」對名字「小明」）仍照舊命中——CJK 字元本身是 letter，
+    /// 若一律套字母邊界會把既有中文描述整批失效。
+    /// </para>
+    /// </summary>
+    public static bool DescribesSpeaker(string? description, string? name)
+    {
+        if (string.IsNullOrWhiteSpace(description) || string.IsNullOrWhiteSpace(name)) { return false; }
+        var d = description;
+        var n = name.Trim();
+        if (n.Length == 0) { return false; }
+        int i = 0;
+        while (i <= d.Length - n.Length && (i = d.IndexOf(n, i, StringComparison.OrdinalIgnoreCase)) >= 0)
+        {
+            var end = i + n.Length;
+            var leftOk = i == 0 || !(IsLatinWordChar(d[i - 1]) && IsLatinWordChar(n[0]));
+            var rightOk = end >= d.Length || !(IsLatinWordChar(d[end]) && IsLatinWordChar(n[^1]));
+            if (leftOk && rightOk) { return true; }
+            i = end;
+        }
+        return false;
+    }
+
+    /// <summary>說話人色槽描述之分段字元（指派時以全形逗號相接，清除時逐段比對）。</summary>
+    private static readonly char[] DescSeparators = { ',', '，', '、', ';', '；' };
+
+    /// <summary>
+    /// 自單一描述字串移除指名該說話人之片段（#294，純函式）：以逗號類分隔切段，
+    /// 丟掉 <see cref="DescribesSpeaker"/> 為真之段，其餘以「，」重接。全段皆指名該人時回空字串。
+    /// </summary>
+    public static string RemoveSpeakerFromDescription(string? description, string name)
+    {
+        if (string.IsNullOrWhiteSpace(description)) { return description ?? ""; }
+        var kept = description.Split(DescSeparators, StringSplitOptions.RemoveEmptyEntries)
+                              .Select(p => p.Trim())
+                              .Where(p => p.Length > 0 && !DescribesSpeaker(p, name))
+                              .ToList();
+        return string.Join("，", kept);
+    }
+
+    /// <summary>
+    /// 把說話人指派到某色槽（#294，純函式）。<paramref name="slotIndex"/> 為 0–11；**傳負值＝只清除、不指派**。
+    /// <para>
+    /// 動作＝先自**全部 12 槽**移除指名該人之描述片段（正規化，確保同名只留一處），
+    /// 再把名字附加到目標槽描述（原描述非空則以「，」相接）。回傳是否有實際變更。
+    /// </para>
+    /// </summary>
+    public static bool AssignSpeakerColor(ThemeItem? item, string? name, int slotIndex)
+    {
+        if (item is null || string.IsNullOrWhiteSpace(name)) { return false; }
+        ThemeColors.Ensure(item);
+        var n = name.Trim();
+        var changed = false;
+        foreach (var c in item.Colors)
+        {
+            var cleaned = RemoveSpeakerFromDescription(c.Description, n);
+            if (!string.Equals(cleaned, c.Description ?? "", StringComparison.Ordinal)) { c.Description = cleaned; changed = true; }
+        }
+        if (slotIndex >= 0 && slotIndex < item.Colors.Count)
+        {
+            var target = item.Colors[slotIndex];
+            target.Description = string.IsNullOrWhiteSpace(target.Description) ? n : target.Description.Trim() + "，" + n;
+            changed = true;
+        }
+        return changed;
+    }
+
+    /// <summary>某說話人目前落在哪一色槽（#294，純函式）：依槽序取第一個指名者；無則 -1。</summary>
+    public static int SlotOfSpeaker(ThemeItem? item, string? name)
+    {
+        if (item is null || string.IsNullOrWhiteSpace(name)) { return -1; }
+        ThemeColors.Ensure(item);
+        for (int i = 0; i < item.Colors.Count; i++)
+        {
+            if (!string.IsNullOrWhiteSpace(item.Colors[i].Hex) && DescribesSpeaker(item.Colors[i].Description, name)) { return i; }
+        }
+        return -1;
+    }
+
     /// <summary>移除一則；回傳被移除項（供呼叫端刪其圖片）。</summary>
     public static ThemeItem? Remove(ThemesData d, string id)
     {

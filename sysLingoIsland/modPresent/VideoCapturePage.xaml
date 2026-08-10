@@ -363,7 +363,9 @@
                         <ItemsControl.ItemTemplate>
                           <DataTemplate>
                             <!-- 斑馬紋列底色（RowStripe，USR：全白難辨列尾圖示對應哪名字）＋勾選（左撐滿）＋「加入筆記」鈕（右，去灰框、粉色圖示，同 Notes 分頁 glyph）。全選列不顯此鈕。 -->
-                            <Grid Background="{Binding RowStripe}">
+                            <!-- #294：右鍵指定該說話人於現用主題之色槽（選單於開啟時依主題動態填入，共用 SpeakerColorMenu） -->
+                            <Grid Background="{Binding RowStripe}" ContextMenuOpening="OnSpeakerColorMenuOpening">
+                              <Grid.ContextMenu><ContextMenu/></Grid.ContextMenu>
                               <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*"/>
                                 <ColumnDefinition Width="Auto"/>

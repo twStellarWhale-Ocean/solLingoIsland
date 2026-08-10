@@ -291,7 +291,9 @@
                       <ItemsControl x:Name="ReaderSpeakerChecks">
                         <ItemsControl.ItemTemplate>
                           <DataTemplate>
-                            <Grid Background="{Binding RowStripe}">
+                            <!-- #294：右鍵指定該說話人於現用主題之色槽（選單於開啟時依主題動態填入，共用 SpeakerColorMenu） -->
+                            <Grid Background="{Binding RowStripe}" ContextMenuOpening="OnSpeakerColorMenuOpening">
+                              <Grid.ContextMenu><ContextMenu/></Grid.ContextMenu>
                               <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*"/>
                                 <ColumnDefinition Width="Auto"/>
