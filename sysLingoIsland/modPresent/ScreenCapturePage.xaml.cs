@@ -32,8 +32,19 @@ namespace LingoIsland.Present;
 /// 事件供 App 接：<see cref="CaptureRequested"/>／<see cref="HotkeyChanged"/>／<see cref="ListeningChanged"/>。
 /// </summary>
 [NoUnsavedState]
-public partial class ScreenCapturePage : UserControl
+[ThemeConsumer]
+public partial class ScreenCapturePage : UserControl, IThemeConsumerPage
 {
+    /// <summary>
+    /// spec#12：主題變更後重算本頁全部主題衍生呈現——主題篩選下拉與截圖清單卡片之主題名。
+    /// <para>#290 缺口②：本頁原本從未訂閱主題變更，只靠 <c>IsVisibleChanged</c> 於切回本頁時重填——正是 #286 明文否決之反模式。</para>
+    /// </summary>
+    public void OnThemesChanged()
+    {
+        PopulateThemeFilter();
+        RefreshScreenshots();
+    }
+
     // 喚起快捷鍵設定（#133；保留 #127 視窗層擷取寫法）
     private HotKeyBinding _hotkey = HotKeyBinding.Default;
     private bool _listening;

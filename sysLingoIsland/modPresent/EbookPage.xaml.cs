@@ -69,8 +69,18 @@ namespace LingoIsland.Present;
 /// 右鍵標記主題或刪除／Delete 刪／清空）。資料層（切片1）之解析與持久化不在此重寫，僅接線。
 /// </summary>
 [NoUnsavedState]
-public partial class EbookPage : UserControl
+[ThemeConsumer]
+public partial class EbookPage : UserControl, IThemeConsumerPage
 {
+    /// <summary>spec#12：主題變更後重算本頁全部主題衍生呈現——主題篩選下拉、reader「主題：」picker、說話人字型色、書櫃卡片之主題標籤。</summary>
+    public void OnThemesChanged()
+    {
+        PopulateThemeFilter();
+        if (_openBook is not null) { PopulateReaderThemePicker(_openBook); }
+        RebuildSpeakerColors();
+        RefreshBookshelf();
+    }
+
     private readonly EbookStore _store;      // 書櫃持久化（切片1；spec#5/#6）
     private readonly ThemeStore _themes;     // 依 theme 篩選（多媒體主題管理·B）＋匯入時記錄使用中主題＋書卡右鍵標記主題（#173）
     private bool _populatingFilter;          // 重填篩選下拉期間抑制 SelectionChanged→重整
@@ -135,15 +145,8 @@ public partial class EbookPage : UserControl
         // 切回本頁重填篩選＋reader「主題：」picker（反映主題增刪改）並重整書櫃
         IsVisibleChanged += (_, e) => { if (e.NewValue is true) { PopulateThemeFilter(); if (_openBook is not null) { PopulateReaderThemePicker(_openBook); } RefreshBookshelf(); } };
 
-        // spec#12：主題頁存檔即時套用——訂閱 ThemeStore 變更通知重算配色與篩選，
-        // 不倚賴切分頁（切分頁只是其中一條路徑；且逐頁在 IsVisibleChanged 補一行，漏加不會報錯）。
-        _themes.Changed += () => Dispatcher.BeginInvoke(new Action(() =>
-        {
-            PopulateThemeFilter();
-            if (_openBook is not null) { PopulateReaderThemePicker(_openBook); }
-            RebuildSpeakerColors();
-            RefreshBookshelf();
-        }));
+        // spec#12：主題頁存檔即時套用。#290 起訂閱上收至 MainWindow（唯一訂閱點），本頁只實作
+        // IThemeConsumerPage.OnThemesChanged、不自行訂閱 ThemeStore.Changed。
         Focusable = true;
         PreviewKeyDown += OnReaderHotkey; // #6 內容頁快速鍵：←/→＝上/下一段、Space＝播放/繼續（不劫持輸入框/下拉）
 

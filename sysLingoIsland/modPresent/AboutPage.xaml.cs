@@ -10,6 +10,7 @@ namespace LingoIsland.Present;
 /// 僅 Velopack 安裝形態顯示（dev 裸跑隱藏）、狀態字串歸 <see cref="AppStatusText"/>。
 /// </summary>
 [NoUnsavedState]
+[NoThemeConsumption]
 public partial class AboutPage : UserControl
 {
     private readonly UpdateService? _updates;

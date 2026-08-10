@@ -42,6 +42,7 @@ namespace LingoIsland.Present;
 /// 查詢注入來源＝使用中主題描述。螢幕擷取與喚起快捷鍵已移至 <see cref="ScreenCapturePage"/>。
 /// </summary>
 [EditablePage]
+[ThemeConsumptionOutOfScope("本頁即變更來源，儲存後自行重載；訂閱自己發出的通知會造成重入（儲存成功→重載→改選→再觸發）")]
 public partial class ThemeManagementPage : UserControl, IUnsavedGuardPage
 {
     private readonly ThemeStore _store;

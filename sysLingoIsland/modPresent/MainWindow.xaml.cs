@@ -1,4 +1,6 @@
+using System.Reflection;
 using System.Windows;
+using LingoIsland.Query;
 using CancelEventArgs = System.ComponentModel.CancelEventArgs;
 
 namespace LingoIsland.Present;
@@ -34,7 +36,7 @@ public partial class MainWindow : Window
     private readonly OptionsPage _options;
     private readonly AboutPage _about;
 
-    public MainWindow(ThemeManagementPage themes, ScreenCapturePage capture, VideoCapturePage video, EbookPage ebook, NotesPage notes, HistoryPage history, OptionsPage options, AboutPage about)
+    public MainWindow(ThemeManagementPage themes, ScreenCapturePage capture, VideoCapturePage video, EbookPage ebook, NotesPage notes, HistoryPage history, OptionsPage options, AboutPage about, ThemeStore themeStore)
     {
         InitializeComponent();
         _themes = themes;
@@ -45,6 +47,11 @@ public partial class MainWindow : Window
         _history = history;
         _options = options;
         _about = about;
+
+        // spec#12（#290）：主題變更之**唯一訂閱點**。#286 已把模型改為推送，但訂閱仍寫在各消費頁自己的
+        // 建構式——新頁面漏訂閱不會報錯、只會靜默顯示舊配色，與 spec#11 所修之守衛同形。改為由本視窗
+        // 單點訂閱、對所承載之頁反射枚舉後逐一派送；消費頁一律不自行訂閱。
+        themeStore.Changed += () => Dispatcher.BeginInvoke(new Action(DispatchThemesChanged));
 
         // 缺語言語音之一次性告知（#252）：朗讀遇中文段而系統未裝中文語音時，該段以預設語音念（不略過），
         // 並在此提示一次加裝路徑——去抖責任在訂閱端（服務端每段都會通知、不自行記狀態）。
@@ -75,6 +82,29 @@ public partial class MainWindow : Window
         Host.Content = _notes; // 預設筆記分頁（XAML IsChecked 於接線前已設，故此處明確帶入）
         ShowEntryCount(_notes.CurrentEntryCount); // #132：初始筆記分頁條目數
     }
+
+    /// <summary>
+    /// 主題變更派送（spec#12，#290）：對**所承載之全部頁**逐一派送，**不判斷任何具名頁面型別**。
+    /// 頁面清單自欄位反射取得而非寫死——寫死＝新增頁面漏列，等同回到「各頁自己記得訂閱」的老問題。
+    /// </summary>
+    [ThemeChangeDispatch]
+    internal void DispatchThemesChanged()
+    {
+        // 逐頁例外隔離：單頁重算擲例外不得中斷派送，否則其後各頁靜默維持舊配色＝本件所修缺陷之再生。
+        foreach (var page in HostedPages().OfType<IThemeConsumerPage>())
+        {
+            try { page.OnThemesChanged(); }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[spec#12] {page.GetType().Name}.OnThemesChanged 失敗：{ex.Message}"); }
+        }
+    }
+
+    /// <summary>本視窗所承載之頁面實體（枚舉來源＝頁面欄位，與 spec#11／#12 之契約測試同一口徑）。</summary>
+    private IEnumerable<object> HostedPages() =>
+        GetType()
+            .GetFields(BindingFlags.NonPublic | BindingFlags.Instance)
+            .Where(f => typeof(System.Windows.Controls.UserControl).IsAssignableFrom(f.FieldType))
+            .Select(f => f.GetValue(this))
+            .Where(v => v is not null)!;
 
     /// <summary>三選提示（spec#11 斷言③ 之 seam：可注入以供單元測試；預設仍為 WPF MessageBox、畫面不變）。</summary>
     internal Func<string, MessageBoxResult> AskLeave { get; set; } = body =>

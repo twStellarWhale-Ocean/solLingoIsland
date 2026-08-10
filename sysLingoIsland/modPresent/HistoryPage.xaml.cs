@@ -42,6 +42,7 @@ namespace LingoIsland.Present;
 /// （前端「＋筆記」加入我的筆記、尾端 播音／檢視／刪除、頂部清除全部）。非結果視窗、由主視窗分頁承載。
 /// </summary>
 [NoUnsavedState]
+[NoThemeConsumption]
 public partial class HistoryPage : UserControl
 {
     private readonly HistoryStore _store;
