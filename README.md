@@ -29,15 +29,28 @@
 ## 快速開始
 
 1. **安裝程式**：自 [GitHub Releases](https://github.com/twStellerWhale-Ocean2/solLingoIsland/releases/latest) 下載 `LingoIsland-win-Setup.exe` 執行（安裝至使用者目錄、不需系統管理員權限；之後**新版會自動更新**）。不想安裝可改下載 `Portable.zip` 解壓到任意資料夾。
-2. **設定金鑰**：設定使用者環境變數 `OPENAI_API_KEY`。PowerShell 一行完成：
 
-   ```powershell
-   [Environment]::SetEnvironmentVariable('OPENAI_API_KEY','sk-你的金鑰','User')
-   ```
-
-3. **啟動常駐**：安裝後自動啟動（之後可從開始功能表啟動；Portable 版雙擊 `LingoIsland.exe`），**工作列出現 LingoIsland 按鈕**（常駐主控入口，預設最小化）即代表就緒；隨時可從工作列或 `Alt+Tab` 找回它查看狀態、開設定或結束（不必再去翻系統匣顯示設定）。
-4. **開始查詢**：進入遊戲，看到不懂的英文 → 按 `Alt+L`（左右 Alt 皆可）→ **畫面凍結為靜止畫格** → 拖曳框選文字（或在某句上**雙擊**由 AI 自動判斷該句）→ 放開滑鼠。凍結期間點擊／雙擊不會傳到背後遊戲。
-5. **查看結果**：結果顯示於**獨立的「字典」視窗**（原文／KK 音標／中譯）；點 `▶ Play` 聽整句，或**點英文句中任一單字查該字字義**（往前鈕返回原句），辨識有錯可按**鉛筆鈕**改原文重譯；字典視窗會浮在無邊框遊戲之上、**與主視窗共存互不干擾**，`Alt+Tab` 回遊戲即可。也可直接在字典視窗頂部**打字查詢**（或按下拉挑選查詢歷史）。
+> **（選用）認得這個發行者**——做完之後，安裝與執行時 Windows 會顯示發行者名稱，不再是「未知的發行者」。
+>
+> 1. 自同一個 Release 頁下載 `LingoIsland-publisher.cer`（公開憑證，非機密），放在下載資料夾即可。
+> 2. **開一般 PowerShell**（不必系統管理員），`cd` 到放憑證的資料夾後執行——一次即可，之後每一版都認得：
+>
+>    ```powershell
+>    Import-Certificate -FilePath .\LingoIsland-publisher.cer -CertStoreLocation Cert:\CurrentUser\Root
+>    Import-Certificate -FilePath .\LingoIsland-publisher.cer -CertStoreLocation Cert:\CurrentUser\TrustedPublisher
+>    ```
+>
+>    > 這是**只對目前登入帳號生效**的裝法，單人電腦用這個就好。要整台機器所有帳號都認得，改用 `Cert:\LocalMachine\Root` 與 `Cert:\LocalMachine\TrustedPublisher`，但**必須以系統管理員身分執行 PowerShell**，否則會出現 `Access is denied.`；那個視窗預設開在 `C:\Windows\System32`，記得用憑證的完整路徑。
+>
+> 3. 下載回來的安裝檔另需**解除封鎖**（Windows 對網路下載的檔案會加註記）：
+>
+>    ```powershell
+>    Unblock-File .\LingoIsland-win-Setup.exe
+>    ```
+>
+> 想確認有沒有生效：`(Get-AuthenticodeSignature .\LingoIsland-win-Setup.exe).Status` 應顯示 `Valid`（匯入前是 `UnknownError`）。
+>
+> **這兩步各解各的**：匯入憑證解掉「未知的發行者」；解除封鎖是讓 SmartScreen 不對該檔發作。**匯入憑證不會讓 SmartScreen 消失**——它查的是微軟雲端的檔案信譽，不看你本機信任了誰。
 
 ## 操作說明
 
@@ -474,7 +487,8 @@
 
 ## 常見問題
 
-- **裝的時候跳出「Windows 已保護您的電腦」（SmartScreen）？** 本安裝檔**未購買程式碼簽章憑證**，Windows 對下載量少又沒簽章的安裝檔一律會攔。確認檔案是從本專案 GitHub Release 頁下載後，點「**其他資訊**」→「**仍要執行**」即可安裝。不放心的話可改用 `LingoIsland-win-Portable.zip`（免安裝，解壓縮直接執行）。
+- **裝的時候跳出「Windows 已保護您的電腦」（SmartScreen）？** 本安裝檔**已簽章，但用的是自簽憑證**（未購買商業程式碼簽章憑證）。SmartScreen 查的是微軟雲端的「檔案信譽」，**自簽憑證累積不到信譽**，故下載量少的新版仍會被攔。確認檔案是從本專案 GitHub Release 頁下載後，點「**其他資訊**」→「**仍要執行**」即可安裝。不放心的話可改用 `LingoIsland-win-Portable.zip`（免安裝，解壓縮直接執行）。
+- **安裝時顯示「未知的發行者」？** 匯入本專案的發行者憑證即可顯示發行者名稱——見 ＜快速開始＞ 之「（選用）認得這個發行者」。**那一步只解「未知的發行者」，不解 SmartScreen**，兩者是不同的東西。
 - **遮罩蓋不住遊戲？** 遊戲顯示設定改為「無邊框視窗化」。
 - **查詢一直失敗？** 依序確認：`OPENAI_API_KEY` 已設且有效 → 網路可連 OpenAI → 額度未用罄。
 - **沒有聲音？** 確認 Windows 已安裝英文語音包（設定 → 時間與語言 → 語音）。
